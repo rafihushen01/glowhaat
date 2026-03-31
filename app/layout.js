@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Rafi's World",
+  title: "KhanCosmetics",
   description:
-    "Best Online Mens Fashion Store in Bangladesh. Shop the latest trends in men's fashion.",
+    "KhanCosmetics is your ultimate destination for high-quality cosmetics and skincare products. We offer a wide range of beauty essentials, from makeup to skincare, all carefully curated to enhance your natural beauty. Our mission is to provide you with the best products that cater to your unique needs, ensuring you feel confident and radiant every day. Explore our collection and discover the perfect products to elevate your beauty routine.",
 };
 
 export default function RootLayout({ children }) {
