@@ -36,7 +36,7 @@ const AdminHomeBanner = () => {
 
   // Form State
   const [form, setForm] = useState({
-    navigationlink: `${frontendurl}/s`,
+    navigationlink: `${frontendurl}/b`,
     bannernumber: "",
     image: null, // Stores the actual file object
   });
