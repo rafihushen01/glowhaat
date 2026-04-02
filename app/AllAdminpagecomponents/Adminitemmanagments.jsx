@@ -10,9 +10,9 @@ import {
 import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
 import CategorySelector from "./adminutils/AdminItemCategory";
-
+import { serverurl } from "../utils/constants/serverurl";
 // ================= CONFIG =================
-const SERVER_URL = "https://damaskbackend-production.up.railway.app";
+const SERVER_URL = serverurl;
 
 // ================= ANIMATIONS =================
 const containerVars = {
@@ -228,7 +228,7 @@ const AdminItemManagements = () => {
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-cyan-300 to-white bg-clip-text text-transparent leading-none">
-              Rafis World
+              Khan Cosmetics
             </h1>
             <span className="text-[10px] font-mono text-blue-500 block tracking-widest opacity-90">ADMIN PANEL</span>
           </div>

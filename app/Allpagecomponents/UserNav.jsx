@@ -1,14 +1,18 @@
+"use client";
+
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag } from "lucide-react";
+import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut } from "lucide-react";
+import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
 // import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
  // Importing your server url
 import khancoslogo from "../../public/khancosmeticslogo.png"; // Your logo
-import { useRouter } from "next/navigation.js";
+import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
+import { clearUserData } from "../reduxcomponents/UserSlice";
 
 // --- Utility for cleaner tailwind classes ---
 // function cn(...inputs) {
@@ -16,11 +20,6 @@ import { serverurl } from "../utils/constants/serverurl";
 // }
 
 // --- Animation Variants (The "Luxury" Feel) ---
-const fadeOverlay = {
-  hidden: { opacity: 0, backdropFilter: "blur(0px)" },
-  visible: { opacity: 1, backdropFilter: "blur(8px)", transition: { duration: 0.4 } },
-};
-
 const megaMenuVar = {
   hidden: { opacity: 0, y: -10, scale: 0.98 },
   visible: { 
@@ -49,6 +48,33 @@ const slideStack = {
   }),
 };
 
+const normalizeAssetUrl = (value) => {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return "";
+  if (raw.startsWith("http://") || raw.startsWith("https://") || raw.startsWith("data:")) return raw;
+  if (raw.startsWith("/")) return `${serverurl}${raw}`;
+  return `${serverurl}/${raw}`;
+};
+
+const collectPreviewImages = (node, limit = 3, seen = new Set()) => {
+  if (!node || seen.has(String(node._id))) return [];
+  seen.add(String(node._id));
+
+  const directImages = Array.isArray(node.images) ? node.images : [];
+  const normalizedDirect = directImages
+    .map((imgObj) => ({
+      ...imgObj,
+      image: normalizeAssetUrl(imgObj?.image),
+    }))
+    .filter((imgObj) => imgObj.image);
+
+  if (normalizedDirect.length >= limit) return normalizedDirect.slice(0, limit);
+
+  const childNodes = Array.isArray(node.children) ? node.children : [];
+  const childImages = childNodes.flatMap((child) => collectPreviewImages(child, limit, seen));
+  return [...normalizedDirect, ...childImages].slice(0, limit);
+};
+
 // --- Components ---
 
 const UserNav = () => {
@@ -56,7 +82,29 @@ const UserNav = () => {
   const [loading, setLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-const router=useRouter()
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const profileMenuRef = useRef(null);
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { userData } = useSelector((state) => state.user);
+  const user = userData?.user || userData?.data || userData || null;
+  const isAuthenticated = Boolean(user && (user?._id || user?.email || user?.fullname));
+  const userdisplayname = user?.fullname?.trim() || "KhanCosmetics User";
+  const userinitial = (userdisplayname[0] || "U").toUpperCase();
+
+  const getAvatarUrl = () => {
+    const directAvatar = user?.usersavatar?.trim?.() || "";
+    const normalizedGender = String(user?.gender || "").trim().toLowerCase();
+    const genderAvatar =
+      normalizedGender === "male"
+        ? user?.maleavatar
+        : normalizedGender === "female"
+        ? user?.femaleavatar
+        : user?.othergenderavatar;
+    const avatar = directAvatar || genderAvatar || "";
+    return normalizeAssetUrl(avatar);
+  };
+  const avatarUrl = getAvatarUrl();
   // Fetch Data
   useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +120,7 @@ const router=useRouter()
         setLoading(false);
       }
     };
+
     fetchData();
 
     // Scroll listener for glass effect
@@ -79,6 +128,40 @@ const router=useRouter()
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    if (isProfileOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [isProfileOpen]);
+
+  const handleLogout = async () => {
+    try {
+      await axios.post(
+        `${serverurl}/auth/logout`,
+        {},
+        {
+          withCredentials: true,
+          timeout: 12000,
+        }
+      );
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      dispatch(clearUserData());
+      setIsProfileOpen(false);
+      setMobileOpen(false);
+      router.push("/signin");
+    }
+  };
 
   if (loading) return <div className="h-20 bg-white animate-pulse" />;
 
@@ -93,7 +176,7 @@ const router=useRouter()
   }`}
 >
 
-        <div className="container mx-auto px-4 md:px-8 flex items-center justify-between">
+        <div className="container mx-auto px-4 md:px-8 flex items-center justify-between gap-3">
           
           {/* Mobile Toggle */}
           <button 
@@ -104,7 +187,7 @@ const router=useRouter()
           </button>
 
           {/* Logo */}
-          <Link href="/" className="relative z-50 flex items-center gap-2 group">
+          <Link href="/" className="relative z-50 flex shrink-0 items-center gap-3 group">
              <div className="relative overflow-hidden w-32 md:w-40">
                 <Image 
                     src={khancoslogo} 
@@ -115,22 +198,101 @@ const router=useRouter()
                     priority
                 />
              </div>
+           
           </Link>
 
           {/* Desktop Navigation (Center) */}
-          <div className="hidden lg:flex items-center gap-8">
-            {data.map((item) => (
-              <DesktopMenuItem key={item._id} item={item} />
-            ))}
+          <div className="hidden lg:flex min-w-0 flex-1 px-2 xl:px-4">
+            <div className="w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="inline-flex min-w-max items-center gap-1 xl:gap-2 pr-4">
+                {data.map((item) => (
+                  <DesktopMenuItem key={item._id} item={item} />
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Right Icons */}
-          <div className="flex items-center gap-4 text-gray-900">
-            <Search className="w-5 h-5 cursor-pointer hover:text-purple-600 transition-colors" />
+          <div className="flex shrink-0 items-center gap-3 md:gap-4 text-gray-900">
+            <Search className="w-5 h-5 cursor-pointer hover:text-[#1f5c49] transition-colors" />
             <div className="relative cursor-pointer group">
-                <ShoppingBag className="w-5 h-5 group-hover:text-purple-600 transition-colors" />
+                <ShoppingBag className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
                 <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">0</span>
             </div>
+            {isAuthenticated ? (
+              <div className="relative hidden md:flex items-center gap-3" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileOpen((prev) => !prev)}
+                  className="flex items-center gap-2 rounded-full border border-[#d7e3dc] bg-white px-2.5 py-1.5 transition hover:border-[#1f5c49]"
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={userdisplayname}
+                      className="h-8 w-8 rounded-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1f5c49] text-xs font-bold text-white">
+                      {userinitial}
+                    </span>
+                  )}
+                  <span className="max-w-[120px] truncate text-xs font-semibold uppercase tracking-[0.1em] text-[#1f5c49]">
+                    {userdisplayname}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#f1d7d7] bg-[#fff5f5] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[#b42318] transition hover:bg-[#ffe9e9]"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </button>
+
+                <AnimatePresence>
+                  {isProfileOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-3 w-64 rounded-2xl border border-[#dce8e2] bg-white p-3 shadow-xl"
+                    >
+                      <div className="rounded-xl bg-[#f1f8f4] p-3">
+                        <p className="text-[11px] uppercase tracking-[0.16em] text-[#5f7f72]">Signed In As</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[#1f5c49]">{userdisplayname}</p>
+                        <p className="truncate text-xs text-[#527066]">{user?.email || ""}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f1d7d7] bg-[#fff5f5] px-3 py-2.5 text-sm font-semibold text-[#b42318] transition hover:bg-[#ffe9e9]"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ) : (
+              <div className="hidden md:flex items-center gap-2">
+                <Link
+                  href="/signin"
+                  className="rounded-full border border-[#d7e3dc] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#1f5c49] transition hover:bg-[#edf6f1]"
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/signup"
+                  className="rounded-full bg-[#1f5c49] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-[#174737]"
+                >
+                  Join Now
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </nav>
@@ -138,7 +300,14 @@ const router=useRouter()
       {/* Mobile Drawer System */}
       <AnimatePresence>
         {mobileOpen && (
-          <MobileMenu data={data} onClose={() => setMobileOpen(false)} />
+          <MobileMenu
+            data={data}
+            onClose={() => setMobileOpen(false)}
+            isAuthenticated={isAuthenticated}
+            user={user}
+            avatarUrl={avatarUrl}
+            onLogout={handleLogout}
+          />
         )}
       </AnimatePresence>
     </>
@@ -150,25 +319,25 @@ const router=useRouter()
 const DesktopMenuItem = ({ item }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSubCategory, setActiveSubCategory] = useState(null);
-
-  // Set initial active image to the first child or the item itself
-  useEffect(() => {
-    if (isOpen && item.children && item.children.length > 0) {
-      setActiveSubCategory(item.children[0]);
-    } else {
-        setActiveSubCategory(item);
-    }
-  }, [isOpen, item]);
+  const router = useRouter();
+  const defaultSubCategory = item.children && item.children.length > 0 ? item.children[0] : item;
+  const currentSubCategory = activeSubCategory || defaultSubCategory;
 
   return (
     <div
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
-      className="relative h-full flex items-center justify-center"
+      onMouseEnter={() => {
+        setIsOpen(true);
+        setActiveSubCategory(defaultSubCategory);
+      }}
+      onMouseLeave={() => {
+        setIsOpen(false);
+        setActiveSubCategory(null);
+      }}
+      className="relative h-full shrink-0 flex items-center justify-center"
     >
       <Link 
-        href={`${item.link}`}
-        className="text-sm font-medium tracking-wide uppercase hover:text-purple-600 transition-colors py-4 px-1"
+        href={`${item.link || "/"}`}
+        className="text-sm font-medium tracking-wide uppercase hover:text-purple-600 transition-colors py-4 px-2 whitespace-nowrap"
       >
         {item.name}
       </Link>
@@ -180,31 +349,42 @@ const DesktopMenuItem = ({ item }) => {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute top-full -left-[10vw] w-[90vw] max-w-[1400px] bg-white shadow-2xl rounded-b-xl border-t border-gray-100 overflow-hidden"
-            style={{ translateX: "-20%" }} // Centering logic rough adjustment
+            className="absolute top-full left-1/2 z-40 mt-1 w-[min(96vw,1200px)] -translate-x-1/2 bg-white shadow-2xl rounded-b-xl border border-gray-100 overflow-hidden"
           >
             <div className="flex h-[500px]">
               {/* Left: Recursive List */}
-              <div className="w-1/3 min-w-[300px] border-r border-gray-100 p-8 overflow-y-auto custom-scrollbar">
+              <div className="w-[330px] border-r border-gray-100 p-6 overflow-y-auto custom-scrollbar">
                 <ul className="space-y-2">
-                    {item.children.map((child) => (
+                    {item.children.map((child) => {
+                        const childPreview = collectPreviewImages(child, 1)[0];
+                        return (
                         <li key={child._id} 
                             onMouseEnter={() => setActiveSubCategory(child)}
                             className="group"
                         >
                             <Link
-  href={`${child.link}`}
+  href={`${child.link || "/"}`}
   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-all"
 >
-  <span
-    className={`text-sm tracking-wide transition-all ${
-      activeSubCategory?._id === child._id
-        ? "font-bold text-black"
-        : "text-gray-500"
-    }`}
-  >
-    {child.name}
-  </span>
+  <div className="flex items-center gap-3 min-w-0">
+    {childPreview?.image ? (
+      <img
+        src={childPreview.image}
+        alt={child?.name || "Category"}
+        className="h-9 w-9 rounded-md object-cover border border-gray-200"
+        loading="lazy"
+      />
+    ) : null}
+    <span
+      className={`text-sm tracking-wide transition-all truncate ${
+        currentSubCategory?._id === child._id
+          ? "font-bold text-black"
+          : "text-gray-500"
+      }`}
+    >
+      {child.name}
+    </span>
+  </div>
 
   {child.children?.length > 0 && (
     <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-black" />
@@ -212,7 +392,7 @@ const DesktopMenuItem = ({ item }) => {
 </Link>
 
                         </li>
-                    ))}
+                    )})}
                 </ul>
               </div>
 
@@ -220,33 +400,35 @@ const DesktopMenuItem = ({ item }) => {
               <div className="flex-1 p-8 bg-gray-50/50">
                 <div className="h-full flex flex-col">
                     <div className="mb-6">
-                        <h3 className="text-2xl font-light text-gray-900">{activeSubCategory?.name}</h3>
-                        <Link href={`${activeSubCategory?.link}`} className="text-xs font-bold text-purple-600 uppercase tracking-widest mt-2 inline-block border-b border-purple-600 pb-1">
+                        <h3 className="text-2xl font-light text-gray-900">{currentSubCategory?.name}</h3>
+                        <Link href={`${currentSubCategory?.link || "/"}`} className="text-xs font-bold text-purple-600 uppercase tracking-widest mt-2 inline-block border-b border-purple-600 pb-1">
                             View Collection
                         </Link>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-4 h-full">
                         {/* Display images of the currently hovered sub-category */}
-                        {activeSubCategory?.images?.slice(0, 3).map((imgObj, idx) => (
+                        {collectPreviewImages(currentSubCategory, 3).map((imgObj, idx) => (
                              <motion.div 
-                                key={idx + (imgObj.image || "img")}
-                                layoutId={`img-${activeSubCategory._id}-${idx}`}
+                                key={`${currentSubCategory?._id || "node"}-${idx}-${imgObj.image || "img"}`}
+                                layoutId={`img-${currentSubCategory._id}-${idx}`}
                                 className="relative w-full h-full overflow-hidden rounded-lg group cursor-pointer"
                              >
                                 <img
                                     src={imgObj.image}
                                     alt="Category Preview"
-                                    onClick={()=>router.push(imgObj?.link)}
-                                    fill
-                                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                    onClick={() => {
+                                      if (imgObj?.link) router.push(imgObj.link);
+                                    }}
+                                    loading="lazy"
+                                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                 />
                                 <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
                              </motion.div>
                         ))}
-                        {(!activeSubCategory?.images || activeSubCategory.images.length === 0) && (
+                        {collectPreviewImages(currentSubCategory, 3).length === 0 && (
                             <div className="col-span-3 flex items-center justify-center text-gray-300 italic">
-                                No preview images available for {activeSubCategory?.name}
+                                No preview images available for {currentSubCategory?.name}
                             </div>
                         )}
                     </div>
@@ -262,7 +444,7 @@ const DesktopMenuItem = ({ item }) => {
 
 // --- Mobile Infinite Drawer (The "App" Feel) ---
 
-const MobileMenu = ({ data, onClose }) => {
+const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout }) => {
   // We use a stack to manage depth. 
   // Stack[0] is root. Stack[1] is a child category, etc.
   const [navStack, setNavStack] = useState([{ name: "Menu", data: data, type: "root" }]);
@@ -337,7 +519,7 @@ const MobileMenu = ({ data, onClose }) => {
                                             className="flex items-center justify-between p-3 rounded-lg bg-white shadow-sm border border-gray-100 mb-2 active:scale-[0.98] transition-transform"
                                         >
                                             <Link 
-                                                href={`${item.link}`}
+                                                href={`${item.link || "/"}`}
                                                 onClick={() => { if(!hasChildren) onClose(); }}
                                                 className="flex-1 text-base font-medium text-gray-800"
                                             >
@@ -367,10 +549,57 @@ const MobileMenu = ({ data, onClose }) => {
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t border-gray-100 bg-white">
-                 <button className="w-full bg-black text-white py-3 rounded-lg font-medium tracking-wide">
-                    Sign In / Register
-                 </button>
+            <div className="p-6 border-t border-gray-100 bg-white space-y-2">
+                 {isAuthenticated ? (
+                  <>
+                    <div className="flex items-center gap-3 rounded-xl border border-[#d9e6df] bg-[#f4faf7] px-3 py-2">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={user?.fullname || "User Avatar"}
+                          className="h-10 w-10 rounded-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#1f5c49] text-xs font-bold text-white">
+                          {(user?.fullname?.[0] || "U").toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-[#648578]">Logged In</p>
+                        <p className="truncate text-sm font-semibold text-[#1f5c49]">
+                          {user?.fullname || "KhanCosmetics User"}
+                        </p>
+                        <p className="truncate text-xs text-[#648578]">{user?.email || ""}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onLogout}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f1d7d7] bg-[#fff5f5] py-3 text-sm font-semibold tracking-wide text-[#b42318]"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Logout
+                    </button>
+                  </>
+                 ) : (
+                  <>
+                    <Link
+                      href="/signin"
+                      onClick={onClose}
+                      className="block w-full rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-center text-sm font-semibold tracking-wide text-[#1f5c49]"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/signup"
+                      onClick={onClose}
+                      className="block w-full rounded-lg bg-[#1f5c49] py-3 text-center text-sm font-semibold tracking-wide text-white"
+                    >
+                      Create Account
+                    </Link>
+                  </>
+                 )}
             </div>
         </motion.div>
     </>

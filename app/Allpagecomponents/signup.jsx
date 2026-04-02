@@ -21,9 +21,10 @@ import {
   VenusAndMars,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import UserNav from "./UserNav";
+import { useDispatch, useSelector } from "react-redux";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
+import { setUserData } from "../reduxcomponents/UserSlice";
 
 const panelMotion = {
   hidden: { opacity: 0, y: 20 },
@@ -62,6 +63,8 @@ const normalizeMobile = (value) => value.replace(/[^\d+]/g, "").slice(0, 15);
 
 const Signup = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
+  const { userData } = useSelector((state) => state.user);
 
   const [step, setStep] = useState("details");
   const [formData, setFormData] = useState(initialForm);
@@ -79,6 +82,12 @@ const Signup = () => {
     const timer = setTimeout(() => setOtpCountdown((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
   }, [otpCountdown]);
+
+  useEffect(() => {
+    if (userData) {
+      router.replace("/");
+    }
+  }, [userData, router]);
 
   const buildSignupPayload = () => {
     const payload = {
@@ -175,7 +184,7 @@ const Signup = () => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        `${serverurl}/auth/verifysignuptop`,
+        `${serverurl}/auth/verifysignupotp`,
         {
           email: formData.email.trim().toLowerCase(),
           otp: otp.trim(),
@@ -188,8 +197,22 @@ const Signup = () => {
         return;
       }
 
+      let authuser = data?.user || null;
+
+      if (!authuser) {
+        const meRes = await axios.get(`${serverurl}/auth/me`, {
+          withCredentials: true,
+          timeout: 12000,
+        });
+        authuser = meRes?.data?.user || null;
+      }
+
+      if (authuser) {
+        dispatch(setUserData(authuser));
+      }
+
       toast.success("Account created successfully.");
-      setTimeout(() => router.push("/signin"), 900);
+      setTimeout(() => router.push("/"), 900);
     } catch (error) {
       toast.error(getApiError(error, "OTP verification failed."));
     } finally {
@@ -222,7 +245,6 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-[#f8f5ef]" style={{ fontFamily: "\"Manrope\", \"Segoe UI\", sans-serif" }}>
-      <UserNav />
       <Toaster
         position="top-right"
         toastOptions={{
@@ -388,7 +410,7 @@ const Signup = () => {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <FieldLabel label="Mobile (Optional)" icon={<Phone className="h-4 w-4" />} />
+                      <FieldLabel label="Mobile " icon={<Phone className="h-4 w-4" />} />
                       <input
                         type="tel"
                         value={formData.mobile}
