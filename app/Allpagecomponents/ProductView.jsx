@@ -12,6 +12,7 @@ import {
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { serverurl } from '../utils/constants/serverurl'
 import { addToCart } from '../reduxcomponents/CartSlice'
+import ProductReviewQnaPanel from './ProductReviewQnaPanel'
 
 
 const ProductView = () => {
@@ -214,6 +215,9 @@ const ProductView = () => {
           <div className="mb-6 border-b border-gray-100 pb-6">
             <h2 className="text-emerald-700 text-sm font-bold tracking-widest uppercase mb-2">KhanCosmetics Exclusive</h2>
             <h1 className="text-4xl md:text-5xl font-serif text-gray-900 mb-4 leading-tight">{product.name}</h1>
+            <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">
+              {Number(product?.star || 0).toFixed(2)} stars | {Number(product?.reviewcount || 0)} verified reviews
+            </p>
             <div className="flex items-baseline gap-4 mt-2">
               <span className="text-3xl font-medium text-gray-900">৳{currentPrice.toLocaleString()}</span>
               {originalPrice > currentPrice && <span className="text-lg text-gray-400 line-through">৳{originalPrice.toLocaleString()}</span>}
@@ -369,6 +373,9 @@ const ProductView = () => {
           </div>
         </div>
       </main>
+      <div className="mx-auto w-full max-w-7xl px-4 pb-16">
+        <ProductReviewQnaPanel product={product} />
+      </div>
 
       {/* =========================================================================
           SUPER ADVANCED ZOOM MODAL (HAND ICON + PANNING)
@@ -441,4 +448,3 @@ const ProductView = () => {
 }
 
 export default ProductView
-

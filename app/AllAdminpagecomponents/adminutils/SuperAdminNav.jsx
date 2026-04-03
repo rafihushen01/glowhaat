@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   Layers,
   LogOut,
+  MessageSquareQuote,
   ShieldCheck,
   Truck,
   Users,
@@ -50,6 +51,9 @@ const SuperAdminNav = () => {
           </NavLink>
           <NavLink href="/SuperAdminOrders" icon={<Truck className="h-4 w-4" />}>
             Orders
+          </NavLink>
+          <NavLink href="/SuperAdminQna" icon={<MessageSquareQuote className="h-4 w-4" />}>
+            Product Q&A
           </NavLink>
           <NavLink href="/AdminItemManagments" icon={<Package className="h-4 w-4" />}>
             Item Management
