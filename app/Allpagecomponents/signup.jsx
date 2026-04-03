@@ -20,11 +20,13 @@ import {
   User,
   VenusAndMars,
 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
+import { signInWithGoogleAndGetIdToken } from "../UserAuthenticationComponents/fireabase";
 
 const panelMotion = {
   hidden: { opacity: 0, y: 20 },
@@ -72,6 +74,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
 
@@ -240,6 +243,45 @@ const Signup = () => {
       toast.error(getApiError(error, "Resend failed. Please try again."));
     } finally {
       setResending(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    const mobile = formData.mobile.trim();
+    if (!mobile || !/^\+?\d{8,15}$/.test(mobile)) {
+      toast.error("Please enter a valid mobile number before Google signup.");
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const { idToken, profile } = await signInWithGoogleAndGetIdToken();
+      const { data } = await axios.post(
+        `${serverurl}/auth/google/signup`,
+        {
+          idToken,
+          mobile,
+          fullname: formData.fullname.trim() || profile.fullname || "",
+          gender: formData.gender || "Other",
+        },
+        { withCredentials: true, timeout: 15000 }
+      );
+
+      if (!data?.success) {
+        toast.error(data?.message || "Google signup failed.");
+        return;
+      }
+
+      if (data?.user) {
+        dispatch(setUserData(data.user));
+      }
+
+      toast.success(data?.message || "Google signup successful.");
+      setTimeout(() => router.push("/"), 700);
+    } catch (error) {
+      toast.error(getApiError(error, "Google signup failed. Please try again."));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -500,6 +542,29 @@ const Signup = () => {
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
+                  </motion.button>
+
+                  <div className="flex items-center gap-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#6e867b]">
+                    <span className="h-px flex-1 bg-[#d8e6df]" />
+                    Or
+                    <span className="h-px flex-1 bg-[#d8e6df]" />
+                  </div>
+
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    onClick={handleGoogleSignup}
+                    disabled={googleLoading || loading}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#cfded7] bg-white px-4 py-3 text-sm font-semibold text-[#174737] transition hover:bg-[#f5faf8] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {googleLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <FcGoogle className="h-5 w-5" />
+                        Continue with Google (mobile required)
+                      </>
+                    )}
                   </motion.button>
                 </motion.form>
               ) : (

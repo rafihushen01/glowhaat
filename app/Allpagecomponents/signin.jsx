@@ -14,14 +14,17 @@ import {
   Loader2,
   Lock,
   Mail,
+  Phone,
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
+import { signInWithGoogleAndGetIdToken } from "../UserAuthenticationComponents/fireabase";
 
 const panelMotion = {
   hidden: { opacity: 0, y: 22 },
@@ -47,7 +50,9 @@ const Signin = () => {
   const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(true);
+  const [googleMobile, setGoogleMobile] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
 
@@ -176,7 +181,11 @@ const Signin = () => {
 
       toast.success(data?.message || "Signin successful.");
       setTimeout(() => {
-        router.push("/");
+        if (authuser?.role === "SuperAdmin") {
+          router.push("/SuperAdmin");
+        } else {
+          router.push("/");
+        }
       }, 750);
     } catch (error) {
       toast.error(getApiError(error, "OTP verification failed."));
@@ -215,6 +224,49 @@ const Signin = () => {
       toast.error(getApiError(error, "Could not resend OTP."));
     } finally {
       setResending(false);
+    }
+  };
+
+  const handleGoogleSignin = async () => {
+    const mobile = googleMobile.trim();
+    if (!mobile || !/^\+?\d{8,15}$/.test(mobile)) {
+      toast.error("Please enter a valid mobile number before Google signin.");
+      return;
+    }
+
+    setGoogleLoading(true);
+    try {
+      const { idToken } = await signInWithGoogleAndGetIdToken();
+      const { data } = await axios.post(
+        `${serverurl}/auth/google/signin`,
+        {
+          idToken,
+          mobile,
+        },
+        { withCredentials: true, timeout: 15000 }
+      );
+
+      if (!data?.success) {
+        toast.error(data?.message || "Google signin failed.");
+        return;
+      }
+
+      if (data?.user) {
+        dispatch(setUserData(data.user));
+      }
+
+      toast.success(data?.message || "Google signin successful.");
+      setTimeout(() => {
+        if (data?.user?.role === "SuperAdmin") {
+          router.push("/SuperAdmin");
+        } else {
+          router.push("/");
+        }
+      }, 700);
+    } catch (error) {
+      toast.error(getApiError(error, "Google signin failed. Please try again."));
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -418,6 +470,39 @@ const Signin = () => {
                     ) : (
                       <>
                         Continue with OTP <ArrowRight className="h-4 w-4" />
+                      </>
+                    )}
+                  </motion.button>
+
+                  <div className="flex items-center gap-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#6e867b]">
+                    <span className="h-px flex-1 bg-[#d8e6df]" />
+                    Or
+                    <span className="h-px flex-1 bg-[#d8e6df]" />
+                  </div>
+
+                  <FieldLabel label="Mobile For Google Signin" icon={<Phone className="h-4 w-4" />} />
+                  <input
+                    type="tel"
+                    value={googleMobile}
+                    onChange={(event) => setGoogleMobile(event.target.value.replace(/[^\d+]/g, "").slice(0, 15))}
+                    placeholder="+8801XXXXXXXXX"
+                    autoComplete="tel"
+                    className={inputClass}
+                  />
+
+                  <motion.button
+                    whileTap={{ scale: 0.985 }}
+                    type="button"
+                    onClick={handleGoogleSignin}
+                    disabled={googleLoading || loading}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#cfded7] bg-white px-4 py-3 text-sm font-semibold text-[#174737] transition hover:bg-[#f5faf8] disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {googleLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <FcGoogle className="h-5 w-5" />
+                        Sign in with Google
                       </>
                     )}
                   </motion.button>

@@ -1,0 +1,399 @@
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { useDispatch, useSelector } from "react-redux";
+import { Banknote, Building2, CreditCard, MapPin, Navigation, Smartphone } from "lucide-react";
+import useGetMyLocation from "../hooks/useGetMyLocation";
+import { serverurl } from "../utils/constants/serverurl";
+import { clearCart, setCartItems } from "../reduxcomponents/CartSlice";
+
+const LocationPickerMap = dynamic(() => import("../components/LocationPickerMap"), {
+  ssr: false,
+});
+
+const PAYMENT_METHODS = [
+  { id: "cod", label: "Cash on Delivery", icon: <Banknote className="h-4 w-4" /> },
+  { id: "bkash", label: "bKash", icon: <Smartphone className="h-4 w-4" /> },
+  { id: "nagad", label: "Nagad", icon: <CreditCard className="h-4 w-4" /> },
+  { id: "bank", label: "Bank Transfer", icon: <Building2 className="h-4 w-4" /> },
+];
+
+const formatPrice = (value) => `৳${Number(value || 0).toLocaleString()}`;
+
+const CheckoutPage = () => {
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const userData = useSelector((state) => state.user.userData);
+  const user = userData?.user || userData?.data || userData || null;
+
+  const [cartLoading, setCartLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [manualQuery, setManualQuery] = useState("");
+  const [deliveryTotal, setDeliveryTotal] = useState(0);
+  const [subtotal, setSubtotal] = useState(0);
+  const [cartItems, setLocalCartItems] = useState([]);
+
+  const [form, setForm] = useState({
+    fullname: user?.fullname || "",
+    mobile: user?.mobile || "",
+    email: user?.email || "",
+    district: user?.District || "",
+    city: user?.city || "",
+    upzilla: user?.upzilla || "",
+    area: "",
+    addressline: user?.fulladdress || "",
+    landmark: "",
+    notes: "",
+    paymentreference: "",
+    paymentnote: "",
+  });
+
+  const {
+    location,
+    loadingCurrent,
+    searching,
+    error: locationError,
+    results,
+    getMyLocation,
+    searchManualLocation,
+    pickLocation,
+    setLocation,
+  } = useGetMyLocation();
+
+  const grandTotal = useMemo(() => subtotal + deliveryTotal, [subtotal, deliveryTotal]);
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      try {
+        const { data } = await axios.get(`${serverurl}/cart/my`, { withCredentials: true });
+        if (data?.success) {
+          const items = Array.isArray(data.items) ? data.items : [];
+          setLocalCartItems(items);
+          setSubtotal(Number(data.subtotal || 0));
+          setDeliveryTotal(Number(data.deliverytotal || 0));
+          dispatch(setCartItems(items));
+        }
+      } catch (error) {
+        setStatusMessage(error?.response?.data?.message || "Please sign in to continue checkout.");
+      } finally {
+        setCartLoading(false);
+      }
+    };
+
+    fetchCart();
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!location) return;
+    setForm((prev) => ({
+      ...prev,
+      district: prev.district || location.district || "",
+      city: prev.city || location.city || "",
+      area: prev.area || location.area || "",
+    }));
+  }, [location]);
+
+  const handleSearchManual = async () => {
+    await searchManualLocation(manualQuery);
+  };
+
+  const handlePickFromMap = ({ lat, lng }) => {
+    setLocation((prev) => ({
+      ...(prev || {}),
+      lat,
+      lng,
+      formatted: prev?.formatted || `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+      city: prev?.city || "",
+      district: prev?.district || "",
+      area: prev?.area || "",
+      country: prev?.country || "",
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setStatusMessage("");
+    setSubmitting(true);
+    try {
+      const payload = {
+        ...form,
+        paymentmethod: paymentMethod,
+        locationtext: location?.formatted || "",
+        latitude: location?.lat ?? null,
+        longitude: location?.lng ?? null,
+      };
+      const { data } = await axios.post(`${serverurl}/order/place`, payload, {
+        withCredentials: true,
+      });
+      if (data?.success) {
+        dispatch(clearCart());
+        setStatusMessage("Order placed successfully.");
+        router.push("/my-orders");
+      }
+    } catch (error) {
+      setStatusMessage(error?.response?.data?.message || "Could not place order.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-sm uppercase tracking-[0.24em] text-emerald-700">Preparing Checkout</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white text-[#0f2f24]">
+      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.14),_transparent_40%),radial-gradient(circle_at_bottom_right,_rgba(5,150,105,0.12),_transparent_40%)]" />
+      <div className="relative mx-auto max-w-7xl px-4 py-8 md:py-12">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.32em] text-emerald-700">KhanCosmetics Checkout</p>
+            <h1 className="mt-2 text-4xl md:text-5xl font-semibold">Complete Your Order</h1>
+            <p className="mt-2 text-sm text-[#4f6f63]">
+              Clean, secure, and fast checkout in KhanCosmetics signature white and emerald.
+            </p>
+          </div>
+          <Link
+            href="/cart"
+            className="h-11 px-5 rounded-full border border-emerald-200 text-xs uppercase tracking-[0.18em] text-emerald-800 inline-flex items-center"
+          >
+            Back to Cart
+          </Link>
+        </header>
+
+        {statusMessage ? (
+          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {statusMessage}
+          </div>
+        ) : null}
+
+        {cartItems.length === 0 ? (
+          <div className="mt-10 rounded-2xl border border-emerald-200 bg-white p-10 text-center">
+            <h2 className="text-2xl font-semibold">Your cart is empty</h2>
+            <p className="mt-2 text-sm text-[#4f6f63]">Add products first to continue checkout.</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-8">
+            <section className="xl:col-span-2 space-y-6">
+              <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
+                <h2 className="text-xl font-semibold">Basic Information</h2>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input label="Full Name" value={form.fullname} onChange={(v) => setForm((p) => ({ ...p, fullname: v }))} required />
+                  <Input label="Mobile Number" value={form.mobile} onChange={(v) => setForm((p) => ({ ...p, mobile: v }))} required />
+                  <Input label="Email (Optional)" value={form.email} onChange={(v) => setForm((p) => ({ ...p, email: v }))} />
+                  <Input label="District" value={form.district} onChange={(v) => setForm((p) => ({ ...p, district: v }))} required />
+                  <Input label="City" value={form.city} onChange={(v) => setForm((p) => ({ ...p, city: v }))} required />
+                  <Input label="Upzilla" value={form.upzilla} onChange={(v) => setForm((p) => ({ ...p, upzilla: v }))} />
+                  <Input label="Area" value={form.area} onChange={(v) => setForm((p) => ({ ...p, area: v }))} />
+                  <Input label="Landmark" value={form.landmark} onChange={(v) => setForm((p) => ({ ...p, landmark: v }))} />
+                </div>
+                <label className="mt-4 block text-sm text-emerald-900">
+                  Full Address
+                  <textarea
+                    required
+                    value={form.addressline}
+                    onChange={(e) => setForm((p) => ({ ...p, addressline: e.target.value }))}
+                    className="mt-2 min-h-[100px] w-full rounded-xl border border-emerald-200 px-3 py-2 outline-none focus:border-emerald-500"
+                    placeholder="House, road, area details"
+                  />
+                </label>
+                <label className="mt-4 block text-sm text-emerald-900">
+                  Order Notes
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                    className="mt-2 min-h-[80px] w-full rounded-xl border border-emerald-200 px-3 py-2 outline-none focus:border-emerald-500"
+                    placeholder="Any delivery instructions"
+                  />
+                </label>
+              </article>
+
+              <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-xl font-semibold">Location</h2>
+                  <button
+                    type="button"
+                    onClick={getMyLocation}
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-emerald-800"
+                  >
+                    <Navigation className="h-4 w-4" />
+                    {loadingCurrent ? "Locating..." : "Use My Location"}
+                  </button>
+                </div>
+
+                <div className="mt-4 flex flex-col md:flex-row gap-3">
+                  <input
+                    value={manualQuery}
+                    onChange={(e) => setManualQuery(e.target.value)}
+                    placeholder="Search manual location"
+                    className="h-11 flex-1 rounded-xl border border-emerald-200 px-3 outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSearchManual}
+                    className="h-11 rounded-xl border border-emerald-700 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 hover:bg-emerald-50"
+                  >
+                    {searching ? "Searching..." : "Search"}
+                  </button>
+                </div>
+
+                {locationError ? <p className="mt-3 text-sm text-red-600">{locationError}</p> : null}
+
+                {results.length > 0 ? (
+                  <div className="mt-4 grid gap-2">
+                    {results.map((result, idx) => (
+                      <button
+                        key={`${result.lat}-${result.lng}-${idx}`}
+                        type="button"
+                        onClick={() => pickLocation(result)}
+                        className="text-left rounded-xl border border-emerald-200 px-3 py-2 hover:bg-emerald-50"
+                      >
+                        <p className="text-sm font-medium text-emerald-900">{result.formatted}</p>
+                        <p className="text-xs text-[#4f6f63]">
+                          {result.city || "Unknown city"} {result.district ? `| ${result.district}` : ""}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                {location ? (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Selected Location</p>
+                    <p className="mt-1 text-sm text-emerald-900">{location.formatted}</p>
+                    <p className="text-xs text-[#4f6f63]">
+                      Lat: {Number(location.lat).toFixed(6)}, Lng: {Number(location.lng).toFixed(6)}
+                    </p>
+                  </div>
+                ) : null}
+
+                <div className="mt-4">
+                  <LocationPickerMap
+                    lat={location?.lat}
+                    lng={location?.lng}
+                    onPick={handlePickFromMap}
+                  />
+                  <p className="mt-2 flex items-center gap-2 text-xs text-[#4f6f63]">
+                    <MapPin className="h-3.5 w-3.5" />
+                    Click on map to adjust pin for accurate delivery.
+                  </p>
+                </div>
+              </article>
+
+              <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
+                <h2 className="text-xl font-semibold">Payment Method</h2>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {PAYMENT_METHODS.map((method) => (
+                    <button
+                      key={method.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(method.id)}
+                      className={`rounded-xl border px-4 py-3 text-left transition ${
+                        paymentMethod === method.id
+                          ? "border-emerald-700 bg-emerald-50"
+                          : "border-emerald-200 bg-white hover:bg-emerald-50/40"
+                      }`}
+                    >
+                      <p className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-900">
+                        {method.icon}
+                        {method.label}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+
+                {paymentMethod !== "cod" ? (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Input
+                      label="Payment Reference / Txn ID"
+                      value={form.paymentreference}
+                      onChange={(v) => setForm((p) => ({ ...p, paymentreference: v }))}
+                      required
+                    />
+                    <Input
+                      label="Payment Note"
+                      value={form.paymentnote}
+                      onChange={(v) => setForm((p) => ({ ...p, paymentnote: v }))}
+                      placeholder="Sender number / bank details"
+                    />
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                    You will pay cash when your order arrives.
+                  </div>
+                )}
+              </article>
+            </section>
+
+            <aside className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6 h-fit sticky top-6">
+              <h2 className="text-2xl font-semibold">Order Summary</h2>
+              <div className="mt-5 space-y-3 text-sm">
+                {cartItems.map((item) => (
+                  <div key={item._id} className="flex items-start gap-3">
+                    <img src={item.image} alt={item.name} className="h-14 w-14 rounded-lg object-cover border border-emerald-100" />
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate text-sm font-semibold text-emerald-900">{item.name}</p>
+                      <p className="text-xs text-[#4f6f63]">
+                        {item.variantname || "Default"} / {item.optionname || "Option"} x {item.quantity}
+                      </p>
+                    </div>
+                    <p className="text-sm font-semibold">{formatPrice(item.totalprice)}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 space-y-2 border-t border-emerald-100 pt-4 text-sm">
+                <div className="flex justify-between text-[#4f6f63]">
+                  <span>Subtotal</span>
+                  <span>{formatPrice(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-[#4f6f63]">
+                  <span>Delivery</span>
+                  <span>{formatPrice(deliveryTotal)}</span>
+                </div>
+                <div className="flex justify-between text-lg font-semibold text-emerald-900 pt-1">
+                  <span>Total</span>
+                  <span>{formatPrice(grandTotal)}</span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="mt-6 h-12 w-full rounded-xl bg-emerald-700 text-white text-xs font-semibold uppercase tracking-[0.18em] hover:bg-emerald-800 disabled:opacity-70"
+              >
+                {submitting ? "Placing Order..." : "Complete Order"}
+              </button>
+            </aside>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const Input = ({ label, value, onChange, required = false, placeholder = "" }) => (
+  <label className="text-sm text-emerald-900">
+    {label}
+    <input
+      required={required}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      placeholder={placeholder}
+      className="mt-2 h-11 w-full rounded-xl border border-emerald-200 px-3 outline-none focus:border-emerald-500"
+    />
+  </label>
+);
+
+export default CheckoutPage;
+

@@ -1,16 +1,6 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ReduxProvider from "./reduxprovider";   // 👈 import wrapper
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import "leaflet/dist/leaflet.css";
+import ReduxProvider from "./reduxprovider";
 
 export const metadata = {
   title: "KhanCosmetics",
@@ -21,12 +11,8 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ReduxProvider>
-          {children}
-        </ReduxProvider>
-     
-    
+      <body className="antialiased">
+        <ReduxProvider>{children}</ReduxProvider>
       </body>
     </html>
   );

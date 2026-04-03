@@ -13,6 +13,7 @@ import khancoslogo from "../../public/khancosmeticslogo.png"; // Your logo
 import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import { clearUserData } from "../reduxcomponents/UserSlice";
+import { setCartItems } from "../reduxcomponents/CartSlice";
 
 // --- Utility for cleaner tailwind classes ---
 // function cn(...inputs) {
@@ -75,22 +76,44 @@ const collectPreviewImages = (node, limit = 3, seen = new Set()) => {
   return [...normalizedDirect, ...childImages].slice(0, limit);
 };
 
+const getNodeThumb = (node) => {
+  if (!node) return "";
+  const direct = Array.isArray(node.images) ? node.images : [];
+  const directUrl = direct[0]?.image ? normalizeAssetUrl(direct[0].image) : "";
+  if (directUrl) return directUrl;
+
+  // fallback: use first descendant image (if any)
+  const fallback = collectPreviewImages(node, 1)[0];
+  return fallback?.image || "";
+};
+
 // --- Components ---
 
 const UserNav = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [navHeight, setNavHeight] = useState(72);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef(null);
+  const navRef = useRef(null);
   const router = useRouter();
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
+  const cartItems = useSelector((state) => state.cart.cartItems);
   const user = userData?.user || userData?.data || userData || null;
   const isAuthenticated = Boolean(user && (user?._id || user?.email || user?.fullname));
   const userdisplayname = user?.fullname?.trim() || "KhanCosmetics User";
   const userinitial = (userdisplayname[0] || "U").toUpperCase();
+  const cartCount = Array.isArray(cartItems) ? cartItems.length : 0;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchRef = useRef(null);
+  const searchTimer = useRef(null);
 
   const getAvatarUrl = () => {
     const directAvatar = user?.usersavatar?.trim?.() || "";
@@ -130,18 +153,69 @@ const UserNav = () => {
   }, []);
 
   useEffect(() => {
+    const updateHeight = () => {
+      if (navRef.current) {
+        setNavHeight(navRef.current.offsetHeight || 72);
+      }
+    };
+    updateHeight();
+    window.addEventListener("resize", updateHeight);
+    return () => window.removeEventListener("resize", updateHeight);
+  }, [isScrolled]);
+
+  useEffect(() => {
+    const fetchCart = async () => {
+      if (!isAuthenticated) return;
+      try {
+        const res = await axios.get(`${serverurl}/cart/my`, { withCredentials: true });
+        if (res?.data?.success) {
+          dispatch(setCartItems(res.data.items || []));
+        }
+      } catch (error) {
+        // silent: cart badge can stay at 0 if unauthenticated
+      }
+    };
+    fetchCart();
+  }, [dispatch, isAuthenticated]);
+
+  useEffect(() => {
     const handleOutsideClick = (event) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
         setIsProfileOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
     };
 
-    if (isProfileOpen) {
+    if (isProfileOpen || searchOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
     }
 
     return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, [isProfileOpen]);
+  }, [isProfileOpen, searchOpen]);
+
+  const handleSearch = (value) => {
+    setSearchTerm(value);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!value.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    searchTimer.current = setTimeout(async () => {
+      try {
+        setIsSearching(true);
+        const res = await axios.get(`${serverurl}/item/search?q=${encodeURIComponent(value)}`);
+        if (res?.data?.success) {
+          setSearchResults(res.data.items || []);
+        }
+      } catch (error) {
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 350);
+  };
 
   const handleLogout = async () => {
     try {
@@ -168,6 +242,7 @@ const UserNav = () => {
   return (
     <>
     <nav
+  ref={navRef}
   className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ease-in-out border-b border-transparent
   ${
     isScrolled
@@ -212,13 +287,29 @@ const UserNav = () => {
             </div>
           </div>
 
-          {/* Right Icons */}
-          <div className="flex shrink-0 items-center gap-3 md:gap-4 text-gray-900">
-            <Search className="w-5 h-5 cursor-pointer hover:text-[#1f5c49] transition-colors" />
-            <div className="relative cursor-pointer group">
-                <ShoppingBag className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
-                <span className="absolute -top-2 -right-2 bg-black text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full">0</span>
-            </div>
+          {/* Right Icons + Search */}
+          <div className="flex shrink-0 items-center gap-3 md:gap-4 text-gray-900" ref={searchRef}>
+            <button
+              type="button"
+              onClick={() => setSearchOpen((prev) => !prev)}
+              className="hidden md:flex items-center gap-2 rounded-full border border-[#d7e3dc] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#1f5c49] transition hover:border-[#1f5c49]"
+            >
+              <Search className="w-4 h-4" />
+              Search
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/cart")}
+              className="relative cursor-pointer group"
+            >
+              <ShoppingBag className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
+              {cartCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-[#1f5c49] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
+                  {cartCount}
+                </span>
+              )}
+            </button>
             {isAuthenticated ? (
               <div className="relative hidden md:flex items-center gap-3" ref={profileMenuRef}>
                 <button
@@ -297,6 +388,88 @@ const UserNav = () => {
         </div>
       </nav>
 
+      {/* Desktop Searchbar Panel */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.2 }}
+            className="fixed left-0 right-0 z-[90] hidden md:block"
+            style={{ top: navHeight }}
+          >
+            <div className="mx-auto w-full max-w-none px-4 md:px-8">
+              <div className="rounded-2xl border border-[#dce8e2] bg-white/95 p-6 shadow-xl backdrop-blur">
+                <div className="flex items-center gap-3">
+                  <Search className="h-5 w-5 text-[#1f5c49]" />
+                  <input
+                    autoFocus
+                    value={searchTerm}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Search KhanCosmetics..."
+                    className="w-full bg-transparent text-lg text-[#1f5c49] placeholder:text-[#6d8d80] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSearchOpen(false)}
+                    className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1f5c49]"
+                  >
+                    Close
+                  </button>
+                </div>
+                <div className="mt-3 h-px bg-[#1f5c49]" />
+                <div className="mt-4 max-h-72 overflow-y-auto">
+                  {isSearching && (
+                    <p className="text-xs text-[#6d8d80]">Searching...</p>
+                  )}
+                  {!isSearching && searchResults.length === 0 && searchTerm && (
+                    <p className="text-xs text-[#6d8d80]">No results found.</p>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {searchResults.map((item) => {
+                      const image =
+                        item?.variants?.[0]?.images?.[0] ||
+                        item?.whiteimage ||
+                        item?.hoverimage ||
+                        "";
+                      const price =
+                        item?.variants?.[0]?.options?.[0]?.currentprice || 0;
+                      return (
+                        <button
+                          key={item._id}
+                          onClick={() => {
+                            setSearchOpen(false);
+                            router.push(`/product/${item.slug}`);
+                          }}
+                          className="w-full flex items-center gap-3 rounded-xl border border-[#e6f1ec] bg-white p-3 hover:bg-[#f5fbf8] text-left"
+                        >
+                          {image ? (
+                            <img
+                              src={image}
+                              alt={item.name}
+                              className="h-14 w-14 rounded-lg object-cover border border-[#e3eee8]"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="h-14 w-14 rounded-lg bg-[#eaf5ef]" />
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#1f5c49]">{item.name}</p>
+                            <p className="text-xs text-[#6d8d80]">{item.brand || "KhanCosmetics"}</p>
+                            <p className="text-xs text-[#1f5c49] mt-1">৳{Number(price).toLocaleString()}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Mobile Drawer System */}
       <AnimatePresence>
         {mobileOpen && (
@@ -322,6 +495,10 @@ const DesktopMenuItem = ({ item }) => {
   const router = useRouter();
   const defaultSubCategory = item.children && item.children.length > 0 ? item.children[0] : item;
   const currentSubCategory = activeSubCategory || defaultSubCategory;
+  const featuredCandidates =
+    currentSubCategory?.children && currentSubCategory.children.length > 0
+      ? currentSubCategory.children
+      : item.children || [];
 
   return (
     <div
@@ -337,7 +514,7 @@ const DesktopMenuItem = ({ item }) => {
     >
       <Link 
         href={`${item.link || "/"}`}
-        className="text-sm font-medium tracking-wide uppercase hover:text-purple-600 transition-colors py-4 px-2 whitespace-nowrap"
+        className="text-sm font-medium tracking-wide uppercase hover:text-[#1f5c49] transition-colors py-4 px-2 whitespace-nowrap"
       >
         {item.name}
       </Link>
@@ -356,7 +533,7 @@ const DesktopMenuItem = ({ item }) => {
               <div className="w-[330px] border-r border-gray-100 p-6 overflow-y-auto custom-scrollbar">
                 <ul className="space-y-2">
                     {item.children.map((child) => {
-                        const childPreview = collectPreviewImages(child, 1)[0];
+                        const childPreviewUrl = getNodeThumb(child);
                         return (
                         <li key={child._id} 
                             onMouseEnter={() => setActiveSubCategory(child)}
@@ -367,9 +544,9 @@ const DesktopMenuItem = ({ item }) => {
   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-all"
 >
   <div className="flex items-center gap-3 min-w-0">
-    {childPreview?.image ? (
+    {childPreviewUrl ? (
       <img
-        src={childPreview.image}
+        src={childPreviewUrl}
         alt={child?.name || "Category"}
         className="h-9 w-9 rounded-md object-cover border border-gray-200"
         loading="lazy"
@@ -401,36 +578,117 @@ const DesktopMenuItem = ({ item }) => {
                 <div className="h-full flex flex-col">
                     <div className="mb-6">
                         <h3 className="text-2xl font-light text-gray-900">{currentSubCategory?.name}</h3>
-                        <Link href={`${currentSubCategory?.link || "/"}`} className="text-xs font-bold text-purple-600 uppercase tracking-widest mt-2 inline-block border-b border-purple-600 pb-1">
+                        <Link href={`${currentSubCategory?.link || "/"}`} className="text-xs font-bold text-[#1f5c49] uppercase tracking-widest mt-2 inline-block border-b border-[#1f5c49] pb-1">
                             View Collection
                         </Link>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-4 h-full">
-                        {/* Display images of the currently hovered sub-category */}
-                        {collectPreviewImages(currentSubCategory, 3).map((imgObj, idx) => (
-                             <motion.div 
-                                key={`${currentSubCategory?._id || "node"}-${idx}-${imgObj.image || "img"}`}
-                                layoutId={`img-${currentSubCategory._id}-${idx}`}
-                                className="relative w-full h-full overflow-hidden rounded-lg group cursor-pointer"
-                             >
+                    <div className="grid grid-cols-[200px_1fr_240px] gap-6 h-full">
+                        {/* Subcategory Links */}
+                        <div className="border-r border-gray-100 pr-4">
+                          <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400 mb-3">Explore</p>
+                          <ul className="space-y-2">
+                            {(currentSubCategory?.children || []).map((sub) => {
+                              const previewUrl = getNodeThumb(sub);
+                              return (
+                                <li key={sub._id}>
+                                  <Link
+                                    href={`${sub.link || "/"}`}
+                                    className="flex items-center gap-3 text-sm text-gray-600 hover:text-[#1f5c49] transition-colors"
+                                  >
+                                    {previewUrl ? (
+                                      <img
+                                        src={previewUrl}
+                                        alt={sub?.name || "Category"}
+                                        className="h-8 w-8 rounded-md object-cover border border-gray-200"
+                                        loading="lazy"
+                                      />
+                                    ) : (
+                                      <div className="h-8 w-8 rounded-md bg-[#eaf5ef]" />
+                                    )}
+                                    <span className="truncate">{sub.name}</span>
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                            {(currentSubCategory?.children || []).length === 0 && (
+                              <li className="text-sm text-gray-300 italic">No subcategories</li>
+                            )}
+                          </ul>
+                        </div>
+
+                        {/* Image Grid for each subcategory */}
+                        <div className="grid grid-cols-2 xl:grid-cols-3 gap-4 h-full overflow-y-auto pr-2 custom-scrollbar">
+                        {(currentSubCategory?.children || []).map((sub) => {
+                          const previewUrl = getNodeThumb(sub);
+                          return (
+                            <motion.div
+                              key={sub._id}
+                              layoutId={`img-${sub._id}`}
+                              className="relative w-full overflow-hidden rounded-lg group cursor-pointer aspect-[4/5] border border-gray-100 bg-white"
+                              onClick={() => {
+                                if (sub?.link) router.push(sub.link);
+                              }}
+                            >
+                              {previewUrl ? (
                                 <img
-                                    src={imgObj.image}
-                                    alt="Category Preview"
-                                    onClick={() => {
-                                      if (imgObj?.link) router.push(imgObj.link);
-                                    }}
-                                    loading="lazy"
-                                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+                                  src={previewUrl}
+                                  alt={sub?.name || "Category"}
+                                  loading="lazy"
+                                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
                                 />
-                                <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                             </motion.div>
-                        ))}
-                        {collectPreviewImages(currentSubCategory, 3).length === 0 && (
-                            <div className="col-span-3 flex items-center justify-center text-gray-300 italic">
-                                No preview images available for {currentSubCategory?.name}
-                            </div>
+                              ) : (
+                                <div className="h-full w-full bg-[#eaf5ef]" />
+                              )}
+                              <div className="absolute inset-0 bg-black/15 group-hover:bg-black/0 transition-colors" />
+                              <div className="absolute bottom-3 left-3 right-3">
+                                <p className="text-sm font-semibold text-white drop-shadow">
+                                  {sub.name}
+                                </p>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                        {(currentSubCategory?.children || []).length === 0 && (
+                          <div className="col-span-3 flex items-center justify-center text-gray-300 italic">
+                            No preview images available for {currentSubCategory?.name}
+                          </div>
                         )}
+                        </div>
+
+                        {/* Featured Tiles */}
+                        <div className="hidden xl:flex flex-col gap-4">
+                          <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400">Signature</p>
+                          {featuredCandidates
+                            .slice(0, 3)
+                            .map((sub) => {
+                              const previewUrl = getNodeThumb(sub);
+                              return (
+                                <Link
+                                  key={sub._id}
+                                  href={`${sub.link || "/"}`}
+                                  className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white"
+                                >
+                                  {previewUrl ? (
+                                    <img
+                                      src={previewUrl}
+                                      alt={sub?.name || "Featured"}
+                                      className="h-28 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                      loading="lazy"
+                                    />
+                                  ) : (
+                                    <div className="h-28 w-full bg-[#eaf5ef]" />
+                                  )}
+                                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
+                                  <div className="absolute bottom-3 left-3 right-3">
+                                    <p className="text-sm font-semibold text-white drop-shadow">
+                                      {sub.name}
+                                    </p>
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                        </div>
                     </div>
                 </div>
               </div>
@@ -463,6 +721,33 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout 
   };
 
   const currentLevel = navStack[navStack.length - 1];
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileResults, setMobileResults] = useState([]);
+  const [mobileSearching, setMobileSearching] = useState(false);
+  const mobileTimer = useRef(null);
+  const router = useRouter();
+
+  const handleMobileSearch = (value) => {
+    setMobileSearch(value);
+    if (mobileTimer.current) clearTimeout(mobileTimer.current);
+    if (!value.trim()) {
+      setMobileResults([]);
+      return;
+    }
+    mobileTimer.current = setTimeout(async () => {
+      try {
+        setMobileSearching(true);
+        const res = await axios.get(`${serverurl}/item/search?q=${encodeURIComponent(value)}`);
+        if (res?.data?.success) {
+          setMobileResults(res.data.items || []);
+        }
+      } catch (error) {
+        setMobileResults([]);
+      } finally {
+        setMobileSearching(false);
+      }
+    }, 300);
+  };
 
   return (
     <>
@@ -509,10 +794,63 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout 
                         exit="exit"
                         className="absolute inset-0 overflow-y-auto px-4 py-2"
                     >
-                        <h2 className="text-2xl font-light mb-6 mt-4 px-2">{currentLevel.name}</h2>
+                        <div className="mt-4 px-2">
+                          <div className="flex items-center gap-2 rounded-full border border-[#d7e3dc] bg-[#f4faf7] px-3 py-2">
+                            <Search className="w-4 h-4 text-[#1f5c49]" />
+                            <input
+                              value={mobileSearch}
+                              onChange={(e) => handleMobileSearch(e.target.value)}
+                              placeholder="Search KhanCosmetics..."
+                              className="w-full bg-transparent text-sm text-[#1f5c49] placeholder:text-[#6d8d80] focus:outline-none"
+                            />
+                          </div>
+                          {mobileSearch && (
+                            <div className="mt-3 space-y-2">
+                              {mobileSearching && (
+                                <p className="text-xs text-[#6d8d80]">Searching...</p>
+                              )}
+                              {!mobileSearching && mobileResults.length === 0 && (
+                                <p className="text-xs text-[#6d8d80]">No results found.</p>
+                              )}
+                              {mobileResults.map((item) => {
+                                const image =
+                                  item?.variants?.[0]?.images?.[0] ||
+                                  item?.whiteimage ||
+                                  item?.hoverimage ||
+                                  "";
+                                return (
+                                  <button
+                                    key={item._id}
+                                    onClick={() => {
+                                      onClose();
+                                      router.push(`/product/${item.slug}`);
+                                    }}
+                                    className="w-full flex items-center gap-3 rounded-xl border border-[#e6f1ec] bg-white p-2 text-left"
+                                  >
+                                    {image ? (
+                                      <img
+                                        src={image}
+                                        alt={item.name}
+                                        className="h-10 w-10 rounded-lg object-cover border border-[#e3eee8]"
+                                      />
+                                    ) : (
+                                      <div className="h-10 w-10 rounded-lg bg-[#eaf5ef]" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <p className="truncate text-sm font-semibold text-[#1f5c49]">{item.name}</p>
+                                      <p className="text-xs text-[#6d8d80]">{item.brand || "KhanCosmetics"}</p>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <h2 className="text-2xl font-light mb-6 mt-6 px-2">{currentLevel.name}</h2>
                         <ul className="space-y-1">
                             {currentLevel.data.map((item) => {
                                 const hasChildren = item.children && item.children.length > 0;
+                                const previewUrl = getNodeThumb(item);
                                 return (
                                     <li key={item._id}>
                                         <div 
@@ -521,8 +859,18 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout 
                                             <Link 
                                                 href={`${item.link || "/"}`}
                                                 onClick={() => { if(!hasChildren) onClose(); }}
-                                                className="flex-1 text-base font-medium text-gray-800"
+                                                className="flex-1 text-base font-medium text-gray-800 flex items-center gap-3"
                                             >
+                                                {previewUrl ? (
+                                                  <img
+                                                    src={previewUrl}
+                                                    alt={item?.name || "Category"}
+                                                    className="h-10 w-10 rounded-lg object-cover border border-[#e3eee8]"
+                                                    loading="lazy"
+                                                  />
+                                                ) : (
+                                                  <div className="h-10 w-10 rounded-lg bg-[#eaf5ef]" />
+                                                )}
                                                 {item.name}
                                             </Link>
                                             
@@ -534,7 +882,7 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout 
                                                         e.preventDefault();
                                                         pushLevel(item);
                                                     }}
-                                                    className="p-2 -mr-2 text-gray-400 hover:text-purple-600"
+                                                    className="p-2 -mr-2 text-gray-400 hover:text-[#1f5c49]"
                                                 >
                                                     <ChevronRight className="w-5 h-5" />
                                                 </button>
