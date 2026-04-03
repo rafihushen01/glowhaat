@@ -1,3 +1,3 @@
-export const serverurl = "https://khancosmeticsserver.onrender.com";
+export const serverurl1 = "https://khancosmeticsserver.onrender.com";
 
-export const serverurl1="http://localhost:5000"
+export const serverurl="http://localhost:5000"
