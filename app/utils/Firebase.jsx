@@ -1,18 +1,19 @@
-
+// Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import{getAuth} from "firebase/auth"
+import {getAuth} from "firebase/auth"
+
+
 const firebaseConfig = {
-  apiKey: process.env.NEXT_FIREBASE_API_KEY,
-  authDomain: "rafisworld-2748e.firebaseapp.com",
-  projectId: "rafisworld-2748e",
-  storageBucket: "rafisworld-2748e.firebasestorage.app",
-  messagingSenderId: "14346084553",
-  appId: "1:14346084553:web:29761c08a88f425e072d18",
-  measurementId: "G-X0V7M0WT8S"
+  apiKey: "AIzaSyDoss9uSi6b2vlY2qJxo_3KoH32VLtNfQo",
+  authDomain: "khancosmetics.firebaseapp.com",
+  projectId: "khancosmetics",
+  storageBucket: "khancosmetics.firebasestorage.app",
+  messagingSenderId: "790149938468",
+  appId: "1:790149938468:web:f65fd1e4d074e9bd5547b1",
+  measurementId: "G-YLDC01S101"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const Auth =getAuth(app)
-export {Auth,app}
+const Auth=getAuth(app)
+export {app,Auth}
