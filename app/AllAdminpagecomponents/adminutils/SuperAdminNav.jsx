@@ -14,6 +14,7 @@ import {
   MessageSquareQuote,
   ShieldCheck,
   BarChart3,
+  Sparkles,
   Truck,
   Users,
 } from "lucide-react";
@@ -58,6 +59,9 @@ const SuperAdminNav = () => {
           </NavLink>
           <NavLink href="/SuperAdminShares" icon={<BarChart3 className="h-4 w-4" />}>
             Share Analytics
+          </NavLink>
+          <NavLink href="/SuperAdminRecommendationInsights" icon={<Sparkles className="h-4 w-4" />}>
+            Recommendation AI
           </NavLink>
           <NavLink href="/AdminItemManagments" icon={<Package className="h-4 w-4" />}>
             Item Management

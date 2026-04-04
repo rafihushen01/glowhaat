@@ -19,7 +19,7 @@ const useGetCurrentUser = () => {
       try {
         const res = await axios.get(`${serverurl}/auth/me`, {
           withCredentials: true,
-          timeout: 12000,
+          timeout: 30000,
         });
         if (res?.data?.success && res?.data?.user) {
           dispatch(setUserData(res.data.user));

@@ -13,6 +13,8 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { serverurl } from '../utils/constants/serverurl'
 import { addToCart } from '../reduxcomponents/CartSlice'
 import ProductReviewQnaPanel from './ProductReviewQnaPanel'
+import { getRequestConfig } from "../utils/requestConfig";
+import { trackRecommendationEvent } from '../utils/recommendation'
 
 
 const ProductView = () => {
@@ -45,6 +47,7 @@ const ProductView = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [wishlistStatus, setWishlistStatus] = useState("");
+  const viewStartedAtRef = useRef(0);
  const handleScroll = () => {
     if (scrollRef.current) {
       const scrollTop = scrollRef.current.scrollTop;
@@ -143,7 +146,7 @@ const ProductView = () => {
     const fetchWishlistStatus = async () => {
       try {
         const { data } = await axios.get(`${serverurl}/wishlist/status/${slug}`, {
-          withCredentials: true,
+          ...getRequestConfig(),
         });
         if (data?.success) {
           setIsWishlisted(Boolean(data.iswishlisted));
@@ -155,6 +158,29 @@ const ProductView = () => {
 
     fetchWishlistStatus();
   }, [slug]);
+
+  useEffect(() => {
+    if (!product?.slug) return;
+
+    viewStartedAtRef.current = Date.now();
+    trackRecommendationEvent({
+      eventtype: "product_view",
+      slug: product.slug,
+    });
+
+    return () => {
+      const started = Number(viewStartedAtRef.current || 0);
+      if (!started) return;
+      const seconds = Math.floor((Date.now() - started) / 1000);
+      if (seconds <= 0) return;
+
+      trackRecommendationEvent({
+        eventtype: "dwell",
+        slug: product.slug,
+        dwellseconds: seconds,
+      });
+    };
+  }, [product?._id, product?.slug]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-emerald-800 animate-pulse">Loading Khan Cosmetics...</div>;
   if (error || !product) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error || "Item not found"}</div>;
@@ -185,7 +211,7 @@ const ProductView = () => {
           optionindex: selectedOptionIndex,
           quantity,
         },
-        { withCredentials: true }
+        getRequestConfig()
       );
 
       if (!data?.success || !data?.item) {
@@ -195,10 +221,15 @@ const ProductView = () => {
 
       dispatch(addToCart(data.item));
       setCartStatus("Added to cart successfully.");
+      trackRecommendationEvent({
+        eventtype: "add_to_cart",
+        slug: product.slug,
+        quantity,
+      });
     } catch (err) {
       setCartStatus(
         err?.response?.data?.message ||
-          "Please sign in first, then try adding this product."
+          "Could not add this product to cart."
       );
     } finally {
       setIsAdding(false);
@@ -214,7 +245,7 @@ const ProductView = () => {
       const { data } = await axios.post(
         `${serverurl}/wishlist/toggle`,
         { slug: product.slug },
-        { withCredentials: true }
+        getRequestConfig()
       );
 
       if (!data?.success) {
@@ -224,10 +255,14 @@ const ProductView = () => {
 
       setIsWishlisted(Boolean(data.iswishlisted));
       setWishlistStatus(data?.message || "Wishlist updated.");
+      trackRecommendationEvent({
+        eventtype: data?.iswishlisted ? "wishlist_add" : "wishlist_remove",
+        slug: product.slug,
+      });
     } catch (err) {
       setWishlistStatus(
         err?.response?.data?.message ||
-          "Please sign in first, then try adding this product to your wishlist."
+          "Could not update wishlist right now."
       );
     } finally {
       setWishlistLoading(false);

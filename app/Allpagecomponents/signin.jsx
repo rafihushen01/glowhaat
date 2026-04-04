@@ -105,7 +105,7 @@ const Signin = () => {
         },
         {
           withCredentials: true,
-          timeout: 12000,
+          timeout: 30000,
           headers: {
             "Content-Type": "application/json",
             "X-Auth-Channel": "khancosmetics-web-signin",
@@ -152,7 +152,7 @@ const Signin = () => {
         },
         {
           withCredentials: true,
-          timeout: 12000,
+          timeout: 30000,
           headers: {
             "Content-Type": "application/json",
             "X-Remember-Device": rememberDevice ? "true" : "false",
@@ -170,7 +170,7 @@ const Signin = () => {
       if (!authuser) {
         const meRes = await axios.get(`${serverurl}/auth/me`, {
           withCredentials: true,
-          timeout: 12000,
+          timeout: 30000,
         });
         authuser = meRes?.data?.user || null;
       }
@@ -213,7 +213,7 @@ const Signin = () => {
         },
         {
           withCredentials: true,
-          timeout: 12000,
+          timeout: 30000,
           headers: { "Content-Type": "application/json" },
         }
       );

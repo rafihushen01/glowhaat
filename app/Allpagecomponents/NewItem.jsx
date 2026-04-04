@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingBag, Eye, Star, Zap, ArrowRight, MousePointer2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { serverurl } from '../utils/constants/serverurl'
+import { trackRecommendationEvent } from '../utils/recommendation'
 
 
 // --- Utility: Currency Formatter ---
@@ -127,7 +128,13 @@ const ProductCard = ({ item, index, router }) => {
       className="relative min-w-[300px] md:min-w-[380px] group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-    onClick={() => router.push(`/product/${item?.slug}`)}
+    onClick={() => {
+      trackRecommendationEvent({
+        eventtype: "product_click",
+        slug: item?.slug,
+      });
+      router.push(`/product/${item?.slug}`);
+    }}
 
     >
       <div className="relative rounded-[2.5rem] bg-white p-3 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-20px_rgba(59,130,246,0.2)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] border border-slate-100 group-hover:border-blue-100 group-hover:-translate-y-2">

@@ -10,6 +10,7 @@ import { Banknote, Building2, CreditCard, MapPin, Navigation, Smartphone } from 
 import useGetMyLocation from "../hooks/useGetMyLocation";
 import { serverurl } from "../utils/constants/serverurl";
 import { clearCart, setCartItems } from "../reduxcomponents/CartSlice";
+import { getRequestConfig } from "../utils/requestConfig";
 
 const LocationPickerMap = dynamic(() => import("../components/LocationPickerMap"), {
   ssr: false,
@@ -71,7 +72,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const { data } = await axios.get(`${serverurl}/cart/my`, { withCredentials: true });
+        const { data } = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
         if (data?.success) {
           const items = Array.isArray(data.items) ? data.items : [];
           setLocalCartItems(items);
@@ -80,7 +81,7 @@ const CheckoutPage = () => {
           dispatch(setCartItems(items));
         }
       } catch (error) {
-        setStatusMessage(error?.response?.data?.message || "Please sign in to continue checkout.");
+        setStatusMessage(error?.response?.data?.message || "Could not load checkout right now.");
       } finally {
         setCartLoading(false);
       }
@@ -128,9 +129,7 @@ const CheckoutPage = () => {
         latitude: location?.lat ?? null,
         longitude: location?.lng ?? null,
       };
-      const { data } = await axios.post(`${serverurl}/order/place`, payload, {
-        withCredentials: true,
-      });
+      const { data } = await axios.post(`${serverurl}/order/place`, payload, getRequestConfig());
       if (data?.success) {
         dispatch(clearCart());
         setStatusMessage("Order placed successfully.");
@@ -396,4 +395,3 @@ const Input = ({ label, value, onChange, required = false, placeholder = "" }) =
 );
 
 export default CheckoutPage;
-

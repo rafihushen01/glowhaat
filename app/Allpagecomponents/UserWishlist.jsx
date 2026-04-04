@@ -6,6 +6,8 @@ import axios from "axios";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import UserNav from "./UserNav";
 import { serverurl } from "../utils/constants/serverurl";
+import { getRequestConfig } from "../utils/requestConfig";
+import { trackRecommendationEvent } from "../utils/recommendation";
 
 const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
 
@@ -20,12 +22,12 @@ const UserWishlist = () => {
   useEffect(() => {
     const fetchWishlist = async () => {
       try {
-        const { data } = await axios.get(`${serverurl}/wishlist/my`, { withCredentials: true });
+        const { data } = await axios.get(`${serverurl}/wishlist/my`, getRequestConfig());
         if (data?.success) {
           setItems(Array.isArray(data.items) ? data.items : []);
         }
       } catch (error) {
-        setStatusMessage(error?.response?.data?.message || "Please sign in to view your wishlist.");
+        setStatusMessage(error?.response?.data?.message || "Could not load wishlist right now.");
       } finally {
         setLoading(false);
       }
@@ -40,7 +42,7 @@ const UserWishlist = () => {
       setActiveProductId(productid);
       setStatusMessage("");
       const { data } = await axios.delete(`${serverurl}/wishlist/remove/${productid}`, {
-        withCredentials: true,
+        ...getRequestConfig(),
       });
       if (!data?.success) {
         setStatusMessage(data?.message || "Could not remove wishlist item.");
@@ -64,7 +66,7 @@ const UserWishlist = () => {
       const { data } = await axios.post(
         `${serverurl}/cart/add`,
         { slug, variantindex: 0, optionindex: 0, quantity: 1 },
-        { withCredentials: true }
+        getRequestConfig()
       );
 
       if (!data?.success) {
@@ -72,6 +74,11 @@ const UserWishlist = () => {
         return;
       }
       setStatusMessage("Product added to cart.");
+      trackRecommendationEvent({
+        eventtype: "add_to_cart",
+        slug,
+        quantity: 1,
+      });
     } catch (error) {
       setStatusMessage(error?.response?.data?.message || "Could not add product to cart.");
     } finally {
@@ -124,7 +131,16 @@ const UserWishlist = () => {
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {items.map((entry) => (
               <article key={entry._id} className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
-                <Link href={`/product/${entry.slug}`} className="block overflow-hidden rounded-xl border border-emerald-100">
+                <Link
+                  href={`/product/${entry.slug}`}
+                  className="block overflow-hidden rounded-xl border border-emerald-100"
+                  onClick={() =>
+                    trackRecommendationEvent({
+                      eventtype: "product_click",
+                      slug: entry.slug,
+                    })
+                  }
+                >
                   {entry.image ? (
                     <img
                       src={entry.image}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
@@ -27,29 +27,41 @@ const toTitle = (value) => {
 const CategoryShowcase = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [activeRoot, setActiveRoot] = useState("");
   const [activeLeaf, setActiveLeaf] = useState("");
   const sliderRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(`${SERVER_URL}/category/public/full`);
-        if (response?.data?.success) {
-          const data = response.data.data || [];
-          setCategories(data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch categories:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-    fetchData();
+    try {
+      const response = await axios.get(`${SERVER_URL}/category/public/full`, {
+        timeout: 15000,
+      });
+
+      if (response?.data?.success) {
+        const data = Array.isArray(response.data.data) ? response.data.data : [];
+        setCategories(data);
+      } else {
+        setCategories([]);
+        setError("Category response was not successful.");
+      }
+    } catch (requestError) {
+      console.error("Failed to fetch categories:", requestError);
+      setCategories([]);
+      setError("Couldn't load categories right now.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const groupedByRoot = useMemo(() => {
     const map = {};
@@ -109,6 +121,7 @@ const CategoryShowcase = () => {
         name: segment?.name || "Shop",
         slug: segment?.slug || selected?.slug,
         image: segment?.image || getCardImage(selected),
+        navlink: selected?.navlink || "",
       })) || [];
 
     if (segmentCards.length > 0) return segmentCards;
@@ -118,6 +131,7 @@ const CategoryShowcase = () => {
       name: category.name || "Shop",
       slug: category.slug,
       image: getCardImage(category),
+      navlink: category.navlink || "",
     }));
   }, [filteredCards, currentRootCategories]);
 
@@ -126,6 +140,12 @@ const CategoryShowcase = () => {
     const first = currentRootCategories[0];
     return first?.navlink || `${frontendurl}/c/${first?.slug || ""}`;
   }, [currentRootCategories]);
+
+  const getCardHref = (card) => {
+    if (card?.navlink) return card.navlink;
+    if (card?.slug) return `${frontendurl}/s/${card.slug}`;
+    return exploreAllHref;
+  };
 
   const checkScrollState = () => {
     if (!sliderRef.current) return;
@@ -151,7 +171,32 @@ const CategoryShowcase = () => {
   };
 
   if (loading) return <SkeletonLoader />;
-  if (!categories.length) return null;
+  if (!categories.length) {
+    return (
+      <section className="w-full bg-[#f4f4f2] py-16 md:py-20 overflow-hidden">
+        <div className="max-w-[1920px] mx-auto px-4 md:px-10">
+          <p className="text-[10px] md:text-xs uppercase tracking-[0.35em] font-bold text-[#1f5c49] mb-3">
+            KHAN COSMETICS
+          </p>
+          <h2 className="text-3xl md:text-6xl font-semibold tracking-tight text-[#0f1720]">
+            Shop by Category
+          </h2>
+          <div className="mt-6 rounded-xl border border-[#d1d5db] bg-white p-5 text-sm md:text-base text-[#374151]">
+            {error || "Categories are not available right now. Please check again in a moment."}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={fetchData}
+                className="rounded-full bg-[#1f5c49] px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white hover:bg-[#184b3c]"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="w-full bg-[#f4f4f2] py-16 md:py-20 overflow-hidden">
@@ -244,7 +289,7 @@ const CategoryShowcase = () => {
             {showcaseCards.map((card, index) => (
               <Link
                 key={card._id || index}
-                href={card?.slug ? `${frontendurl}/s/${card.slug}` : exploreAllHref}
+                href={getCardHref(card)}
                 className="group/card shrink-0 w-[75vw] sm:w-[44vw] md:w-[26vw] lg:w-[21vw]"
               >
                 <article className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#dfe3e8]">

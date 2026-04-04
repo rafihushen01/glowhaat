@@ -5,6 +5,8 @@ import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
 import { Filter, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
+import { trackRecommendationEvent } from "../utils/recommendation";
+import BehaviorRecommendations from "../Allpagecomponents/BehaviorRecommendations";
 
 const ITEM_URL = `${serverurl}/item`;
 const CATEGORY_URL = `${serverurl}/category/public/full`;
@@ -572,7 +574,10 @@ const SegmentPage = () => {
           onChange={(e) => setSort(e.target.value)}
           className="mt-2 w-full rounded-xl border border-[#d4e7df] bg-white px-3 py-2 text-sm text-[#1f5c49]"
         >
+          <option value="most_popular">Very Popular</option>
+          <option value="less_popular">Less Popular</option>
           <option value="newest">Newest Arrivals</option>
+          <option value="oldest">Oldest Products</option>
           <option value="price_low_high">Price: Low to High</option>
           <option value="price_high_low">Price: High to Low</option>
           <option value="name_az">Name: A-Z</option>
@@ -722,7 +727,13 @@ const SegmentPage = () => {
                     <button
                       key={product._id}
                       type="button"
-                      onClick={() => router.push(`/product/${product.slug}`)}
+                      onClick={() => {
+                        trackRecommendationEvent({
+                          eventtype: "product_click",
+                          slug: product.slug,
+                        });
+                        router.push(`/product/${product.slug}`);
+                      }}
                       className="group overflow-hidden rounded-2xl border border-[#d7e9e2] bg-white text-left transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_35px_-20px_rgba(16,92,72,0.55)]"
                     >
                       <div className="relative aspect-[4/5] overflow-hidden bg-[#eef6f2]">
@@ -790,6 +801,10 @@ const SegmentPage = () => {
           </section>
         </div>
       </div>
+      <BehaviorRecommendations
+        categorySlug={slug}
+        title="Deals You Can't Miss"
+      />
 
       {mobileFilterOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">

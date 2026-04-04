@@ -12,6 +12,7 @@ import {
   setCartItems,
   updateCartItem,
 } from "../reduxcomponents/CartSlice";
+import { getRequestConfig } from "../utils/requestConfig";
 
 const formatPrice = (value) => `৳${Number(value || 0).toLocaleString()}`;
 
@@ -29,7 +30,7 @@ export default function CartPage() {
   const fetchCart = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${serverurl}/cart/my`, { withCredentials: true });
+      const { data } = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
       if (data?.success) {
         dispatch(setCartItems(data.items || []));
         setDeliveryTotal(Number(data.deliverytotal || 0));
@@ -37,7 +38,7 @@ export default function CartPage() {
     } catch (error) {
       setStatus(
         error?.response?.data?.message ||
-          "Please sign in to view your cart."
+          "Could not load your cart right now."
       );
     } finally {
       setLoading(false);
@@ -55,7 +56,7 @@ export default function CartPage() {
       const { data } = await axios.patch(
         `${serverurl}/cart/quantity/${item._id}`,
         { quantity },
-        { withCredentials: true }
+        getRequestConfig()
       );
       if (data?.success && data?.item) {
         dispatch(updateCartItem(data.item));
@@ -68,7 +69,7 @@ export default function CartPage() {
   const handleRemove = async (id) => {
     try {
       const { data } = await axios.delete(`${serverurl}/cart/remove/${id}`, {
-        withCredentials: true,
+        ...getRequestConfig(),
       });
       if (data?.success) {
         dispatch(removeFromCart(id));
@@ -81,7 +82,7 @@ export default function CartPage() {
   const handleClearCart = async () => {
     try {
       const { data } = await axios.delete(`${serverurl}/cart/clear`, {
-        withCredentials: true,
+        ...getRequestConfig(),
       });
       if (data?.success) {
         dispatch(clearCart());

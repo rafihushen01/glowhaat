@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import { clearUserData } from "../reduxcomponents/UserSlice";
 import { setCartItems } from "../reduxcomponents/CartSlice";
+import { getRequestConfig } from "../utils/requestConfig";
 
 // --- Utility for cleaner tailwind classes ---
 // function cn(...inputs) {
@@ -168,14 +169,10 @@ const UserNav = () => {
 
   useEffect(() => {
     const fetchCart = async () => {
-      if (!isAuthenticated) {
-        setWishlistCount(0);
-        return;
-      }
       try {
         const [cartRes, wishlistRes] = await Promise.all([
-          axios.get(`${serverurl}/cart/my`, { withCredentials: true }),
-          axios.get(`${serverurl}/wishlist/my`, { withCredentials: true }),
+          axios.get(`${serverurl}/cart/my`, getRequestConfig()),
+          axios.get(`${serverurl}/wishlist/my`, getRequestConfig()),
         ]);
 
         if (cartRes?.data?.success) {
@@ -185,7 +182,7 @@ const UserNav = () => {
           setWishlistCount(Number(wishlistRes.data.count || 0));
         }
       } catch (error) {
-        // silent: cart badge can stay at 0 if unauthenticated
+        setWishlistCount(0);
       }
     };
     fetchCart();
@@ -329,20 +326,18 @@ const UserNav = () => {
                   </span>
                 )}
               </button>
-              {isAuthenticated ? (
-                <button
-                  type="button"
-                  onClick={() => router.push("/wishlist")}
-                  className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#d7e3dc] text-[#1f5c49] transition hover:border-[#1f5c49]"
-                >
-                  <Heart className="h-4 w-4" />
-                  {wishlistCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
-                      {wishlistCount}
-                    </span>
-                  )}
-                </button>
-              ) : null}
+              <button
+                type="button"
+                onClick={() => router.push("/wishlist")}
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#d7e3dc] text-[#1f5c49] transition hover:border-[#1f5c49]"
+              >
+                <Heart className="h-4 w-4" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
 
               {isAuthenticated ? (
                 <div className="relative z-[240] flex items-center gap-2" ref={profileMenuRef}>
@@ -475,20 +470,18 @@ const UserNav = () => {
 
           {/* Mobile Right Actions */}
           <div className="flex shrink-0 items-center gap-3 text-gray-900 lg:hidden">
-            {isAuthenticated ? (
-              <button
-                type="button"
-                onClick={() => router.push("/wishlist")}
-                className="relative cursor-pointer group"
-              >
-                <Heart className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
-                {wishlistCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-[#1f5c49] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
-                    {wishlistCount}
-                  </span>
-                )}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={() => router.push("/wishlist")}
+              className="relative cursor-pointer group"
+            >
+              <Heart className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-[#1f5c49] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
             <button
               type="button"
               onClick={() => router.push("/cart")}

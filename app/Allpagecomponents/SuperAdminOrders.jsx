@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import { serverurl } from "../utils/constants/serverurl";
 
-const statusList = ["placed", "processing", "shipped", "delivered", "canceled"];
+const statusList = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
 const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
 
 const SuperAdminOrders = () => {
@@ -51,7 +51,7 @@ const SuperAdminOrders = () => {
   }, [statusFilter]);
 
   const summary = useMemo(() => {
-    const counts = { placed: 0, processing: 0, shipped: 0, delivered: 0, canceled: 0 };
+    const counts = { placed: 0, processing: 0, shipped: 0, delivered: 0, returned: 0, canceled: 0 };
     orders.forEach((order) => {
       if (counts[order.status] !== undefined) {
         counts[order.status] += 1;
@@ -93,7 +93,7 @@ const SuperAdminOrders = () => {
           </p>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-6">
           {statusList.map((status) => (
             <div key={status} className="rounded-xl border border-emerald-200 bg-white p-3 text-center">
               <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{status}</p>
@@ -203,4 +203,3 @@ const SuperAdminOrders = () => {
 };
 
 export default SuperAdminOrders;
-

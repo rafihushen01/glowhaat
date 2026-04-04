@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import toast, { Toaster } from "react-hot-toast";
-import { ArrowRight, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
@@ -22,17 +22,22 @@ const SuperAdminSigninPage = () => {
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
 
   const sanitizedEmail = useMemo(
     () => credentials.email.trim().toLowerCase(),
     [credentials.email]
+  );
+  const sanitizedPassword = useMemo(
+    () => credentials.password.trim(),
+    [credentials.password]
   );
 
   const getApiError = (error, fallback) => error?.response?.data?.message || fallback;
 
   const validateCredentials = () => {
     if (!sanitizedEmail) return "Email is required.";
-    if (!credentials.password) return "Password is required.";
+    if (!sanitizedPassword) return "Password is required.";
     return "";
   };
 
@@ -48,8 +53,8 @@ const SuperAdminSigninPage = () => {
     try {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/signinotp`,
-        { email: sanitizedEmail, password: credentials.password },
-        { withCredentials: true, timeout: 12000 }
+        { email: sanitizedEmail, password: sanitizedPassword },
+        { withCredentials: true, timeout: 30000 }
       );
 
       if (!data?.success) {
@@ -80,7 +85,7 @@ const SuperAdminSigninPage = () => {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/verifyotp`,
         { email: sanitizedEmail, otp: otp.trim() },
-        { withCredentials: true, timeout: 12000 }
+        { withCredentials: true, timeout: 30000 }
       );
 
       if (!data?.success) {
@@ -136,12 +141,20 @@ const SuperAdminSigninPage = () => {
               <div className="relative">
                 <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
                 <input
-                  type="password"
-                  className={`${inputClass} pl-9`}
+                  type={showPassword ? "text" : "password"}
+                  className={`${inputClass} pl-9 pr-10`}
                   value={credentials.password}
                   onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
                   placeholder="Enter superadmin password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5c7f70] transition hover:text-[#1f5c49]"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
 
               <button
@@ -190,4 +203,3 @@ const SuperAdminSigninPage = () => {
 };
 
 export default SuperAdminSigninPage;
-

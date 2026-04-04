@@ -5,6 +5,7 @@ import Link from "next/link";
 import axios from "axios";
 import { Clock3, PackageCheck, Truck } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
+import { getRequestConfig } from "../utils/requestConfig";
 
 const statusFlow = ["placed", "processing", "shipped", "delivered"];
 
@@ -19,12 +20,12 @@ const MyOrdersPage = () => {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const { data } = await axios.get(`${serverurl}/order/my`, { withCredentials: true });
+        const { data } = await axios.get(`${serverurl}/order/my`, getRequestConfig());
         if (data?.success) {
           setOrders(Array.isArray(data.orders) ? data.orders : []);
         }
       } catch (error) {
-        setMessage(error?.response?.data?.message || "Please sign in to view your orders.");
+        setMessage(error?.response?.data?.message || "Could not load your orders right now.");
       } finally {
         setLoading(false);
       }
@@ -47,7 +48,7 @@ const MyOrdersPage = () => {
           <div>
             <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">KhanCosmetics Orders</p>
             <h1 className="mt-2 text-4xl font-semibold">My Orders & Tracking</h1>
-            <p className="mt-2 text-sm text-[#4f6f63]">Track every order from placed to delivered.</p>
+            <p className="mt-2 text-sm text-[#4f6f63]">Track every order from placed to delivered or returned.</p>
           </div>
           <Link
             href="/"
@@ -118,7 +119,8 @@ const MyOrdersPage = () => {
 };
 
 const OrderTracker = ({ status }) => {
-  const currentIndex = status === "canceled" ? -1 : statusFlow.indexOf(status);
+  const isTerminalNegative = status === "canceled" || status === "returned";
+  const currentIndex = isTerminalNegative ? -1 : statusFlow.indexOf(status);
   return (
     <div className="mt-5 rounded-xl border border-emerald-100 p-4">
       <div className="grid grid-cols-4 gap-2">
@@ -137,9 +139,11 @@ const OrderTracker = ({ status }) => {
       {status === "canceled" ? (
         <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-red-600">This order was canceled</p>
       ) : null}
+      {status === "returned" ? (
+        <p className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">This order was returned</p>
+      ) : null}
     </div>
   );
 };
 
 export default MyOrdersPage;
-

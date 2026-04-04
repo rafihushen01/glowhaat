@@ -5,6 +5,7 @@ import UserNav from './UserNav'
 import UserHomebanner from './UserHomebanner'
 import NewItem from './NewItem'
 import CategoryShowcase from './UsersCategorySlider'
+import BehaviorRecommendations from './BehaviorRecommendations'
 
 
 const UserDashboard = () => {
@@ -21,6 +22,9 @@ const UserDashboard = () => {
       </div>
       <section id="shop-by-category" className="mt-10">
         <CategoryShowcase />
+      </section>
+      <section id="deals-you-cant-miss">
+        <BehaviorRecommendations />
       </section>
 
     </div>

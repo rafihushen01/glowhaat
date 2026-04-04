@@ -111,7 +111,7 @@ const UserHomebanner = () => {
         return (
             <div className='max-w-[1920px] mx-auto w-full py-4 px-2 md:px-0'>
                 <div className="w-full h-[200px] sm:h-[350px] md:h-[500px] lg:h-[600px] rounded-2xl bg-gray-200 animate-pulse flex items-center justify-center">
-                    <span className="text-gray-400 font-medium">Loading Offers...</span>
+                    <span className="text-gray-400 font-medium">Loading Khancosmetics Offers...</span>
                 </div>
             </div>
         )

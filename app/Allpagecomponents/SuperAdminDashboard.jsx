@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
-import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarChart3 } from "lucide-react";
+import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarChart3, Sparkles } from "lucide-react";
 import { Users } from "lucide-react";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 
@@ -75,6 +75,12 @@ const SuperAdminDashboard = () => {
             title="Share Analytics"
             description="See most-shared products, top platforms, and top sharers."
             icon={<BarChart3 className="h-5 w-5" />}
+          />
+          <DashboardCard
+            href="/SuperAdminRecommendationInsights"
+            title="Recommendation AI"
+            description="Monitor behavior signals, affinity patterns, and recommendation opportunity."
+            icon={<Sparkles className="h-5 w-5" />}
           />
         </div>
       </div>

@@ -3,7 +3,7 @@ import React from 'react'
 
 const RafiWorldCategory = () => {
   return (
-    <div>RafiWorldCategory</div>
+    <div>khancosmetics</div>
   )
 }
 
