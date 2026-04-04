@@ -2,11 +2,11 @@
 import { useRef } from 'react'
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useDispatch } from 'react-redux'
 import { 
   ChevronRight, Minus, Plus, ShoppingBag,
-  Maximize2, X, PlayCircle, ZoomIn, ZoomOut
+  Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Globe, Heart
 } from 'lucide-react'
 // Import the advanced zoom library
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
@@ -17,6 +17,8 @@ import ProductReviewQnaPanel from './ProductReviewQnaPanel'
 
 const ProductView = () => {
   const { slug } = useParams();
+  const searchParams = useSearchParams();
+  const shareToken = searchParams.get("share");
   const router = useRouter();
   const dispatch = useDispatch();
   
@@ -38,6 +40,11 @@ const ProductView = () => {
   const [activeTab, setActiveTab] = useState('description');
   const [isAdding, setIsAdding] = useState(false);
   const [cartStatus, setCartStatus] = useState("");
+  const [shareStatus, setShareStatus] = useState("");
+  const [sharingPlatform, setSharingPlatform] = useState("");
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [wishlistStatus, setWishlistStatus] = useState("");
  const handleScroll = () => {
     if (scrollRef.current) {
       const scrollTop = scrollRef.current.scrollTop;
@@ -95,6 +102,60 @@ const ProductView = () => {
     fetchProduct();
   }, [slug]);
 
+  useEffect(() => {
+    if (!shareToken) return;
+
+    const marker = `khc-share-opened-${shareToken}`;
+    if (typeof window !== "undefined" && window.sessionStorage.getItem(marker)) return;
+
+    const registerOpen = async () => {
+      try {
+        let visitKey = "";
+
+        if (typeof window !== "undefined") {
+          visitKey = window.localStorage.getItem("khc-share-visit-key") || "";
+          if (!visitKey) {
+            visitKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+            window.localStorage.setItem("khc-share-visit-key", visitKey);
+          }
+        }
+
+        await axios.post(
+          `${serverurl}/item/share/open/${shareToken}`,
+          { visitkey: visitKey },
+          { withCredentials: true, timeout: 12000 }
+        );
+
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(marker, "1");
+        }
+      } catch (_error) {
+        // silent analytics failure
+      }
+    };
+
+    registerOpen();
+  }, [shareToken]);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    const fetchWishlistStatus = async () => {
+      try {
+        const { data } = await axios.get(`${serverurl}/wishlist/status/${slug}`, {
+          withCredentials: true,
+        });
+        if (data?.success) {
+          setIsWishlisted(Boolean(data.iswishlisted));
+        }
+      } catch (_error) {
+        setIsWishlisted(false);
+      }
+    };
+
+    fetchWishlistStatus();
+  }, [slug]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center text-emerald-800 animate-pulse">Loading Khan Cosmetics...</div>;
   if (error || !product) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error || "Item not found"}</div>;
 
@@ -141,6 +202,124 @@ const ProductView = () => {
       );
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!product?.slug || wishlistLoading) return;
+
+    try {
+      setWishlistLoading(true);
+      setWishlistStatus("");
+      const { data } = await axios.post(
+        `${serverurl}/wishlist/toggle`,
+        { slug: product.slug },
+        { withCredentials: true }
+      );
+
+      if (!data?.success) {
+        setWishlistStatus(data?.message || "Could not update wishlist right now.");
+        return;
+      }
+
+      setIsWishlisted(Boolean(data.iswishlisted));
+      setWishlistStatus(data?.message || "Wishlist updated.");
+    } catch (err) {
+      setWishlistStatus(
+        err?.response?.data?.message ||
+          "Please sign in first, then try adding this product to your wishlist."
+      );
+    } finally {
+      setWishlistLoading(false);
+    }
+  };
+
+  const copyToClipboard = async (value) => {
+    if (!value) return false;
+
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value);
+        return true;
+      }
+    } catch (_error) {
+      // fallback below
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return Boolean(copied);
+    } catch (_error) {
+      return false;
+    }
+  };
+
+  const createTrackedShareLink = async (platform) => {
+    const fallbackOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const fallback = `${fallbackOrigin}/product/${product.slug}`;
+
+    try {
+      const { data } = await axios.post(
+        `${serverurl}/item/share/${product.slug}`,
+        { platform },
+        { withCredentials: true, timeout: 12000 }
+      );
+      return data?.share?.shareurl || fallback;
+    } catch (_error) {
+      return fallback;
+    }
+  };
+
+  const handleShare = async (platform) => {
+    try {
+      setSharingPlatform(platform);
+      setShareStatus("");
+
+      const shareUrl = await createTrackedShareLink(platform);
+      const shareText = `Check out ${product.name} on KhanCosmetics`;
+      const encodedUrl = encodeURIComponent(shareUrl);
+      const encodedText = encodeURIComponent(`${shareText} ${shareUrl}`);
+
+      if (platform === "whatsapp") {
+        window.open(`https://wa.me/?text=${encodedText}`, "_blank", "noopener,noreferrer");
+        setShareStatus("Shared on WhatsApp.");
+        return;
+      }
+
+      if (platform === "facebook") {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank", "noopener,noreferrer");
+        setShareStatus("Shared on Facebook.");
+        return;
+      }
+
+      if (platform === "messenger") {
+        const copied = await copyToClipboard(shareUrl);
+        window.open(`fb-messenger://share/?link=${encodedUrl}`, "_blank", "noopener,noreferrer");
+        setShareStatus(copied ? "Link copied. Paste it in Messenger." : "Opened Messenger share.");
+        return;
+      }
+
+      if (platform === "instagram") {
+        const copied = await copyToClipboard(shareUrl);
+        window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
+        setShareStatus(copied ? "Link copied. Paste it on Instagram." : "Opened Instagram.");
+        return;
+      }
+
+      const copied = await copyToClipboard(shareUrl);
+      setShareStatus(copied ? "Share link copied." : "Could not copy share link.");
+    } catch (_error) {
+      setShareStatus("Could not share right now. Please try again.");
+    } finally {
+      setSharingPlatform("");
     }
   };
 
@@ -222,6 +401,39 @@ const ProductView = () => {
               <span className="text-3xl font-medium text-gray-900">৳{currentPrice.toLocaleString()}</span>
               {originalPrice > currentPrice && <span className="text-lg text-gray-400 line-through">৳{originalPrice.toLocaleString()}</span>}
             </div>
+          </div>
+
+          <div className="mb-6 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4">
+            <div className="flex items-center gap-2 text-emerald-800">
+              <Share2 size={16} />
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em]">Share This Product</h3>
+            </div>
+            <p className="mt-1 text-xs text-emerald-700/80">Send this product directly to friends. They will land on this exact product page.</p>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
+              {[
+                { key: "whatsapp", label: "WhatsApp", className: "border-[#b7e9ce] text-[#1a7f4c] hover:bg-[#ebfff4]", icon: <MessageCircle size={14} /> },
+                { key: "facebook", label: "Facebook", className: "border-[#c7d6ff] text-[#1c4fba] hover:bg-[#eef3ff]", icon: <Globe size={14} /> },
+                { key: "messenger", label: "Messenger", className: "border-[#d4d8ff] text-[#3f51d1] hover:bg-[#f1f3ff]", icon: <MessageCircle size={14} /> },
+                { key: "instagram", label: "Instagram", className: "border-[#ffd1da] text-[#be185d] hover:bg-[#fff0f5]", icon: <Instagram size={14} /> },
+                { key: "browser", label: "Copy Link", className: "border-[#d9e4dd] text-[#265445] hover:bg-[#f2f8f4]", icon: <Share2 size={14} /> },
+              ].map((entry) => (
+                <button
+                  key={entry.key}
+                  type="button"
+                  onClick={() => handleShare(entry.key)}
+                  disabled={Boolean(sharingPlatform)}
+                  className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition ${entry.className} disabled:opacity-60 disabled:cursor-not-allowed`}
+                >
+                  {entry.icon}
+                  <span>{sharingPlatform === entry.key ? "Sharing..." : entry.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {shareStatus ? (
+              <p className="mt-3 text-xs font-medium text-emerald-700">{shareStatus}</p>
+            ) : null}
           </div>
 
           {/* Color Selection */}
@@ -335,6 +547,20 @@ const ProductView = () => {
         <span className="relative z-10">{isAdding ? "Adding..." : "Add to Cart"}</span>
       </button>
 
+      <button
+        type="button"
+        onClick={handleToggleWishlist}
+        disabled={wishlistLoading}
+        className={`w-full md:w-[220px] h-[60px] border text-sm uppercase tracking-[0.16em] font-semibold flex items-center justify-center gap-2 transition ${
+          isWishlisted
+            ? "border-emerald-700 bg-emerald-50 text-emerald-800"
+            : "border-emerald-200 bg-white text-emerald-800 hover:border-emerald-700"
+        } disabled:opacity-70 disabled:cursor-not-allowed`}
+      >
+        <Heart className={`h-5 w-5 ${isWishlisted ? "fill-emerald-700 text-emerald-700" : ""}`} />
+        {wishlistLoading ? "Saving..." : isWishlisted ? "Wishlisted" : "Wishlist"}
+      </button>
+
     </div>
           {cartStatus ? (
             <div className="mb-8">
@@ -349,6 +575,20 @@ const ProductView = () => {
                   View Cart
                 </button>
               ) : null}
+            </div>
+          ) : null}
+          {wishlistStatus ? (
+            <div className="mb-8">
+              <p
+                className={`text-sm ${
+                  wishlistStatus.toLowerCase().includes("added") ||
+                  wishlistStatus.toLowerCase().includes("removed")
+                    ? "text-emerald-700"
+                    : "text-red-600"
+                }`}
+              >
+                {wishlistStatus}
+              </p>
             </div>
           ) : null}
 

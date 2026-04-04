@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut } from "lucide-react";
+import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 // import { clsx, type ClassValue } from "clsx";
@@ -107,6 +107,7 @@ const UserNav = () => {
   const userdisplayname = user?.fullname?.trim() || "KhanCosmetics User";
   const userinitial = (userdisplayname[0] || "U").toUpperCase();
   const cartCount = Array.isArray(cartItems) ? cartItems.length : 0;
+  const [wishlistCount, setWishlistCount] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState([]);
@@ -167,11 +168,21 @@ const UserNav = () => {
 
   useEffect(() => {
     const fetchCart = async () => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated) {
+        setWishlistCount(0);
+        return;
+      }
       try {
-        const res = await axios.get(`${serverurl}/cart/my`, { withCredentials: true });
-        if (res?.data?.success) {
-          dispatch(setCartItems(res.data.items || []));
+        const [cartRes, wishlistRes] = await Promise.all([
+          axios.get(`${serverurl}/cart/my`, { withCredentials: true }),
+          axios.get(`${serverurl}/wishlist/my`, { withCredentials: true }),
+        ]);
+
+        if (cartRes?.data?.success) {
+          dispatch(setCartItems(cartRes.data.items || []));
+        }
+        if (wishlistRes?.data?.success) {
+          setWishlistCount(Number(wishlistRes.data.count || 0));
         }
       } catch (error) {
         // silent: cart badge can stay at 0 if unauthenticated
@@ -318,6 +329,20 @@ const UserNav = () => {
                   </span>
                 )}
               </button>
+              {isAuthenticated ? (
+                <button
+                  type="button"
+                  onClick={() => router.push("/wishlist")}
+                  className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#d7e3dc] text-[#1f5c49] transition hover:border-[#1f5c49]"
+                >
+                  <Heart className="h-4 w-4" />
+                  {wishlistCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
+                      {wishlistCount}
+                    </span>
+                  )}
+                </button>
+              ) : null}
 
               {isAuthenticated ? (
                 <div className="relative z-[240] flex items-center gap-2" ref={profileMenuRef}>
@@ -366,6 +391,17 @@ const UserNav = () => {
                           <p className="mt-1 truncate text-sm font-semibold text-[#1f5c49]">{userdisplayname}</p>
                           <p className="truncate text-xs text-[#527066]">{user?.email || ""}</p>
                         </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            router.push("/wishlist");
+                          }}
+                          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#dce8e2] bg-[#f7fbf9] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                        >
+                          <Heart className="h-4 w-4" />
+                          My Wishlist
+                        </button>
                         <button
                           type="button"
                           onClick={handleLogout}
@@ -439,6 +475,20 @@ const UserNav = () => {
 
           {/* Mobile Right Actions */}
           <div className="flex shrink-0 items-center gap-3 text-gray-900 lg:hidden">
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => router.push("/wishlist")}
+                className="relative cursor-pointer group"
+              >
+                <Heart className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-[#1f5c49] text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full">
+                    {wishlistCount}
+                  </span>
+                )}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => router.push("/cart")}
@@ -557,6 +607,7 @@ const UserNav = () => {
             isAuthenticated={isAuthenticated}
             user={user}
             avatarUrl={avatarUrl}
+            wishlistCount={wishlistCount}
             onLogout={handleLogout}
           />
         )}
@@ -776,7 +827,7 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
 
 // --- Mobile Infinite Drawer (The "App" Feel) ---
 
-const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout }) => {
+const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistCount, onLogout }) => {
   // We use a stack to manage depth. 
   // Stack[0] is root. Stack[1] is a child category, etc.
   const [navStack, setNavStack] = useState([{ name: "Menu", data: data, type: "root" }]);
@@ -1000,6 +1051,14 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, onLogout 
                         <p className="truncate text-xs text-[#648578]">{user?.email || ""}</p>
                       </div>
                     </div>
+                    <Link
+                      href="/wishlist"
+                      onClick={onClose}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#dce8e2] bg-[#f7fbf9] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                    >
+                      <Heart className="h-4 w-4" />
+                      Wishlist ({wishlistCount || 0})
+                    </Link>
                     <button
                       type="button"
                       onClick={onLogout}
