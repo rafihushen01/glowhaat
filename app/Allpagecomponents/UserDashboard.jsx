@@ -19,9 +19,9 @@ const UserDashboard = () => {
       <div>
         <NewItem />
       </div>
-      <div className='mt-10'>
+      <section id="shop-by-category" className="mt-10">
         <CategoryShowcase />
-      </div>
+      </section>
 
     </div>
   )

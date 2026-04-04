@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
-import { Filter, Search, SlidersHorizontal, X } from "lucide-react";
+import { Filter, Search, SlidersHorizontal, Star, X } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 
 const ITEM_URL = `${serverurl}/item`;
@@ -110,6 +110,51 @@ const getProductStock = (product) => {
   return stock;
 };
 
+const getProductRating = (product) => {
+  const rating = Number(product?.star);
+  if (!Number.isFinite(rating) || rating < 0) return 0;
+  return Math.min(5, rating);
+};
+
+const getProductPricingMeta = (product) => {
+  let bestCurrent = Number.POSITIVE_INFINITY;
+  let bestBase = null;
+  let bestDiscountPercentage = 0;
+
+  (product?.variants || []).forEach((variant) => {
+    (variant?.options || []).forEach((option) => {
+      const current = Number(option?.currentprice);
+      const base = Number(option?.baseprice);
+      const discountFromOption = Number(option?.discountpercentage);
+      const effectiveCurrent = Number.isFinite(current) && current >= 0 ? current : Number.isFinite(base) ? base : null;
+
+      if (effectiveCurrent === null || effectiveCurrent >= bestCurrent) return;
+
+      bestCurrent = effectiveCurrent;
+      bestBase = Number.isFinite(base) && base >= 0 ? base : null;
+      bestDiscountPercentage = Number.isFinite(discountFromOption) && discountFromOption > 0 ? discountFromOption : 0;
+    });
+  });
+
+  const shownPrice = getProductPrice(product);
+  if (!Number.isFinite(bestCurrent) || bestCurrent === Number.POSITIVE_INFINITY) bestCurrent = shownPrice;
+
+  const fallbackBase = Number(product?.baseprice);
+  if ((!Number.isFinite(bestBase) || bestBase === null) && Number.isFinite(fallbackBase) && fallbackBase > 0) {
+    bestBase = fallbackBase;
+  }
+
+  let discountPercentage = Math.round(bestDiscountPercentage);
+  if ((!discountPercentage || discountPercentage <= 0) && Number.isFinite(bestBase) && bestBase > bestCurrent) {
+    discountPercentage = Math.round(((bestBase - bestCurrent) / bestBase) * 100);
+  }
+
+  return {
+    originalPrice: Number.isFinite(bestBase) && bestBase > bestCurrent ? bestBase : null,
+    discountPercentage: Math.max(0, discountPercentage || 0),
+  };
+};
+
 const SegmentPage = () => {
   const params = useParams();
   const slug = slugifyLoose(params?.slug || "all");
@@ -132,6 +177,8 @@ const SegmentPage = () => {
     brands: [],
     minPrice: 0,
     maxPrice: 0,
+    minRating: 0,
+    maxRating: 0,
     availability: { in_stock: 0, out_of_stock: 0 },
   });
 
@@ -144,12 +191,16 @@ const SegmentPage = () => {
   const [sort, setSort] = useState("newest");
   const [search, setSearch] = useState("");
   const [priceRange, setPriceRange] = useState([0, 0]);
+  const [ratingRange, setRatingRange] = useState([0, 0]);
 
   const activePills = [
     ...selectedColors.map((c) => ({ key: `c-${c}`, label: c, type: "color", value: c })),
     ...selectedSizes.map((s) => ({ key: `s-${s}`, label: s, type: "size", value: s })),
     ...selectedBrands.map((b) => ({ key: `b-${b}`, label: b, type: "brand", value: b })),
     ...(availability !== "all" ? [{ key: `a-${availability}`, label: availability.replace("_", " "), type: "availability", value: availability }] : []),
+    ...(ratingRange[0] !== filters.minRating || ratingRange[1] !== filters.maxRating
+      ? [{ key: "r-range", label: `${ratingRange[0]}★ to ${ratingRange[1]}★`, type: "rating" }]
+      : []),
   ];
 
   useEffect(() => {
@@ -214,6 +265,8 @@ const SegmentPage = () => {
         const payload = response.data.filters || {};
         const min = Number(payload.minPrice || 0);
         const max = Number(payload.maxPrice || 0);
+        const minRating = Number(payload.minRating || 0);
+        const maxRating = Number(payload.maxRating || 0);
 
         setFilters({
           colors: payload.colors || [],
@@ -221,10 +274,13 @@ const SegmentPage = () => {
           brands: payload.brands || [],
           minPrice: min,
           maxPrice: max,
+          minRating,
+          maxRating,
           availability: payload.availability || { in_stock: 0, out_of_stock: 0 },
         });
 
         setPriceRange([min, max]);
+        setRatingRange([minRating, maxRating]);
       } catch (error) {
         console.error("Filters load failed", error);
       }
@@ -245,10 +301,12 @@ const SegmentPage = () => {
       availability: availability === "all" ? "" : availability,
       minprice: priceRange[0],
       maxprice: priceRange[1],
+      minrating: ratingRange[0],
+      maxrating: ratingRange[1],
       sort,
       search: search.trim(),
     }),
-    [selectedColors, selectedSizes, selectedBrands, availability, priceRange, sort, search]
+    [selectedColors, selectedSizes, selectedBrands, availability, priceRange, ratingRange, sort, search]
   );
 
   useEffect(() => {
@@ -282,6 +340,7 @@ const SegmentPage = () => {
     setSort("newest");
     setSearch("");
     setPriceRange([filters.minPrice, filters.maxPrice]);
+    setRatingRange([filters.minRating, filters.maxRating]);
   };
 
   const removePill = (pill) => {
@@ -289,13 +348,14 @@ const SegmentPage = () => {
     if (pill.type === "size") setSelectedSizes((prev) => prev.filter((entry) => entry !== pill.value));
     if (pill.type === "brand") setSelectedBrands((prev) => prev.filter((entry) => entry !== pill.value));
     if (pill.type === "availability") setAvailability("all");
+    if (pill.type === "rating") setRatingRange([filters.minRating, filters.maxRating]);
   };
 
-  const FilterPanel = () => (
+  const renderFilterPanel = () => (
     <div className="space-y-6">
       <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2f6456]">Search</p>
-        <div className="mt-2 flex items-center gap-2 rounded-xl border border-[#d4e7df] bg-white px-3 py-2">
+        <div className="mt-2 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-2 shadow-sm focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
           <Search className="h-4 w-4 text-[#2f6456]" />
           <input
             value={search}
@@ -335,6 +395,76 @@ const SegmentPage = () => {
             }}
             className="w-full accent-[#1f5c49]"
           />
+        </div>
+      </div>
+
+      <div>
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#2f6456]">Review Rating</p>
+        <div className="mt-2 rounded-xl border border-[#d4e7df] bg-white p-3">
+          <div className="mb-3 flex flex-wrap gap-2">
+            {[
+              { label: "All ratings", type: "all" },
+              { label: "4★ & up", value: 4 },
+              { label: "3★ & up", value: 3 },
+            ].map((preset) => {
+              const isAll = preset.type === "all";
+              const disabled = isAll ? false : filters.maxRating < preset.value;
+              const active = isAll
+                ? ratingRange[0] === filters.minRating && ratingRange[1] === filters.maxRating
+                : !disabled && ratingRange[0] === preset.value && ratingRange[1] === filters.maxRating;
+
+              return (
+                <button
+                  key={preset.label}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() =>
+                    setRatingRange(
+                      isAll ? [filters.minRating, filters.maxRating] : [preset.value, filters.maxRating]
+                    )
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                    active
+                      ? "border-[#1f5c49] bg-[#1f5c49] text-white"
+                      : "border-[#d4e7df] bg-white text-[#1f5c49]"
+                  } disabled:cursor-not-allowed disabled:opacity-40`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mb-2 flex items-center justify-between text-xs text-[#1f5c49]">
+            <span>{ratingRange[0]}★</span>
+            <span>{ratingRange[1]}★</span>
+          </div>
+          <input
+            type="range"
+            min={filters.minRating}
+            max={filters.maxRating || filters.minRating}
+            value={ratingRange[0]}
+            disabled={filters.maxRating === filters.minRating}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setRatingRange((prev) => [Math.min(next, prev[1]), prev[1]]);
+            }}
+            className="w-full accent-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-40"
+          />
+          <input
+            type="range"
+            min={filters.minRating}
+            max={filters.maxRating || filters.minRating}
+            value={ratingRange[1]}
+            disabled={filters.maxRating === filters.minRating}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setRatingRange((prev) => [prev[0], Math.max(prev[0], next)]);
+            }}
+            className="w-full accent-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-40"
+          />
+          <p className="mt-2 text-[11px] text-[#6d8b80]">
+            Category rating range: {filters.minRating}★ to {filters.maxRating}★
+          </p>
         </div>
       </div>
 
@@ -472,7 +602,7 @@ const SegmentPage = () => {
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1320px] px-4 pb-8 md:px-8 md:pb-12">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">Khan Cosmetics</p>
           <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-tight text-white md:text-5xl">
-            {loadingMeta ? "Loading segment..." : catalogMeta.title}
+            {loadingMeta ? "Loading Khancosmetics..." : catalogMeta.title}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-emerald-100 md:text-sm">
             {catalogMeta.breadcrumb.map((node, idx) => (
@@ -552,7 +682,7 @@ const SegmentPage = () => {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[290px_1fr]">
           <aside className="hidden h-fit rounded-2xl border border-[#d8ebe3] bg-[#f1f8f4] p-4 lg:sticky lg:top-24 lg:block">
-            <FilterPanel />
+            {renderFilterPanel()}
           </aside>
 
           <section>
@@ -582,6 +712,9 @@ const SegmentPage = () => {
                 {products.map((product) => {
                   const price = getProductPrice(product);
                   const stock = getProductStock(product);
+                  const rating = getProductRating(product);
+                  const roundedRating = Math.round(rating);
+                  const { originalPrice, discountPercentage } = getProductPricingMeta(product);
                   const main = product.whiteimage || product.hoverimage || product?.variants?.[0]?.images?.[0] || "";
                   const hover = product.hoverimage || main;
 
@@ -609,18 +742,45 @@ const SegmentPage = () => {
                           <div className="flex h-full items-center justify-center text-xs text-[#7e9d92]">No Image</div>
                         )}
                         <span
-                          className={`absolute left-2 top-2 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                          className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
                             stock > 0 ? "bg-emerald-600 text-white" : "bg-rose-500 text-white"
                           }`}
                         >
                           {stock > 0 ? "In Stock" : "Out"}
                         </span>
+                        {discountPercentage > 0 && (
+                          <span className="absolute left-2 top-2 rounded-full bg-[#145945] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                            -{discountPercentage}%
+                          </span>
+                        )}
                       </div>
 
                       <div className="p-3">
                         <p className="line-clamp-2 min-h-[38px] text-sm font-semibold leading-[1.35] text-[#164b3c]">{product.name}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[#6d8b80]">{product.brand || "Khan Cosmetics"}</p>
-                        <p className="mt-2 text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
+                        <div className="mt-2 flex items-center gap-2">
+                          <p className="text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
+                          {originalPrice ? <p className="text-xs text-[#7f9e93] line-through">{formatPrice(originalPrice)}</p> : null}
+                        </div>
+                        <div className="mt-2 flex items-center gap-1">
+                          {rating > 0 ? (
+                            <>
+                              {Array.from({ length: 5 }).map((_, idx) => (
+                                <Star
+                                  key={`${product._id}-star-${idx}`}
+                                  className={`h-3.5 w-3.5 ${idx < roundedRating ? "fill-[#f2b400] text-[#f2b400]" : "text-[#b7cdc4]"}`}
+                                />
+                              ))}
+                              <span className="ml-1 text-xs font-semibold text-[#2f6456]">
+                                {rating.toFixed(1)} ({Number(product?.reviewcount || 0)})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                              New
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   );
@@ -641,7 +801,7 @@ const SegmentPage = () => {
                 <X className="h-5 w-5 text-[#1f5c49]" />
               </button>
             </div>
-            <FilterPanel />
+            {renderFilterPanel()}
           </div>
         </div>
       )}

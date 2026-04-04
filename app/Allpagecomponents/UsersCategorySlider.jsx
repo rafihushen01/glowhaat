@@ -1,246 +1,314 @@
-import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { frontendurl} from '../page';
-import { serverurl } from '../utils/constants/serverurl';
+"use client";
 
-// Configuration
-const SERVER_URL = `${serverurl}`; // Replace with your actual env var
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { frontendurl } from "../page";
+import { serverurl } from "../utils/constants/serverurl";
+
+const SERVER_URL = `${serverurl}`;
+
+const getCardImage = (category) => {
+  if (category?.media) return category.media;
+  const firstSegmentWithImage = category?.segments?.find((segment) => segment?.image);
+  return firstSegmentWithImage?.image || "";
+};
+
+const toTitle = (value) => {
+  if (!value) return "";
+  return value
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 const CategoryShowcase = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const response = await axios.get(`${SERVER_URL}/category/public/full`);
+  const [activeRoot, setActiveRoot] = useState("");
+  const [activeLeaf, setActiveLeaf] = useState("");
+  const sliderRef = useRef(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
-      if (response.data && response.data.success) {
-        const data = response.data.data;
-
-        setCategories(data);
-
-        // 🔥 FULL RAW LOG
-        console.log("==== FULL CATEGORY DATA FROM BACKEND ====");
-        console.log(data);
-
-        // 🔥 PRETTY JSON (deep readable)
-        console.log("==== PRETTY JSON ====");
-        console.log(JSON.stringify(data, null, 2));
-
-        // 🔥 LOOP EACH CATEGORY
-        data.forEach((cat, i) => {
-          console.log(`\n📦 CATEGORY ${i + 1}`);
-          console.log("ID:", cat._id);
-          console.log("Name:", cat.name);
-          console.log("Slug:", cat.slug);
-          console.log("NavLink:", cat.navlink);
-          console.log("Media:", cat.media);
-          console.log("NavRoot:", cat.navroot);
-
-          if (cat.segments?.length) {
-            console.log(`--- SEGMENTS (${cat.segments.length}) ---`);
-            cat.segments.forEach((seg, j) => {
-              console.log(`  🔹 Segment ${j + 1}`);
-              console.log("  Name:", seg.name);
-              console.log("  Slug:", seg.slug);
-              console.log("  Image:", seg.image);
-              console.log("  NavLink:", seg.navlink);
-              console.log("  Depth:", seg.depth);
-              console.log("  NavPath:", seg.navpath);
-            });
-          } else {
-            console.log("No segments");
-          }
-        });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await axios.get(`${SERVER_URL}/category/public/full`);
+        if (response?.data?.success) {
+          const data = response.data.data || [];
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch categories:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("❌ Failed to fetch categories:", error);
-    } finally {
-      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  const groupedByRoot = useMemo(() => {
+    const map = {};
+
+    categories.forEach((category) => {
+      const root = category?.navroot || "Makeup";
+      if (!map[root]) {
+        map[root] = [];
+      }
+      map[root].push(category);
+    });
+
+    return map;
+  }, [categories]);
+
+  const rootTabs = useMemo(() => Object.keys(groupedByRoot), [groupedByRoot]);
+
+  useEffect(() => {
+    if (!activeRoot && rootTabs.length > 0) {
+      setActiveRoot(rootTabs[0]);
     }
+  }, [rootTabs, activeRoot]);
+
+  const currentRootCategories = useMemo(() => {
+    if (!activeRoot) return [];
+    return groupedByRoot[activeRoot] || [];
+  }, [groupedByRoot, activeRoot]);
+
+  const leafTabs = useMemo(() => {
+    return currentRootCategories.map((category) => ({
+      id: category._id,
+      label: category.name || toTitle(category.slug),
+    }));
+  }, [currentRootCategories]);
+
+  useEffect(() => {
+    if (!leafTabs.length) {
+      setActiveLeaf("");
+      return;
+    }
+    if (!activeLeaf || !leafTabs.some((leaf) => leaf.id === activeLeaf)) {
+      setActiveLeaf(leafTabs[0].id);
+    }
+  }, [leafTabs, activeLeaf]);
+
+  const filteredCards = useMemo(() => {
+    if (!activeLeaf) return currentRootCategories;
+    return currentRootCategories.filter((category) => category._id === activeLeaf);
+  }, [activeLeaf, currentRootCategories]);
+
+  const showcaseCards = useMemo(() => {
+    if (!filteredCards.length) return currentRootCategories;
+    const selected = filteredCards[0];
+    const segmentCards =
+      selected?.segments?.map((segment, index) => ({
+        _id: `${selected?._id}-segment-${index}`,
+        name: segment?.name || "Shop",
+        slug: segment?.slug || selected?.slug,
+        image: segment?.image || getCardImage(selected),
+      })) || [];
+
+    if (segmentCards.length > 0) return segmentCards;
+
+    return currentRootCategories.map((category) => ({
+      _id: category._id,
+      name: category.name || "Shop",
+      slug: category.slug,
+      image: getCardImage(category),
+    }));
+  }, [filteredCards, currentRootCategories]);
+
+  const exploreAllHref = useMemo(() => {
+    if (!currentRootCategories.length) return `${frontendurl}/category`;
+    const first = currentRootCategories[0];
+    return first?.navlink || `${frontendurl}/c/${first?.slug || ""}`;
+  }, [currentRootCategories]);
+
+  const checkScrollState = () => {
+    if (!sliderRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = sliderRef.current;
+    setCanScrollLeft(scrollLeft > 6);
+    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 6);
   };
 
-  fetchData();
-}, []);
+  useEffect(() => {
+    checkScrollState();
+    window.addEventListener("resize", checkScrollState);
+    return () => window.removeEventListener("resize", checkScrollState);
+  }, [showcaseCards]);
 
-
+  const scrollCards = (direction) => {
+    if (!sliderRef.current) return;
+    const jump = sliderRef.current.clientWidth * 0.8;
+    sliderRef.current.scrollBy({
+      left: direction === "left" ? -jump : jump,
+      behavior: "smooth",
+    });
+    window.setTimeout(checkScrollState, 450);
+  };
 
   if (loading) return <SkeletonLoader />;
   if (!categories.length) return null;
 
   return (
-    <div className="w-full bg-white pb-10">
-      {categories.map((category) => (
-        <SingleCategoryRow key={category._id} category={category} />
-      ))}
-    </div>
-  );
-};
+    <section className="w-full bg-[#f4f4f2] py-16 md:py-20 overflow-hidden">
+      <div className="max-w-[1920px] mx-auto px-4 md:px-10">
+        <div className="mb-8 md:mb-10 flex items-end justify-between gap-5">
+          <div>
+            <p className="text-[10px] md:text-xs uppercase tracking-[0.35em] font-bold text-[#1f5c49] mb-3">
+              KHAN COSMETICS
+            </p>
+            <h2 className="text-3xl md:text-6xl font-semibold tracking-tight text-[#0f1720]">
+              Shop by Category
+            </h2>
+          </div>
 
-const SingleCategoryRow = ({ category }) => {
-  const scrollRef = useRef(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
-
-  // Only render if there are segments to show
-  if (!category.segments || category.segments.length === 0) return null;
-
-  const checkScroll = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setCanScrollLeft(scrollLeft > 0);
-      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1); // -1 buffer
-    }
-  };
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [category.segments]);
-
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      const { clientWidth } = scrollRef.current;
-      const scrollAmount = clientWidth * 0.6; // Scroll 60% of screen width
-      scrollRef.current.scrollBy({
-        left: direction === 'left' ? -scrollAmount : scrollAmount,
-        behavior: 'smooth',
-      });
-      // Timeout to allow scroll animation to finish before checking buttons again
-      setTimeout(checkScroll, 500);
-    }
-  };
-
-  return (
-    <div className="py-8 md:py-12 pl-4 md:pl-12 border-b border-gray-50 last:border-none">
-      {/* Header Section */}
-      <div className="flex justify-between items-end pr-4 md:pr-12 mb-6 md:mb-8">
-        <h2 className="text-3xl md:text-4xl font-serif text-gray-900 tracking-tight">
-          {category.name}
-        </h2>
-        
-        {/* 'Explore All' Link */}
-        <Link 
-          href={category.navlink || `${frontendurl}/c/${category.slug}`}
-          className="hidden md:block text-sm font-medium text-gray-600 hover:text-black border-b border-transparent hover:border-black transition-all pb-0.5"
-        >
-          Explore All
-        </Link>
-      </div>
-
-      {/* Slider Container */}
-      <div className="relative group">
-        
-        {/* Navigation Buttons (Desktop Only - Hover triggered) */}
-        {/* Left Arrow */}
-        <button
-          onClick={() => scroll('left')}
-          className={`absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/90 backdrop-blur-sm shadow-lg rounded-full flex items-center justify-center transition-all duration-300 md:group-hover:opacity-100 opacity-0 ${
-            !canScrollLeft ? 'hidden' : 'translate-x-[-50%]'
-          }`}
-          aria-label="Scroll left"
-        >
-          <ChevronLeft className="w-6 h-6 text-gray-800" />
-        </button>
-
-        {/* Right Arrow */}
-        <button
-          onClick={() => scroll('right')}
-          className={`absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/90 backdrop-blur-sm shadow-lg rounded-full flex items-center justify-center transition-all duration-300 md:group-hover:opacity-100 opacity-0 ${
-            !canScrollRight ? 'hidden' : 'translate-x-[50%]'
-          }`}
-          aria-label="Scroll right"
-        >
-          <ChevronRight className="w-6 h-6 text-gray-800" />
-        </button>
-
-        {/* Scrollable Area */}
-        {/* Note: 'no-scrollbar' requires a custom utility or standard CSS to hide bars */}
-        <div
-          ref={scrollRef}
-          onScroll={checkScroll}
-          className="flex overflow-x-auto gap-4 md:gap-6 pb-4 scrollbar-hide snap-x snap-mandatory pr-4 md:pr-12"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} // Inline style for hiding scrollbar fallback
-        >
-          {category.segments.map((segment, index) => (
-            <div
-              key={segment._id || index}
-              className="flex-none w-[70vw] md:w-[22vw] lg:w-[18vw] snap-start"
-            >
-              <Link href={`${frontendurl}/s/${segment?.slug}` || '#'}>
-                <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-gray-100 group/card cursor-pointer">
-                  {/* Image with Zoom Effect */}
-               {segment.image ? (
-  segment.image.endsWith(".mp4") ? (
-    <video
-      src={segment.image}
-      className="w-full h-full object-cover"
-      autoPlay
-      muted
-      loop
-      playsInline
-    />
-  ) : (
-    <img
-      src={segment.image}
-      alt={segment.name}
-      className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover/card:scale-110"
-      loading="lazy"
-    />
-  )
-) : (
-  <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
-    No Image
-  </div>
-)}
-
-
-                  {/* Dark Gradient Overlay for text readability (Subtle) */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60" />
-
-                  {/* Text Content */}
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <h3 className="text-white text-xl md:text-2xl font-medium tracking-wide drop-shadow-md">
-                      {segment.name}
-                    </h3>
-                  </div>
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
-        
-        {/* Mobile 'Explore All' (Visible only on mobile below slider) */}
-        <div className="md:hidden mt-4 pr-4 text-right">
-           <Link 
-            href={category.navlink || `${frontendurl}/c/${category.slug}`}
-            className="text-sm font-semibold underline decoration-gray-400 underline-offset-4"
+          <Link
+            href={exploreAllHref}
+            className="hidden md:inline-flex items-center gap-2 text-sm font-semibold text-[#111827] hover:text-[#1f5c49] transition-colors"
           >
-            Explore All
+            Explore All <ArrowRight size={16} />
           </Link>
         </div>
+
+        <div className="mb-5 md:mb-6 flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {rootTabs.map((root) => {
+            const isActive = activeRoot === root;
+            return (
+              <button
+                key={root}
+                onClick={() => {
+                  setActiveRoot(root);
+                  setActiveLeaf("");
+                }}
+                className={`shrink-0 rounded-full border px-5 py-2.5 text-sm md:text-base font-semibold transition-all ${
+                  isActive
+                    ? "bg-[#111827] text-white border-[#111827]"
+                    : "bg-white text-[#111827] border-[#d1d5db] hover:border-[#111827]"
+                }`}
+              >
+                {toTitle(root)}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mb-8 flex gap-2.5 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {leafTabs.map((leaf) => {
+            const isActive = activeLeaf === leaf.id;
+            return (
+              <button
+                key={leaf.id}
+                onClick={() => setActiveLeaf(leaf.id)}
+                className={`shrink-0 rounded-full px-4 py-2 text-xs md:text-sm font-medium transition-all ${
+                  isActive
+                    ? "bg-[#1f5c49] text-white"
+                    : "bg-[#e5e7eb] text-[#1f2937] hover:bg-[#d1d5db]"
+                }`}
+              >
+                {leaf.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="relative group">
+          <button
+            onClick={() => scrollCards("left")}
+            aria-label="Scroll left"
+            className={`hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/95 border border-[#d1d5db] items-center justify-center shadow-lg transition ${
+              canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <ChevronLeft className="w-6 h-6 text-[#111827]" />
+          </button>
+
+          <button
+            onClick={() => scrollCards("right")}
+            aria-label="Scroll right"
+            className={`hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 rounded-full bg-white/95 border border-[#d1d5db] items-center justify-center shadow-lg transition ${
+              canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
+          >
+            <ChevronRight className="w-6 h-6 text-[#111827]" />
+          </button>
+
+          <div
+            ref={sliderRef}
+            onScroll={checkScrollState}
+            className="flex gap-4 md:gap-6 overflow-x-auto pb-4 pr-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
+            {showcaseCards.map((card, index) => (
+              <Link
+                key={card._id || index}
+                href={card?.slug ? `${frontendurl}/s/${card.slug}` : exploreAllHref}
+                className="group/card shrink-0 w-[75vw] sm:w-[44vw] md:w-[26vw] lg:w-[21vw]"
+              >
+                <article className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-[#dfe3e8]">
+                  {card.image ? (
+                    card.image.endsWith(".mp4") ? (
+                      <video
+                        src={card.image}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-105"
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                      />
+                    ) : (
+                      <img
+                        src={card.image}
+                        alt={card.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-105"
+                        loading="lazy"
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-100">
+                      No Image
+                    </div>
+                  )}
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+
+                  <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-3">
+                    <h3 className="text-white text-2xl md:text-3xl font-semibold leading-none drop-shadow">
+                      {card.name}
+                    </h3>
+                    <span className="w-9 h-9 rounded-full bg-white/90 text-[#111827] flex items-center justify-center backdrop-blur-sm group-hover/card:bg-white transition-colors">
+                      <ArrowRight size={18} />
+                    </span>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        </div>
       </div>
-    </div>
+    </section>
   );
 };
 
-// Simple Skeleton Loader for better UX
 const SkeletonLoader = () => (
-  <div className="p-8 space-y-12">
-    {[1, 2].map((i) => (
-      <div key={i} className="space-y-4">
-        <div className="h-8 w-48 bg-gray-200 animate-pulse rounded" />
-        <div className="flex gap-4 overflow-hidden">
-          {[1, 2, 3, 4].map((j) => (
-            <div key={j} className="h-64 w-64 bg-gray-200  rounded flex-none" />
-          ))}
-        </div>
+  <section className="w-full bg-[#f4f4f2] py-16 md:py-20">
+    <div className="max-w-[1920px] mx-auto px-4 md:px-10">
+      <div className="h-5 w-36 bg-gray-200 rounded animate-pulse mb-4" />
+      <div className="h-12 w-80 bg-gray-200 rounded animate-pulse mb-8" />
+      <div className="flex gap-3 mb-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-10 w-28 rounded-full bg-gray-200 animate-pulse" />
+        ))}
       </div>
-    ))}
-  </div>
+      <div className="flex gap-4 overflow-hidden">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="w-[22vw] min-w-[240px] aspect-[3/4] rounded-2xl bg-gray-200 animate-pulse" />
+        ))}
+      </div>
+    </div>
+  </section>
 );
 
 export default CategoryShowcase;
