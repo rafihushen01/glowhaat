@@ -1,36 +1,44 @@
 "use client";
 
 import "leaflet/dist/leaflet.css";
-import React, { useEffect, useMemo, useState } from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import {useRouter} from "next/navigation";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
-import { Banknote, Building2, CreditCard, MapPin, Navigation, Smartphone } from "lucide-react";
+import {useDispatch, useSelector} from "react-redux";
+import {useLocale, useTranslations} from "next-intl";
+import {Banknote, Building2, CreditCard, MapPin, Navigation, Smartphone} from "lucide-react";
 import useGetMyLocation from "../hooks/useGetMyLocation";
-import { serverurl } from "../utils/constants/serverurl";
-import { clearCart, setCartItems } from "../reduxcomponents/CartSlice";
-import { getRequestConfig } from "../utils/requestConfig";
+import {serverurl} from "../utils/constants/serverurl";
+import {clearCart, setCartItems} from "../reduxcomponents/CartSlice";
+import {getRequestConfig} from "../utils/requestConfig";
 
 const LocationPickerMap = dynamic(() => import("../components/LocationPickerMap"), {
   ssr: false,
 });
 
-const PAYMENT_METHODS = [
-  { id: "cod", label: "Cash on Delivery", icon: <Banknote className="h-4 w-4" /> },
-  { id: "bkash", label: "bKash", icon: <Smartphone className="h-4 w-4" /> },
-  { id: "nagad", label: "Nagad", icon: <CreditCard className="h-4 w-4" /> },
-  { id: "bank", label: "Bank Transfer", icon: <Building2 className="h-4 w-4" /> },
-];
-
-const formatPrice = (value) => `৳${Number(value || 0).toLocaleString()}`;
+const formatPrice = (value, locale) =>
+  new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-BD", {
+    style: "currency",
+    currency: "BDT",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 
 const CheckoutPage = () => {
+  const t = useTranslations("CheckoutPage");
+  const locale = useLocale();
   const router = useRouter();
   const dispatch = useDispatch();
   const userData = useSelector((state) => state.user.userData);
   const user = userData?.user || userData?.data || userData || null;
+
+  const paymentMethods = [
+    {id: "cod", label: t("payment.cod"), icon: <Banknote className="h-4 w-4" />},
+    {id: "bkash", label: t("payment.bkash"), icon: <Smartphone className="h-4 w-4" />},
+    {id: "nagad", label: t("payment.nagad"), icon: <CreditCard className="h-4 w-4" />},
+    {id: "bank", label: t("payment.bank"), icon: <Building2 className="h-4 w-4" />},
+  ];
 
   const [cartLoading, setCartLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -73,7 +81,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const { data } = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
+        const {data} = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
         if (data?.success) {
           const items = Array.isArray(data.items) ? data.items : [];
           setLocalCartItems(items);
@@ -82,14 +90,14 @@ const CheckoutPage = () => {
           dispatch(setCartItems(items));
         }
       } catch (error) {
-        setStatusMessage(error?.response?.data?.message || "Could not load checkout right now.");
+        setStatusMessage(error?.response?.data?.message || t("errors.loadCheckout"));
       } finally {
         setCartLoading(false);
       }
     };
 
     fetchCart();
-  }, [dispatch]);
+  }, [dispatch, t]);
 
   useEffect(() => {
     if (!location) return;
@@ -105,7 +113,7 @@ const CheckoutPage = () => {
     await searchManualLocation(manualQuery);
   };
 
-  const handlePickFromMap = ({ lat, lng }) => {
+  const handlePickFromMap = ({lat, lng}) => {
     setLocation((prev) => ({
       ...(prev || {}),
       lat,
@@ -130,14 +138,14 @@ const CheckoutPage = () => {
         latitude: location?.lat ?? null,
         longitude: location?.lng ?? null,
       };
-      const { data } = await axios.post(`${serverurl}/order/place`, payload, getRequestConfig());
+      const {data} = await axios.post(`${serverurl}/order/place`, payload, getRequestConfig());
       if (data?.success) {
         dispatch(clearCart());
-        setStatusMessage("Order placed successfully.");
+        setStatusMessage(t("success.orderPlaced"));
         router.push("/my-orders");
       }
     } catch (error) {
-      setStatusMessage(error?.response?.data?.message || "Could not place order.");
+      setStatusMessage(error?.response?.data?.message || t("errors.placeOrder"));
     } finally {
       setSubmitting(false);
     }
@@ -146,7 +154,7 @@ const CheckoutPage = () => {
   if (cartLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <p className="text-sm uppercase tracking-[0.24em] text-emerald-700">Preparing Checkout</p>
+        <p className="text-sm uppercase tracking-[0.24em] text-emerald-700">{t("preparing")}</p>
       </div>
     );
   }
@@ -157,17 +165,15 @@ const CheckoutPage = () => {
       <div className="relative mx-auto max-w-7xl px-4 py-8 md:py-12">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.32em] text-emerald-700">KhanCosmetics Checkout</p>
-            <h1 className="mt-2 text-4xl md:text-5xl font-semibold">Complete Your Order</h1>
-            <p className="mt-2 text-sm text-[#4f6f63]">
-              Clean, secure, and fast checkout in KhanCosmetics signature white and emerald.
-            </p>
+            <p className="text-[11px] uppercase tracking-[0.32em] text-emerald-700">{t("header.label")}</p>
+            <h1 className="mt-2 text-4xl md:text-5xl font-semibold">{t("header.title")}</h1>
+            <p className="mt-2 text-sm text-[#4f6f63]">{t("header.subtitle")}</p>
           </div>
           <Link
             href="/cart"
             className="h-11 px-5 rounded-full border border-emerald-200 text-xs uppercase tracking-[0.18em] text-emerald-800 inline-flex items-center"
           >
-            Back to Cart
+            {t("backToCart")}
           </Link>
         </header>
 
@@ -179,55 +185,55 @@ const CheckoutPage = () => {
 
         {cartItems.length === 0 ? (
           <div className="mt-10 rounded-2xl border border-emerald-200 bg-white p-10 text-center">
-            <h2 className="text-2xl font-semibold">Your cart is empty</h2>
-            <p className="mt-2 text-sm text-[#4f6f63]">Add products first to continue checkout.</p>
+            <h2 className="text-2xl font-semibold">{t("empty.title")}</h2>
+            <p className="mt-2 text-sm text-[#4f6f63]">{t("empty.text")}</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-8">
             <section className="xl:col-span-2 space-y-6">
               <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
-                <h2 className="text-xl font-semibold">Basic Information</h2>
+                <h2 className="text-xl font-semibold">{t("sections.basicInfo")}</h2>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input label="Full Name" value={form.fullname} onChange={(v) => setForm((p) => ({ ...p, fullname: v }))} required />
-                  <Input label="Mobile Number" value={form.mobile} onChange={(v) => setForm((p) => ({ ...p, mobile: v }))} required />
-                  <Input label="Email (Optional)" value={form.email} onChange={(v) => setForm((p) => ({ ...p, email: v }))} />
-                  <Input label="District" value={form.district} onChange={(v) => setForm((p) => ({ ...p, district: v }))} required />
-                  <Input label="City" value={form.city} onChange={(v) => setForm((p) => ({ ...p, city: v }))} required />
-                  <Input label="Upzilla" value={form.upzilla} onChange={(v) => setForm((p) => ({ ...p, upzilla: v }))} />
-                  <Input label="Area" value={form.area} onChange={(v) => setForm((p) => ({ ...p, area: v }))} />
-                  <Input label="Landmark" value={form.landmark} onChange={(v) => setForm((p) => ({ ...p, landmark: v }))} />
+                  <Input label={t("fields.fullName")} value={form.fullname} onChange={(v) => setForm((p) => ({...p, fullname: v}))} required />
+                  <Input label={t("fields.mobile")} value={form.mobile} onChange={(v) => setForm((p) => ({...p, mobile: v}))} required />
+                  <Input label={t("fields.emailOptional")} value={form.email} onChange={(v) => setForm((p) => ({...p, email: v}))} />
+                  <Input label={t("fields.district")} value={form.district} onChange={(v) => setForm((p) => ({...p, district: v}))} required />
+                  <Input label={t("fields.city")} value={form.city} onChange={(v) => setForm((p) => ({...p, city: v}))} required />
+                  <Input label={t("fields.upzilla")} value={form.upzilla} onChange={(v) => setForm((p) => ({...p, upzilla: v}))} />
+                  <Input label={t("fields.area")} value={form.area} onChange={(v) => setForm((p) => ({...p, area: v}))} />
+                  <Input label={t("fields.landmark")} value={form.landmark} onChange={(v) => setForm((p) => ({...p, landmark: v}))} />
                 </div>
                 <label className="mt-4 block text-sm text-emerald-900">
-                  Full Address
+                  {t("fields.fullAddress")}
                   <textarea
                     required
                     value={form.addressline}
-                    onChange={(e) => setForm((p) => ({ ...p, addressline: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({...p, addressline: e.target.value}))}
                     className="mt-2 min-h-[100px] w-full rounded-xl border border-emerald-200 px-3 py-2 outline-none focus:border-emerald-500"
-                    placeholder="House, road, area details"
+                    placeholder={t("placeholders.fullAddress")}
                   />
                 </label>
                 <label className="mt-4 block text-sm text-emerald-900">
-                  Order Notes
+                  {t("fields.orderNotes")}
                   <textarea
                     value={form.notes}
-                    onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                    onChange={(e) => setForm((p) => ({...p, notes: e.target.value}))}
                     className="mt-2 min-h-[80px] w-full rounded-xl border border-emerald-200 px-3 py-2 outline-none focus:border-emerald-500"
-                    placeholder="Any delivery instructions"
+                    placeholder={t("placeholders.orderNotes")}
                   />
                 </label>
               </article>
 
               <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-xl font-semibold">Location</h2>
+                  <h2 className="text-xl font-semibold">{t("sections.location")}</h2>
                   <button
                     type="button"
                     onClick={getMyLocation}
                     className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-emerald-800"
                   >
                     <Navigation className="h-4 w-4" />
-                    {loadingCurrent ? "Locating..." : "Use My Location"}
+                    {loadingCurrent ? t("location.locating") : t("location.useMyLocation")}
                   </button>
                 </div>
 
@@ -235,7 +241,7 @@ const CheckoutPage = () => {
                   <input
                     value={manualQuery}
                     onChange={(e) => setManualQuery(e.target.value)}
-                    placeholder="Search manual location"
+                    placeholder={t("location.searchPlaceholder")}
                     className="h-11 flex-1 rounded-xl border border-emerald-200 px-3 outline-none focus:border-emerald-500"
                   />
                   <button
@@ -243,7 +249,7 @@ const CheckoutPage = () => {
                     onClick={handleSearchManual}
                     className="h-11 rounded-xl border border-emerald-700 px-5 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700 hover:bg-emerald-50"
                   >
-                    {searching ? "Searching..." : "Search"}
+                    {searching ? t("location.searching") : t("location.search")}
                   </button>
                 </div>
 
@@ -260,7 +266,7 @@ const CheckoutPage = () => {
                       >
                         <p className="text-sm font-medium text-emerald-900">{result.formatted}</p>
                         <p className="text-xs text-[#4f6f63]">
-                          {result.city || "Unknown city"} {result.district ? `| ${result.district}` : ""}
+                          {result.city || t("location.unknownCity")} {result.district ? `| ${result.district}` : ""}
                         </p>
                       </button>
                     ))}
@@ -269,31 +275,27 @@ const CheckoutPage = () => {
 
                 {location ? (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Selected Location</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{t("location.selected")}</p>
                     <p className="mt-1 text-sm text-emerald-900">{location.formatted}</p>
                     <p className="text-xs text-[#4f6f63]">
-                      Lat: {Number(location.lat).toFixed(6)}, Lng: {Number(location.lng).toFixed(6)}
+                      {t("location.lat")}: {Number(location.lat).toFixed(6)}, {t("location.lng")}: {Number(location.lng).toFixed(6)}
                     </p>
                   </div>
                 ) : null}
 
                 <div className="mt-4">
-                  <LocationPickerMap
-                    lat={location?.lat}
-                    lng={location?.lng}
-                    onPick={handlePickFromMap}
-                  />
+                  <LocationPickerMap lat={location?.lat} lng={location?.lng} onPick={handlePickFromMap} />
                   <p className="mt-2 flex items-center gap-2 text-xs text-[#4f6f63]">
                     <MapPin className="h-3.5 w-3.5" />
-                    Click on map to adjust pin for accurate delivery.
+                    {t("location.mapHint")}
                   </p>
                 </div>
               </article>
 
               <article className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6">
-                <h2 className="text-xl font-semibold">Payment Method</h2>
+                <h2 className="text-xl font-semibold">{t("sections.paymentMethod")}</h2>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {PAYMENT_METHODS.map((method) => (
+                  {paymentMethods.map((method) => (
                     <button
                       key={method.id}
                       type="button"
@@ -315,28 +317,28 @@ const CheckoutPage = () => {
                 {paymentMethod !== "cod" ? (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
-                      label="Payment Reference / Txn ID"
+                      label={t("fields.paymentRef")}
                       value={form.paymentreference}
-                      onChange={(v) => setForm((p) => ({ ...p, paymentreference: v }))}
+                      onChange={(v) => setForm((p) => ({...p, paymentreference: v}))}
                       required
                     />
                     <Input
-                      label="Payment Note"
+                      label={t("fields.paymentNote")}
                       value={form.paymentnote}
-                      onChange={(v) => setForm((p) => ({ ...p, paymentnote: v }))}
-                      placeholder="Sender number / bank details"
+                      onChange={(v) => setForm((p) => ({...p, paymentnote: v}))}
+                      placeholder={t("placeholders.paymentNote")}
                     />
                   </div>
                 ) : (
                   <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                    You will pay cash when your order arrives.
+                    {t("payment.codHint")}
                   </div>
                 )}
               </article>
             </section>
 
             <aside className="rounded-2xl border border-emerald-200 bg-white p-5 md:p-6 h-fit sticky top-6">
-              <h2 className="text-2xl font-semibold">Order Summary</h2>
+              <h2 className="text-2xl font-semibold">{t("summary.title")}</h2>
               <div className="mt-5 space-y-3 text-sm">
                 {cartItems.map((item) => (
                   <div key={item._id} className="flex items-start gap-3">
@@ -351,26 +353,26 @@ const CheckoutPage = () => {
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-semibold text-emerald-900">{item.name}</p>
                       <p className="text-xs text-[#4f6f63]">
-                        {item.variantname || "Default"} / {item.optionname || "Option"} x {item.quantity}
+                        {item.variantname || t("summary.defaultVariant")} / {item.optionname || t("summary.defaultOption")} x {item.quantity}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold">{formatPrice(item.totalprice)}</p>
+                    <p className="text-sm font-semibold">{formatPrice(item.totalprice, locale)}</p>
                   </div>
                 ))}
               </div>
 
               <div className="mt-6 space-y-2 border-t border-emerald-100 pt-4 text-sm">
                 <div className="flex justify-between text-[#4f6f63]">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotal)}</span>
+                  <span>{t("summary.subtotal")}</span>
+                  <span>{formatPrice(subtotal, locale)}</span>
                 </div>
                 <div className="flex justify-between text-[#4f6f63]">
-                  <span>Delivery</span>
-                  <span>{formatPrice(deliveryTotal)}</span>
+                  <span>{t("summary.delivery")}</span>
+                  <span>{formatPrice(deliveryTotal, locale)}</span>
                 </div>
                 <div className="flex justify-between text-lg font-semibold text-emerald-900 pt-1">
-                  <span>Total</span>
-                  <span>{formatPrice(grandTotal)}</span>
+                  <span>{t("summary.total")}</span>
+                  <span>{formatPrice(grandTotal, locale)}</span>
                 </div>
               </div>
 
@@ -379,7 +381,7 @@ const CheckoutPage = () => {
                 disabled={submitting}
                 className="mt-6 h-12 w-full rounded-xl bg-emerald-700 text-white text-xs font-semibold uppercase tracking-[0.18em] hover:bg-emerald-800 disabled:opacity-70"
               >
-                {submitting ? "Placing Order..." : "Complete Order"}
+                {submitting ? t("summary.placing") : t("summary.complete")}
               </button>
             </aside>
           </form>
@@ -389,7 +391,7 @@ const CheckoutPage = () => {
   );
 };
 
-const Input = ({ label, value, onChange, required = false, placeholder = "" }) => (
+const Input = ({label, value, onChange, required = false, placeholder = ""}) => (
   <label className="text-sm text-emerald-900">
     {label}
     <input
@@ -403,3 +405,4 @@ const Input = ({ label, value, onChange, required = false, placeholder = "" }) =
 );
 
 export default CheckoutPage;
+

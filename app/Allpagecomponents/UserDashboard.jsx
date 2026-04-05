@@ -6,6 +6,7 @@ import UserHomebanner from './UserHomebanner'
 import NewItem from './NewItem'
 import CategoryShowcase from './UsersCategorySlider'
 import BehaviorRecommendations from './BehaviorRecommendations'
+import BrandFooter from './BrandFooter'
 
 
 const UserDashboard = () => {
@@ -26,6 +27,7 @@ const UserDashboard = () => {
       <section id="deals-you-cant-miss">
         <BehaviorRecommendations />
       </section>
+      <BrandFooter />
 
     </div>
   )

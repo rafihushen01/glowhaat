@@ -1,0 +1,268 @@
+{
+  "UserNav": {
+    "language": {
+      "english": "English",
+      "bangla": "Bangla"
+    },
+    "contact": "Contact",
+    "search": "Search",
+    "searchPlaceholder": "Search KhanCosmetics...",
+    "close": "Close",
+    "searching": "Searching...",
+    "noResults": "No results found.",
+    "signedInAs": "Signed In As",
+    "myWishlist": "My Wishlist",
+    "wishlistWithCount": "Wishlist ({count})",
+    "logout": "Logout",
+    "signIn": "Sign In",
+    "joinNow": "Join Now",
+    "viewCollection": "View Collection",
+    "explore": "Explore",
+    "noSubcategories": "No subcategories",
+    "noPreviewImages": "No preview images available for {name}",
+    "signature": "Signature",
+    "back": "Back",
+    "menu": "MENU",
+    "loggedIn": "Logged In",
+    "createAccount": "Create Account",
+    "defaultUserName": "KhanCosmetics User",
+    "brandFallback": "KhanCosmetics",
+    "featuredAlt": "Featured",
+    "userAvatarAlt": "User Avatar"
+  },
+  "CartPage": {
+    "brand": "KhanCosmetics",
+    "preparing": "Preparing Your Cart",
+    "bagLabel": "KhanCosmetics Bag",
+    "title": "Add To Cart",
+    "subtitle": "Polished essentials for your glow journey.",
+    "signature": "KhanCosmetics Signature",
+    "signatureText": "Crafted for global beauty lovers",
+    "continueShopping": "Continue Shopping",
+    "clearCart": "Clear Cart",
+    "emptyTitle": "Your bag is empty",
+    "emptyText": "Add premium products from Product Details to see them here.",
+    "shadeLabel": "Shade",
+    "sizeLabel": "Size",
+    "standard": "Standard",
+    "defaultOption": "Default",
+    "keyLabel": "Key",
+    "decreaseQty": "Decrease quantity",
+    "increaseQty": "Increase quantity",
+    "remove": "Remove",
+    "unitPrice": "Unit Price",
+    "lineTotal": "Line Total",
+    "orderSummary": "Order Summary",
+    "subtotal": "Subtotal",
+    "delivery": "Delivery",
+    "total": "Total",
+    "proceedCheckout": "Proceed To Checkout",
+    "errors": {
+      "loadCart": "Could not load your cart right now.",
+      "updateQty": "Could not update quantity.",
+      "removeItem": "Could not remove item.",
+      "clearCart": "Could not clear cart."
+    }
+  },
+  "CheckoutPage": {
+    "preparing": "Preparing Checkout",
+    "backToCart": "Back to Cart",
+    "header": {
+      "label": "KhanCosmetics Checkout",
+      "title": "Complete Your Order",
+      "subtitle": "Clean, secure, and fast checkout in KhanCosmetics signature white and emerald."
+    },
+    "empty": {
+      "title": "Your cart is empty",
+      "text": "Add products first to continue checkout."
+    },
+    "sections": {
+      "basicInfo": "Basic Information",
+      "location": "Location",
+      "paymentMethod": "Payment Method"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "mobile": "Mobile Number",
+      "emailOptional": "Email (Optional)",
+      "district": "District",
+      "city": "City",
+      "upzilla": "Upzilla",
+      "area": "Area",
+      "landmark": "Landmark",
+      "fullAddress": "Full Address",
+      "orderNotes": "Order Notes",
+      "paymentRef": "Payment Reference / Txn ID",
+      "paymentNote": "Payment Note"
+    },
+    "placeholders": {
+      "fullAddress": "House, road, area details",
+      "orderNotes": "Any delivery instructions",
+      "paymentNote": "Sender number / bank details"
+    },
+    "location": {
+      "locating": "Locating...",
+      "useMyLocation": "Use My Location",
+      "searchPlaceholder": "Search manual location",
+      "searching": "Searching...",
+      "search": "Search",
+      "unknownCity": "Unknown city",
+      "selected": "Selected Location",
+      "lat": "Lat",
+      "lng": "Lng",
+      "mapHint": "Click on map to adjust pin for accurate delivery."
+    },
+    "payment": {
+      "cod": "Cash on Delivery",
+      "bkash": "bKash",
+      "nagad": "Nagad",
+      "bank": "Bank Transfer",
+      "codHint": "You will pay cash when your order arrives."
+    },
+    "summary": {
+      "title": "Order Summary",
+      "defaultVariant": "Default",
+      "defaultOption": "Option",
+      "subtotal": "Subtotal",
+      "delivery": "Delivery",
+      "total": "Total",
+      "placing": "Placing Order...",
+      "complete": "Complete Order"
+    },
+    "success": {
+      "orderPlaced": "Order placed successfully."
+    },
+    "errors": {
+      "loadCheckout": "Could not load checkout right now.",
+      "placeOrder": "Could not place order."
+    }
+  },
+  "ProductView": {
+    "loading": "Loading Khan Cosmetics...",
+    "errorPrefix": "Error",
+    "exclusive": "KhanCosmetics Exclusive",
+    "stars": "stars",
+    "verifiedReviews": "verified reviews",
+    "tapToZoom": "Tap to Zoom",
+    "sale": "Sale",
+    "flashSale": "Flash Sale",
+    "breadcrumbs": {
+      "home": "Home",
+      "products": "Products"
+    },
+    "color": "Color",
+    "size": "Size",
+    "sizeGuide": "Size Guide",
+    "quantity": "Quantity",
+    "adding": "Adding...",
+    "addToCart": "Add to Cart",
+    "saving": "Saving...",
+    "wishlisted": "Wishlisted",
+    "wishlist": "Wishlist",
+    "viewCart": "View Cart",
+    "tabs": {
+      "description": "Description",
+      "features": "Features",
+      "material": "Material",
+      "materialDetails": "Material & Details"
+    },
+    "zoom": {
+      "pan": "Pan to view details",
+      "reset": "Reset",
+      "alt": "Super Zoom"
+    },
+    "success": {
+      "addedToCart": "Added to cart successfully.",
+      "wishlistUpdated": "Wishlist updated."
+    },
+    "errors": {
+      "productNotFound": "Product not found",
+      "itemNotFound": "Item not found",
+      "addToCart": "Could not add this product to cart.",
+      "wishlistUpdate": "Could not update wishlist right now."
+    },
+    "share": {
+      "title": "Share This Product",
+      "subtitle": "Send this product directly to friends. They will land on this exact product page.",
+      "shareText": "Check out {name} on KhanCosmetics",
+      "whatsapp": "WhatsApp",
+      "facebook": "Facebook",
+      "messenger": "Messenger",
+      "instagram": "Instagram",
+      "copyLink": "Copy Link",
+      "sharing": "Sharing...",
+      "sharedWhatsapp": "Shared on WhatsApp.",
+      "sharedFacebook": "Shared on Facebook.",
+      "copiedMessenger": "Link copied. Paste it in Messenger.",
+      "openedMessenger": "Opened Messenger share.",
+      "copiedInstagram": "Link copied. Paste it on Instagram.",
+      "openedInstagram": "Opened Instagram.",
+      "linkCopied": "Share link copied.",
+      "copyFailed": "Could not copy share link.",
+      "shareFailed": "Could not share right now. Please try again."
+    }
+  },
+  "SigninPage": {
+    "title": "Sign In",
+    "accountAccess": "Account access",
+    "hero": {
+      "tag": "Luxury Beauty Access",
+      "title": "Welcome Back",
+      "desc": "Sign in to your KhanCosmetics account with secure OTP verification for safer checkout, personalized beauty picks, and trusted order tracking.",
+      "p1": "Step-based sign in for secure account access",
+      "p2": "OTP verification on every session start",
+      "p3": "Backend aligned with KhanCosmetics auth router",
+      "securityTitle": "Security-first sign in",
+      "securityText": "Your session is created only after OTP verification, and authentication cookies are handled by the backend with secure settings."
+    },
+    "steps": {
+      "credentials": "1. Credentials",
+      "verify": "2. Verify OTP"
+    },
+    "fields": {
+      "email": "Email Address",
+      "password": "Password",
+      "googleMobile": "Mobile For Google Signin",
+      "otp": "One-Time Password"
+    },
+    "placeholders": {
+      "email": "you@example.com",
+      "password": "Enter your account password",
+      "mobile": "+8801XXXXXXXXX",
+      "otp": "Enter 6-digit OTP"
+    },
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "rememberDevice": "Keep this device trusted for faster future sign-in.",
+    "continueOtp": "Continue with OTP",
+    "googleSignin": "Sign in with Google",
+    "otpSentTo": "OTP sent to",
+    "yourEmail": "your email",
+    "verifyAndSignin": "Verify and Sign In",
+    "editCredentials": "Edit credentials",
+    "resendOtp": "Resend OTP",
+    "resending": "Resending...",
+    "resendIn": "Resend in {seconds}s",
+    "newToBrand": "New to KhanCosmetics?",
+    "createAccount": "Create account",
+    "success": {
+      "otpSent": "OTP sent.",
+      "signin": "Signin successful.",
+      "otpResent": "A new OTP has been sent.",
+      "googleSignin": "Google signin successful."
+    },
+    "errors": {
+      "invalidEmail": "Please enter a valid email address.",
+      "shortPassword": "Password must be at least 6 characters.",
+      "sendOtp": "Could not send OTP. Please try again.",
+      "signinRequest": "Signin request failed.",
+      "emailMissing": "Email is missing. Go back and enter your credentials.",
+      "enterOtp": "Enter your 6-digit OTP.",
+      "otpVerify": "OTP verification failed.",
+      "validCredentialsForResend": "Please enter valid email and password before resending OTP.",
+      "resendOtp": "Could not resend OTP.",
+      "invalidMobileForGoogle": "Please enter a valid mobile number before Google signin.",
+      "googleSignin": "Google signin failed. Please try again."
+    }
+  }
+}

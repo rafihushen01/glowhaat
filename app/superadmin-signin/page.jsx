@@ -37,7 +37,7 @@ const SuperAdminSigninPage = () => {
     const message = error?.response?.data?.message;
     const detail = error?.response?.data?.detail;
     if (message && detail) return `${message}: ${detail}`;
-    return message || fallback;
+    return message || error?.message || fallback;
   };
 
   const validateCredentials = () => {
@@ -59,7 +59,7 @@ const SuperAdminSigninPage = () => {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/signinotp`,
         { email: sanitizedEmail, password: sanitizedPassword },
-        { withCredentials: true, timeout: 30000 }
+        { withCredentials: true, timeout: 12000 }
       );
 
       if (!data?.success) {
@@ -67,7 +67,12 @@ const SuperAdminSigninPage = () => {
         return;
       }
 
-      toast.success("OTP sent to SuperAdmin email.");
+      if (data?.delivery === "fallback") {
+        const fallbackLabel = data?.devOtp ? ` OTP: ${data.devOtp}` : "";
+        toast.success(`OTP generated.${fallbackLabel}`);
+      } else {
+        toast.success("OTP sent to SuperAdmin email.");
+      }
       setStep("verify");
       setOtp("");
       setOtpCountdown(60);
@@ -90,7 +95,7 @@ const SuperAdminSigninPage = () => {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/verifyotp`,
         { email: sanitizedEmail, otp: otp.trim() },
-        { withCredentials: true, timeout: 30000 }
+        { withCredentials: true, timeout: 12000 }
       );
 
       if (!data?.success) {

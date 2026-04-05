@@ -21,6 +21,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import {useTranslations} from "next-intl";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
@@ -41,6 +42,7 @@ const inputClass =
   "w-full rounded-xl border border-[#d5e3dc] bg-[#fbfdfc] px-3 py-2.5 text-sm text-[#17372b] outline-none transition placeholder:text-[#789486] focus:border-[#1f5c49] focus:ring-2 focus:ring-[#9ec7b4]/40";
 
 const Signin = () => {
+  const t = useTranslations("SigninPage");
   const router = useRouter();
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
@@ -77,11 +79,11 @@ const Signin = () => {
 
   const validateCredentials = () => {
     if (!sanitizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
-      return "Please enter a valid email address.";
+      return t("errors.invalidEmail");
     }
 
     if (!credentials.password || credentials.password.length < 6) {
-      return "Password must be at least 6 characters.";
+      return t("errors.shortPassword");
     }
 
     return "";
@@ -114,16 +116,16 @@ const Signin = () => {
       );
 
       if (!data?.message) {
-        toast.error("Could not send OTP. Please try again.");
+        toast.error(t("errors.sendOtp"));
         return;
       }
 
-      toast.success(data.message || "OTP sent.");
+      toast.success(data.message || t("success.otpSent"));
       setStep("verify");
       setOtp("");
       setOtpCountdown(60);
     } catch (error) {
-      toast.error(getApiError(error, "Signin request failed."));
+      toast.error(getApiError(error, t("errors.signinRequest")));
     } finally {
       setLoading(false);
     }
@@ -133,12 +135,12 @@ const Signin = () => {
     event.preventDefault();
 
     if (!sanitizedEmail) {
-      toast.error("Email is missing. Go back and enter your credentials.");
+      toast.error(t("errors.emailMissing"));
       return;
     }
 
     if (!/^\d{6}$/.test(otp.trim())) {
-      toast.error("Enter your 6-digit OTP.");
+      toast.error(t("errors.enterOtp"));
       return;
     }
 
@@ -161,7 +163,7 @@ const Signin = () => {
       );
 
       if (!data?.success) {
-        toast.error(data?.message || "OTP verification failed.");
+        toast.error(data?.message || t("errors.otpVerify"));
         return;
       }
 
@@ -179,7 +181,7 @@ const Signin = () => {
         dispatch(setUserData(authuser));
       }
 
-      toast.success(data?.message || "Signin successful.");
+      toast.success(data?.message || t("success.signin"));
       setTimeout(() => {
         if (authuser?.role === "SuperAdmin") {
           router.push("/SuperAdmin");
@@ -188,7 +190,7 @@ const Signin = () => {
         }
       }, 750);
     } catch (error) {
-      toast.error(getApiError(error, "OTP verification failed."));
+      toast.error(getApiError(error, t("errors.otpVerify")));
     } finally {
       setLoading(false);
     }
@@ -199,7 +201,7 @@ const Signin = () => {
 
     const validationError = validateCredentials();
     if (validationError) {
-      toast.error("Please enter valid email and password before resending OTP.");
+      toast.error(t("errors.validCredentialsForResend"));
       return;
     }
 
@@ -218,10 +220,10 @@ const Signin = () => {
         }
       );
 
-      toast.success(data?.message || "A new OTP has been sent.");
+      toast.success(data?.message || t("success.otpResent"));
       setOtpCountdown(60);
     } catch (error) {
-      toast.error(getApiError(error, "Could not resend OTP."));
+      toast.error(getApiError(error, t("errors.resendOtp")));
     } finally {
       setResending(false);
     }
@@ -230,7 +232,7 @@ const Signin = () => {
   const handleGoogleSignin = async () => {
     const mobile = googleMobile.trim();
     if (!mobile || !/^\+?\d{8,15}$/.test(mobile)) {
-      toast.error("Please enter a valid mobile number before Google signin.");
+      toast.error(t("errors.invalidMobileForGoogle"));
       return;
     }
 
@@ -247,7 +249,7 @@ const Signin = () => {
       );
 
       if (!data?.success) {
-        toast.error(data?.message || "Google signin failed.");
+        toast.error(data?.message || t("errors.googleSignin"));
         return;
       }
 
@@ -255,7 +257,7 @@ const Signin = () => {
         dispatch(setUserData(data.user));
       }
 
-      toast.success(data?.message || "Google signin successful.");
+      toast.success(data?.message || t("success.googleSignin"));
       setTimeout(() => {
         if (data?.user?.role === "SuperAdmin") {
           router.push("/SuperAdmin");
@@ -264,7 +266,7 @@ const Signin = () => {
         }
       }, 700);
     } catch (error) {
-      toast.error(getApiError(error, "Google signin failed. Please try again."));
+      toast.error(getApiError(error, t("errors.googleSignin")));
     } finally {
       setGoogleLoading(false);
     }
@@ -311,26 +313,25 @@ const Signin = () => {
                 <Image src={khancosmeticslogo} alt="KhanCosmetics" width={130} height={42} priority />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6f52]">Luxury Beauty Access</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6f52]">{t("hero.tag")}</p>
                 <h1
                   className="text-3xl leading-tight text-[#201810] md:text-4xl"
                   style={{ fontFamily: "\"Cormorant Garamond\", \"Times New Roman\", serif" }}
                 >
-                  Welcome Back
+                  {t("hero.title")}
                 </h1>
               </div>
             </div>
 
             <p className="max-w-xl text-[15px] leading-relaxed text-[#4d3e33] md:text-base">
-              Sign in to your KhanCosmetics account with secure OTP verification for safer checkout,
-              personalized beauty picks, and trusted order tracking.
+              {t("hero.desc")}
             </p>
 
             <div className="mt-8 grid gap-3 text-sm">
               {[
-                "Step-based sign in for secure account access",
-                "OTP verification on every session start",
-                "Backend aligned with KhanCosmetics auth router",
+                t("hero.p1"),
+                t("hero.p2"),
+                t("hero.p3"),
               ].map((point) => (
                 <motion.div
                   key={point}
@@ -348,10 +349,9 @@ const Signin = () => {
             <div className="mt-8 rounded-2xl border border-[#eadccf] bg-white/70 p-4 text-sm text-[#4b3d31]">
               <div className="mb-2 flex items-center gap-2 text-[#2f6c58]">
                 <ShieldCheck className="h-4 w-4" />
-                <span className="font-semibold">Security-first sign in</span>
+                <span className="font-semibold">{t("hero.securityTitle")}</span>
               </div>
-              Your session is created only after OTP verification, and authentication cookies are handled by
-              the backend with secure settings.
+              {t("hero.securityText")}
             </div>
           </motion.section>
 
@@ -364,9 +364,9 @@ const Signin = () => {
           >
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">Account access</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">{t("accountAccess")}</p>
                 <h2 className="mt-1 text-2xl text-[#0f2f24]" style={{ fontFamily: "\"Cormorant Garamond\", serif" }}>
-                  Sign In
+                  {t("title")}
                 </h2>
               </div>
               <div className="rounded-full border border-[#d7e8e0] bg-[#f3f9f6] p-2">
@@ -382,7 +382,7 @@ const Signin = () => {
                   step === "credentials" ? "bg-white text-[#1d4f3f] shadow-sm" : ""
                 }`}
               >
-                1. Credentials
+                {t("steps.credentials")}
               </button>
               <button
                 type="button"
@@ -394,7 +394,7 @@ const Signin = () => {
                     : "disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
-                2. Verify OTP
+                {t("steps.verify")}
               </button>
             </div>
 
@@ -409,7 +409,7 @@ const Signin = () => {
                   onSubmit={requestSigninOtp}
                   className="space-y-4"
                 >
-                  <FieldLabel label="Email Address" icon={<Mail className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.email")} icon={<Mail className="h-4 w-4" />} />
                   <input
                     type="email"
                     value={credentials.email}
@@ -419,12 +419,12 @@ const Signin = () => {
                         email: event.target.value,
                       }))
                     }
-                    placeholder="you@example.com"
+                    placeholder={t("placeholders.email")}
                     autoComplete="email"
                     className={inputClass}
                   />
 
-                  <FieldLabel label="Password" icon={<Lock className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.password")} icon={<Lock className="h-4 w-4" />} />
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -435,7 +435,7 @@ const Signin = () => {
                           password: event.target.value,
                         }))
                       }
-                      placeholder="Enter your account password"
+                      placeholder={t("placeholders.password")}
                       autoComplete="current-password"
                       className={`${inputClass} pr-12`}
                     />
@@ -443,7 +443,7 @@ const Signin = () => {
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-[#56796a] transition hover:text-[#1d4f3f]"
-                      aria-label={showPassword ? "Hide password" : "Show password"}
+                      aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -456,7 +456,7 @@ const Signin = () => {
                       onChange={(event) => setRememberDevice(event.target.checked)}
                       className="mt-0.5 accent-[#1d4f3f]"
                     />
-                    <span>Keep this device trusted for faster future sign-in.</span>
+                    <span>{t("rememberDevice")}</span>
                   </label>
 
                   <motion.button
@@ -469,7 +469,7 @@ const Signin = () => {
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
-                        Continue with OTP <ArrowRight className="h-4 w-4" />
+                        {t("continueOtp")} <ArrowRight className="h-4 w-4" />
                       </>
                     )}
                   </motion.button>
@@ -480,12 +480,12 @@ const Signin = () => {
                     <span className="h-px flex-1 bg-[#d8e6df]" />
                   </div>
 
-                  <FieldLabel label="Mobile For Google Signin" icon={<Phone className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.googleMobile")} icon={<Phone className="h-4 w-4" />} />
                   <input
                     type="tel"
                     value={googleMobile}
                     onChange={(event) => setGoogleMobile(event.target.value.replace(/[^\d+]/g, "").slice(0, 15))}
-                    placeholder="+8801XXXXXXXXX"
+                    placeholder={t("placeholders.mobile")}
                     autoComplete="tel"
                     className={inputClass}
                   />
@@ -502,7 +502,7 @@ const Signin = () => {
                     ) : (
                       <>
                         <FcGoogle className="h-5 w-5" />
-                        Sign in with Google
+                        {t("googleSignin")}
                       </>
                     )}
                   </motion.button>
@@ -518,17 +518,17 @@ const Signin = () => {
                   className="space-y-4"
                 >
                   <div className="rounded-xl border border-[#d8e8e0] bg-[#f4faf7] p-3 text-sm text-[#2f5648]">
-                    OTP sent to <span className="font-semibold">{sanitizedEmail || "your email"}</span>
+                    {t("otpSentTo")} <span className="font-semibold">{sanitizedEmail || t("yourEmail")}</span>
                   </div>
 
-                  <FieldLabel label="One-Time Password" icon={<ShieldCheck className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.otp")} icon={<ShieldCheck className="h-4 w-4" />} />
                   <input
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={otp}
                     onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Enter 6-digit OTP"
+                    placeholder={t("placeholders.otp")}
                     autoComplete="one-time-code"
                     className={`${inputClass} text-center text-lg tracking-[0.35em]`}
                   />
@@ -539,7 +539,7 @@ const Signin = () => {
                     disabled={loading}
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify and Sign In"}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("verifyAndSignin")}
                   </motion.button>
 
                   <div className="flex items-center justify-between gap-4 text-xs">
@@ -548,7 +548,7 @@ const Signin = () => {
                       onClick={() => setStep("credentials")}
                       className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49]"
                     >
-                      Edit credentials
+                      {t("editCredentials")}
                     </button>
 
                     <button
@@ -557,7 +557,7 @@ const Signin = () => {
                       disabled={otpCountdown > 0 || resending}
                       className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {resending ? "Resending..." : otpCountdown > 0 ? `Resend in ${otpCountdown}s` : "Resend OTP"}
+                      {resending ? t("resending") : otpCountdown > 0 ? t("resendIn", {seconds: otpCountdown}) : t("resendOtp")}
                     </button>
                   </div>
                 </motion.form>
@@ -565,9 +565,9 @@ const Signin = () => {
             </AnimatePresence>
 
             <p className="mt-6 text-center text-sm text-[#526d61]">
-              New to KhanCosmetics?{" "}
+              {t("newToBrand")}{" "}
               <Link href="/signup" className="font-semibold text-[#1f5c49] underline underline-offset-4">
-                Create account
+                {t("createAccount")}
               </Link>
             </p>
           </motion.section>

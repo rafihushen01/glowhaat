@@ -1,0 +1,268 @@
+{
+  "UserNav": {
+    "language": {
+      "english": "ইংরেজি",
+      "bangla": "বাংলা"
+    },
+    "contact": "যোগাযোগ",
+    "search": "সার্চ",
+    "searchPlaceholder": "KhanCosmetics এ খুঁজুন...",
+    "close": "বন্ধ করুন",
+    "searching": "খোঁজা হচ্ছে...",
+    "noResults": "কোন ফলাফল পাওয়া যায়নি।",
+    "signedInAs": "সাইন ইন করা আছে",
+    "myWishlist": "আমার উইশলিস্ট",
+    "wishlistWithCount": "উইশলিস্ট ({count})",
+    "logout": "লগআউট",
+    "signIn": "সাইন ইন",
+    "joinNow": "এখনই যোগ দিন",
+    "viewCollection": "পুরো কালেকশন দেখুন",
+    "explore": "এক্সপ্লোর করুন",
+    "noSubcategories": "কোন সাবক্যাটাগরি নেই",
+    "noPreviewImages": "{name} এর জন্য প্রিভিউ ছবি নেই",
+    "signature": "সিগনেচার",
+    "back": "ফিরে যান",
+    "menu": "মেনু",
+    "loggedIn": "লগড ইন",
+    "createAccount": "অ্যাকাউন্ট তৈরি করুন",
+    "defaultUserName": "KhanCosmetics ব্যবহারকারী",
+    "brandFallback": "KhanCosmetics",
+    "featuredAlt": "ফিচার্ড",
+    "userAvatarAlt": "ব্যবহারকারীর ছবি"
+  },
+  "CartPage": {
+    "brand": "KhanCosmetics",
+    "preparing": "আপনার কার্ট প্রস্তুত করা হচ্ছে",
+    "bagLabel": "KhanCosmetics ব্যাগ",
+    "title": "কার্টে যোগ করা পণ্য",
+    "subtitle": "আপনার গ্লো যাত্রার জন্য বাছাইকৃত প্রয়োজনীয় পণ্য।",
+    "signature": "KhanCosmetics সিগনেচার",
+    "signatureText": "বিশ্বব্যাপী বিউটি লাভারদের জন্য তৈরি",
+    "continueShopping": "শপিং চালিয়ে যান",
+    "clearCart": "কার্ট খালি করুন",
+    "emptyTitle": "আপনার ব্যাগ খালি",
+    "emptyText": "প্রোডাক্ট ডিটেইলস থেকে প্রিমিয়াম পণ্য যোগ করলে এখানে দেখাবে।",
+    "shadeLabel": "শেড",
+    "sizeLabel": "সাইজ",
+    "standard": "স্ট্যান্ডার্ড",
+    "defaultOption": "ডিফল্ট",
+    "keyLabel": "মূল বিষয়",
+    "decreaseQty": "পরিমাণ কমান",
+    "increaseQty": "পরিমাণ বাড়ান",
+    "remove": "সরান",
+    "unitPrice": "একক মূল্য",
+    "lineTotal": "মোট মূল্য",
+    "orderSummary": "অর্ডার সারাংশ",
+    "subtotal": "সাবটোটাল",
+    "delivery": "ডেলিভারি",
+    "total": "সর্বমোট",
+    "proceedCheckout": "চেকআউটে যান",
+    "errors": {
+      "loadCart": "এই মুহূর্তে কার্ট লোড করা যাচ্ছে না।",
+      "updateQty": "পরিমাণ আপডেট করা যায়নি।",
+      "removeItem": "পণ্য সরানো যায়নি।",
+      "clearCart": "কার্ট খালি করা যায়নি।"
+    }
+  },
+  "CheckoutPage": {
+    "preparing": "চেকআউট প্রস্তুত হচ্ছে",
+    "backToCart": "কার্টে ফিরে যান",
+    "header": {
+      "label": "KhanCosmetics চেকআউট",
+      "title": "আপনার অর্ডার সম্পূর্ণ করুন",
+      "subtitle": "KhanCosmetics-এর সাদা ও এমেরাল্ড থিমে দ্রুত, নিরাপদ ও পরিষ্কার চেকআউট।"
+    },
+    "empty": {
+      "title": "আপনার কার্ট খালি",
+      "text": "চেকআউট চালিয়ে যেতে আগে পণ্য যোগ করুন।"
+    },
+    "sections": {
+      "basicInfo": "মৌলিক তথ্য",
+      "location": "লোকেশন",
+      "paymentMethod": "পেমেন্ট পদ্ধতি"
+    },
+    "fields": {
+      "fullName": "পূর্ণ নাম",
+      "mobile": "মোবাইল নম্বর",
+      "emailOptional": "ইমেইল (ঐচ্ছিক)",
+      "district": "জেলা",
+      "city": "শহর",
+      "upzilla": "উপজেলা",
+      "area": "এলাকা",
+      "landmark": "ল্যান্ডমার্ক",
+      "fullAddress": "পূর্ণ ঠিকানা",
+      "orderNotes": "অর্ডার নোট",
+      "paymentRef": "পেমেন্ট রেফারেন্স / Txn ID",
+      "paymentNote": "পেমেন্ট নোট"
+    },
+    "placeholders": {
+      "fullAddress": "বাড়ি, রোড, এলাকার বিস্তারিত লিখুন",
+      "orderNotes": "ডেলিভারি নির্দেশনা থাকলে লিখুন",
+      "paymentNote": "প্রেরকের নম্বর / ব্যাংক তথ্য"
+    },
+    "location": {
+      "locating": "লোকেশন নেওয়া হচ্ছে...",
+      "useMyLocation": "আমার লোকেশন ব্যবহার করুন",
+      "searchPlaceholder": "হাতে লোকেশন সার্চ করুন",
+      "searching": "সার্চ করা হচ্ছে...",
+      "search": "সার্চ",
+      "unknownCity": "অজানা শহর",
+      "selected": "নির্বাচিত লোকেশন",
+      "lat": "অক্ষাংশ",
+      "lng": "দ্রাঘিমাংশ",
+      "mapHint": "সঠিক ডেলিভারির জন্য ম্যাপে পিন সেট করুন।"
+    },
+    "payment": {
+      "cod": "ক্যাশ অন ডেলিভারি",
+      "bkash": "বিকাশ",
+      "nagad": "নগদ",
+      "bank": "ব্যাংক ট্রান্সফার",
+      "codHint": "অর্ডার হাতে পাওয়ার সময় ক্যাশে পেমেন্ট করবেন।"
+    },
+    "summary": {
+      "title": "অর্ডার সারাংশ",
+      "defaultVariant": "ডিফল্ট",
+      "defaultOption": "অপশন",
+      "subtotal": "সাবটোটাল",
+      "delivery": "ডেলিভারি",
+      "total": "সর্বমোট",
+      "placing": "অর্ডার করা হচ্ছে...",
+      "complete": "অর্ডার সম্পন্ন করুন"
+    },
+    "success": {
+      "orderPlaced": "অর্ডার সফলভাবে সম্পন্ন হয়েছে।"
+    },
+    "errors": {
+      "loadCheckout": "এই মুহূর্তে চেকআউট লোড করা যাচ্ছে না।",
+      "placeOrder": "অর্ডার সম্পন্ন করা যায়নি।"
+    }
+  },
+  "ProductView": {
+    "loading": "Khan Cosmetics লোড হচ্ছে...",
+    "errorPrefix": "ত্রুটি",
+    "exclusive": "KhanCosmetics এক্সক্লুসিভ",
+    "stars": "স্টার",
+    "verifiedReviews": "ভেরিফায়েড রিভিউ",
+    "tapToZoom": "জুম করতে ট্যাপ করুন",
+    "sale": "সেল",
+    "flashSale": "ফ্ল্যাশ সেল",
+    "breadcrumbs": {
+      "home": "হোম",
+      "products": "পণ্যসমূহ"
+    },
+    "color": "রং",
+    "size": "সাইজ",
+    "sizeGuide": "সাইজ গাইড",
+    "quantity": "পরিমাণ",
+    "adding": "যোগ করা হচ্ছে...",
+    "addToCart": "কার্টে যোগ করুন",
+    "saving": "সেভ হচ্ছে...",
+    "wishlisted": "উইশলিস্টে আছে",
+    "wishlist": "উইশলিস্ট",
+    "viewCart": "কার্ট দেখুন",
+    "tabs": {
+      "description": "বিবরণ",
+      "features": "বৈশিষ্ট্য",
+      "material": "ম্যাটেরিয়াল",
+      "materialDetails": "ম্যাটেরিয়াল ও বিস্তারিত"
+    },
+    "zoom": {
+      "pan": "বিস্তারিত দেখতে ড্র্যাগ করুন",
+      "reset": "রিসেট",
+      "alt": "সুপার জুম"
+    },
+    "success": {
+      "addedToCart": "সফলভাবে কার্টে যোগ হয়েছে।",
+      "wishlistUpdated": "উইশলিস্ট আপডেট হয়েছে।"
+    },
+    "errors": {
+      "productNotFound": "পণ্য পাওয়া যায়নি",
+      "itemNotFound": "আইটেম পাওয়া যায়নি",
+      "addToCart": "এই পণ্য কার্টে যোগ করা যায়নি।",
+      "wishlistUpdate": "এই মুহূর্তে উইশলিস্ট আপডেট করা যাচ্ছে না।"
+    },
+    "share": {
+      "title": "এই পণ্য শেয়ার করুন",
+      "subtitle": "বন্ধুদের সাথে সরাসরি শেয়ার করুন। তারা একই পণ্য পাতায় যাবে।",
+      "shareText": "KhanCosmetics এ {name} দেখুন",
+      "whatsapp": "হোয়াটসঅ্যাপ",
+      "facebook": "ফেসবুক",
+      "messenger": "মেসেঞ্জার",
+      "instagram": "ইনস্টাগ্রাম",
+      "copyLink": "লিংক কপি",
+      "sharing": "শেয়ার হচ্ছে...",
+      "sharedWhatsapp": "হোয়াটসঅ্যাপে শেয়ার হয়েছে।",
+      "sharedFacebook": "ফেসবুকে শেয়ার হয়েছে।",
+      "copiedMessenger": "লিংক কপি হয়েছে। মেসেঞ্জারে পেস্ট করুন।",
+      "openedMessenger": "মেসেঞ্জার শেয়ার খোলা হয়েছে।",
+      "copiedInstagram": "লিংক কপি হয়েছে। ইনস্টাগ্রামে পেস্ট করুন।",
+      "openedInstagram": "ইনস্টাগ্রাম খোলা হয়েছে।",
+      "linkCopied": "শেয়ার লিংক কপি হয়েছে।",
+      "copyFailed": "শেয়ার লিংক কপি করা যায়নি।",
+      "shareFailed": "এখন শেয়ার করা যাচ্ছে না। আবার চেষ্টা করুন।"
+    }
+  },
+  "SigninPage": {
+    "title": "সাইন ইন",
+    "accountAccess": "অ্যাকাউন্ট অ্যাক্সেস",
+    "hero": {
+      "tag": "লাক্সারি বিউটি অ্যাক্সেস",
+      "title": "ফিরে আসায় স্বাগতম",
+      "desc": "নিরাপদ OTP যাচাইকরণের মাধ্যমে KhanCosmetics অ্যাকাউন্টে সাইন ইন করুন, যাতে চেকআউট আরও নিরাপদ ও দ্রুত হয়।",
+      "p1": "নিরাপদ অ্যাক্সেসের জন্য ধাপে ধাপে সাইন ইন",
+      "p2": "প্রতি সেশনে OTP যাচাইকরণ",
+      "p3": "KhanCosmetics auth router এর সাথে backend সমন্বিত",
+      "securityTitle": "সিকিউরিটি-ফার্স্ট সাইন ইন",
+      "securityText": "OTP যাচাইয়ের পরেই সেশন তৈরি হয়, এবং backend নিরাপদ cookie সেটিংস ব্যবহার করে।"
+    },
+    "steps": {
+      "credentials": "১. ক্রেডেনশিয়াল",
+      "verify": "২. OTP যাচাই"
+    },
+    "fields": {
+      "email": "ইমেইল ঠিকানা",
+      "password": "পাসওয়ার্ড",
+      "googleMobile": "গুগল সাইনইনের জন্য মোবাইল",
+      "otp": "ওয়ান-টাইম পাসওয়ার্ড"
+    },
+    "placeholders": {
+      "email": "you@example.com",
+      "password": "আপনার পাসওয়ার্ড লিখুন",
+      "mobile": "+8801XXXXXXXXX",
+      "otp": "৬-সংখ্যার OTP লিখুন"
+    },
+    "showPassword": "পাসওয়ার্ড দেখান",
+    "hidePassword": "পাসওয়ার্ড লুকান",
+    "rememberDevice": "ভবিষ্যতে দ্রুত সাইন-ইনের জন্য এই ডিভাইসটি trusted রাখুন।",
+    "continueOtp": "OTP দিয়ে চালিয়ে যান",
+    "googleSignin": "গুগল দিয়ে সাইন ইন",
+    "otpSentTo": "OTP পাঠানো হয়েছে",
+    "yourEmail": "আপনার ইমেইলে",
+    "verifyAndSignin": "যাচাই করে সাইন ইন করুন",
+    "editCredentials": "তথ্য পরিবর্তন করুন",
+    "resendOtp": "OTP আবার পাঠান",
+    "resending": "আবার পাঠানো হচ্ছে...",
+    "resendIn": "{seconds} সেকেন্ড পর আবার পাঠানো যাবে",
+    "newToBrand": "KhanCosmetics-এ নতুন?",
+    "createAccount": "অ্যাকাউন্ট তৈরি করুন",
+    "success": {
+      "otpSent": "OTP পাঠানো হয়েছে।",
+      "signin": "সাইন ইন সফল হয়েছে।",
+      "otpResent": "নতুন OTP পাঠানো হয়েছে।",
+      "googleSignin": "গুগল সাইন ইন সফল হয়েছে।"
+    },
+    "errors": {
+      "invalidEmail": "সঠিক ইমেইল ঠিকানা দিন।",
+      "shortPassword": "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে।",
+      "sendOtp": "OTP পাঠানো যায়নি। আবার চেষ্টা করুন।",
+      "signinRequest": "সাইন ইন অনুরোধ ব্যর্থ হয়েছে।",
+      "emailMissing": "ইমেইল নেই। ফিরে গিয়ে তথ্য দিন।",
+      "enterOtp": "আপনার ৬-সংখ্যার OTP দিন।",
+      "otpVerify": "OTP যাচাইকরণ ব্যর্থ হয়েছে।",
+      "validCredentialsForResend": "OTP পুনরায় পাঠাতে সঠিক ইমেইল ও পাসওয়ার্ড দিন।",
+      "resendOtp": "OTP পুনরায় পাঠানো যায়নি।",
+      "invalidMobileForGoogle": "গুগল সাইনইনের আগে সঠিক মোবাইল নম্বর দিন।",
+      "googleSignin": "গুগল সাইন ইন ব্যর্থ হয়েছে। আবার চেষ্টা করুন।"
+    }
+  }
+}

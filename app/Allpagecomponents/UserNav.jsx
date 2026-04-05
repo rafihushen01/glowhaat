@@ -1,16 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
+import {useLocale, useTranslations} from "next-intl";
 // import { clsx, type ClassValue } from "clsx";
  // Importing your server url
 import khancoslogo from "../../public/khancosmeticslogo.png"; // Your logo
-import { useRouter } from "next/navigation";
+import {useRouter} from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import { clearUserData } from "../reduxcomponents/UserSlice";
 import { setCartItems } from "../reduxcomponents/CartSlice";
@@ -100,12 +101,14 @@ const UserNav = () => {
   const profileMenuRef = useRef(null);
   const navRef = useRef(null);
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("UserNav");
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
   const cartItems = useSelector((state) => state.cart.cartItems);
   const user = userData?.user || userData?.data || userData || null;
   const isAuthenticated = Boolean(user && (user?._id || user?.email || user?.fullname));
-  const userdisplayname = user?.fullname?.trim() || "KhanCosmetics User";
+  const userdisplayname = user?.fullname?.trim() || t("defaultUserName");
   const userinitial = (userdisplayname[0] || "U").toUpperCase();
   const cartCount = Array.isArray(cartItems) ? cartItems.length : 0;
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -274,6 +277,15 @@ const UserNav = () => {
     }, 120);
   };
 
+  const switchLocale = (nextLocale) => {
+    if (nextLocale === locale) return;
+
+    const cookieParts = ["path=/", `max-age=${60 * 60 * 24 * 365}`, "SameSite=Lax"];
+    document.cookie = `NEXT_LOCALE=${nextLocale}; ${cookieParts.join("; ")}`;
+    document.cookie = `KHAN_LOCALE=${nextLocale}; ${cookieParts.join("; ")}`;
+    window.location.reload();
+  };
+
   if (loading) return <div className="h-20 bg-white animate-pulse" />;
 
   return (
@@ -289,19 +301,27 @@ const UserNav = () => {
           <div className="container mx-auto flex h-11 items-center justify-between px-6 xl:px-8 text-sm">
             <div className="flex items-center gap-6 text-[#25372f]">
               <div className="flex items-center gap-3">
-                <button type="button" className="font-medium text-[#1f5c49]">
-                  English
+                <button
+                  type="button"
+                  onClick={() => switchLocale("en")}
+                  className={`font-medium transition-colors ${locale === "en" ? "text-[#1f5c49]" : "text-[#4f665d] hover:text-[#1f5c49]"}`}
+                >
+                  {t("language.english")}
                 </button>
                 <span className="text-[#9db2a8]">|</span>
-                <button type="button" className="font-medium text-[#4f665d] hover:text-[#1f5c49] transition-colors">
-                  বাংলা
+                <button
+                  type="button"
+                  onClick={() => switchLocale("bn")}
+                  className={`font-medium transition-colors ${locale === "bn" ? "text-[#1f5c49]" : "text-[#4f665d] hover:text-[#1f5c49]"}`}
+                >
+                  {t("language.bangla")}
                 </button>
               </div>
               <a href="mailto:khancosmetics@gmail.com" className="hover:text-[#1f5c49] transition-colors">
                 khancosmetics@gmail.com
               </a>
               <Link href="/contact" className="hover:text-[#1f5c49] transition-colors">
-                Contact
+                {t("contact")}
               </Link>
             </div>
 
@@ -312,7 +332,7 @@ const UserNav = () => {
                 className="inline-flex items-center gap-2 rounded-full border border-[#d7e3dc] bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-[#1f5c49] transition hover:border-[#1f5c49]"
               >
                 <Search className="h-4 w-4" />
-                Search
+                {t("search")}
               </button>
               <button
                 type="button"
@@ -368,7 +388,7 @@ const UserNav = () => {
                     className="inline-flex items-center gap-1.5 rounded-full border border-[#f1d7d7] bg-[#fff5f5] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#b42318] transition hover:bg-[#ffe9e9]"
                   >
                     <LogOut className="h-3.5 w-3.5" />
-                    Logout
+                    {t("logout")}
                   </button>
 
                   <AnimatePresence>
@@ -382,7 +402,7 @@ const UserNav = () => {
                         style={{ top: navHeight + 8 }}
                       >
                         <div className="rounded-xl bg-[#f1f8f4] p-3">
-                          <p className="text-[11px] uppercase tracking-[0.16em] text-[#5f7f72]">Signed In As</p>
+                          <p className="text-[11px] uppercase tracking-[0.16em] text-[#5f7f72]">{t("signedInAs")}</p>
                           <p className="mt-1 truncate text-sm font-semibold text-[#1f5c49]">{userdisplayname}</p>
                           <p className="truncate text-xs text-[#527066]">{user?.email || ""}</p>
                         </div>
@@ -395,7 +415,7 @@ const UserNav = () => {
                           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#dce8e2] bg-[#f7fbf9] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
                         >
                           <Heart className="h-4 w-4" />
-                          My Wishlist
+                          {t("myWishlist")}
                         </button>
                         <button
                           type="button"
@@ -403,7 +423,7 @@ const UserNav = () => {
                           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#f1d7d7] bg-[#fff5f5] px-3 py-2.5 text-sm font-semibold text-[#b42318] transition hover:bg-[#ffe9e9]"
                         >
                           <LogOut className="h-4 w-4" />
-                          Logout
+                          {t("logout")}
                         </button>
                       </motion.div>
                     )}
@@ -415,13 +435,13 @@ const UserNav = () => {
                     href="/signin"
                     className="rounded-full border border-[#d7e3dc] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#1f5c49] transition hover:bg-[#edf6f1]"
                   >
-                    Sign In
+                    {t("signIn")}
                   </Link>
                   <Link
                     href="/signup"
                     className="rounded-full bg-[#1f5c49] px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-[#174737]"
                   >
-                    Join Now
+                    {t("joinNow")}
                   </Link>
                 </div>
               )}
@@ -501,10 +521,12 @@ const UserNav = () => {
       <AnimatePresence>
         {activeDesktopItem?.children?.length > 0 && (
           <DesktopMegaMenu
+            key={activeDesktopItem?._id}
             item={activeDesktopItem}
             navHeight={navHeight}
             onMouseEnter={clearDesktopCloseTimer}
             onMouseLeave={closeDesktopMegaMenu}
+            t={t}
           />
         )}
       </AnimatePresence>
@@ -528,7 +550,7 @@ const UserNav = () => {
                     autoFocus
                     value={searchTerm}
                     onChange={(e) => handleSearch(e.target.value)}
-                    placeholder="Search KhanCosmetics..."
+                    placeholder={t("searchPlaceholder")}
                     className="w-full bg-transparent text-lg text-[#1f5c49] placeholder:text-[#6d8d80] focus:outline-none"
                   />
                   <button
@@ -536,16 +558,16 @@ const UserNav = () => {
                     onClick={() => setSearchOpen(false)}
                     className="text-xs font-semibold uppercase tracking-[0.18em] text-[#1f5c49]"
                   >
-                    Close
+                    {t("close")}
                   </button>
                 </div>
                 <div className="mt-3 h-px bg-[#1f5c49]" />
                 <div className="mt-4 max-h-72 overflow-y-auto">
                   {isSearching && (
-                    <p className="text-xs text-[#6d8d80]">Searching...</p>
+                    <p className="text-xs text-[#6d8d80]">{t("searching")}</p>
                   )}
                   {!isSearching && searchResults.length === 0 && searchTerm && (
-                    <p className="text-xs text-[#6d8d80]">No results found.</p>
+                    <p className="text-xs text-[#6d8d80]">{t("noResults")}</p>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {searchResults.map((item) => {
@@ -577,7 +599,7 @@ const UserNav = () => {
                           )}
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[#1f5c49]">{item.name}</p>
-                            <p className="text-xs text-[#6d8d80]">{item.brand || "KhanCosmetics"}</p>
+                            <p className="text-xs text-[#6d8d80]">{item.brand || t("brandFallback")}</p>
                             <p className="text-xs text-[#1f5c49] mt-1">৳{Number(price).toLocaleString()}</p>
                           </div>
                         </button>
@@ -602,6 +624,9 @@ const UserNav = () => {
             avatarUrl={avatarUrl}
             wishlistCount={wishlistCount}
             onLogout={handleLogout}
+            locale={locale}
+            onLocaleChange={switchLocale}
+            t={t}
           />
         )}
       </AnimatePresence>
@@ -628,19 +653,15 @@ const DesktopMenuItem = ({ item, onHoverStart, onHoverEnd }) => {
   );
 };
 
-const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
-  const [activeSubCategory, setActiveSubCategory] = useState(null);
-  const router = useRouter();
+const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave, t }) => {
   const defaultSubCategory = item.children && item.children.length > 0 ? item.children[0] : item;
+  const [activeSubCategory, setActiveSubCategory] = useState(defaultSubCategory);
+  const router = useRouter();
   const currentSubCategory = activeSubCategory || defaultSubCategory;
   const featuredCandidates =
     currentSubCategory?.children && currentSubCategory.children.length > 0
       ? currentSubCategory.children
       : item.children || [];
-
-  useEffect(() => {
-    setActiveSubCategory(defaultSubCategory);
-  }, [item, defaultSubCategory]);
 
   return (
     <motion.div
@@ -705,14 +726,14 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
                   href={`${currentSubCategory?.link || "/"}`}
                   className="mt-3 inline-block border-b border-[#1f5c49] pb-1 text-xs font-bold uppercase tracking-widest text-[#1f5c49]"
                 >
-                  View Collection
+                  {t("viewCollection")}
                 </Link>
               </div>
 
               <div className="grid grid-cols-[220px_1fr_240px] gap-6 h-full">
                 {/* Subcategory Links */}
                 <div className="border-r border-gray-100 pr-4">
-                  <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-gray-400">Explore</p>
+                  <p className="mb-3 text-[11px] uppercase tracking-[0.2em] text-gray-400">{t("explore")}</p>
                   <ul className="space-y-2">
                     {(currentSubCategory?.children || []).map((sub) => {
                       const previewUrl = getNodeThumb(sub);
@@ -738,7 +759,7 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
                       );
                     })}
                     {(currentSubCategory?.children || []).length === 0 && (
-                      <li className="text-sm italic text-gray-300">No subcategories</li>
+                      <li className="text-sm italic text-gray-300">{t("noSubcategories")}</li>
                     )}
                   </ul>
                 </div>
@@ -775,14 +796,14 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
                   })}
                   {(currentSubCategory?.children || []).length === 0 && (
                     <div className="col-span-3 flex items-center justify-center italic text-gray-300">
-                      No preview images available for {currentSubCategory?.name}
+                      {t("noPreviewImages", {name: currentSubCategory?.name || ""})}
                     </div>
                   )}
                 </div>
 
                 {/* Featured Tiles */}
                 <div className="hidden xl:flex flex-col gap-4">
-                  <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400">Signature</p>
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400">{t("signature")}</p>
                   {featuredCandidates.slice(0, 3).map((sub) => {
                     const previewUrl = getNodeThumb(sub);
                     return (
@@ -794,7 +815,7 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
                         {previewUrl ? (
                           <img
                             src={previewUrl}
-                            alt={sub?.name || "Featured"}
+                            alt={sub?.name || t("featuredAlt")}
                             className="h-28 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                             loading="lazy"
                           />
@@ -820,10 +841,21 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave }) => {
 
 // --- Mobile Infinite Drawer (The "App" Feel) ---
 
-const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistCount, onLogout }) => {
+const MobileMenu = ({
+  data,
+  onClose,
+  isAuthenticated,
+  user,
+  avatarUrl,
+  wishlistCount,
+  onLogout,
+  locale,
+  onLocaleChange,
+  t,
+}) => {
   // We use a stack to manage depth. 
   // Stack[0] is root. Stack[1] is a child category, etc.
-  const [navStack, setNavStack] = useState([{ name: "Menu", data: data, type: "root" }]);
+  const [navStack, setNavStack] = useState([{ name: t("menu"), data: data, type: "root" }]);
   const [direction, setDirection] = useState(0); // 1 = forward, -1 = back
 
   const pushLevel = (item) => {
@@ -890,10 +922,10 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
             <div className="h-16 flex items-center px-4 border-b border-gray-100 justify-between bg-white z-10">
                 {navStack.length > 1 ? (
                     <button onClick={popLevel} className="flex items-center gap-2 text-sm font-medium text-gray-600">
-                        <ArrowLeft className="w-4 h-4" /> Back
+                        <ArrowLeft className="w-4 h-4" /> {t("back")}
                     </button>
                 ) : (
-                    <span className="text-lg font-bold tracking-tight">MENU</span>
+                    <span className="text-lg font-bold tracking-tight">{t("menu")}</span>
                 )}
                 <button onClick={onClose} className="p-2 bg-gray-50 rounded-full">
                     <X className="w-5 h-5 text-gray-500" />
@@ -918,17 +950,17 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                             <input
                               value={mobileSearch}
                               onChange={(e) => handleMobileSearch(e.target.value)}
-                              placeholder="Search KhanCosmetics..."
+                              placeholder={t("searchPlaceholder")}
                               className="w-full bg-transparent text-sm text-[#1f5c49] placeholder:text-[#6d8d80] focus:outline-none"
                             />
                           </div>
                           {mobileSearch && (
                             <div className="mt-3 space-y-2">
                               {mobileSearching && (
-                                <p className="text-xs text-[#6d8d80]">Searching...</p>
+                                <p className="text-xs text-[#6d8d80]">{t("searching")}</p>
                               )}
                               {!mobileSearching && mobileResults.length === 0 && (
-                                <p className="text-xs text-[#6d8d80]">No results found.</p>
+                                <p className="text-xs text-[#6d8d80]">{t("noResults")}</p>
                               )}
                               {mobileResults.map((item) => {
                                 const image =
@@ -956,7 +988,7 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                                     )}
                                     <div className="min-w-0">
                                       <p className="truncate text-sm font-semibold text-[#1f5c49]">{item.name}</p>
-                                      <p className="text-xs text-[#6d8d80]">{item.brand || "KhanCosmetics"}</p>
+                                      <p className="text-xs text-[#6d8d80]">{item.brand || t("brandFallback")}</p>
                                     </div>
                                   </button>
                                 );
@@ -964,7 +996,9 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                             </div>
                           )}
                         </div>
-                        <h2 className="text-2xl font-light mb-6 mt-6 px-2">{currentLevel.name}</h2>
+                        <h2 className="text-2xl font-light mb-6 mt-6 px-2">
+                          {navStack.length === 1 ? t("menu") : currentLevel.name}
+                        </h2>
                         <ul className="space-y-1">
                             {currentLevel.data.map((item) => {
                                 const hasChildren = item.children && item.children.length > 0;
@@ -1017,9 +1051,21 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
             {/* Footer */}
             <div className="p-6 border-t border-gray-100 bg-white space-y-2">
                  <div className="mb-3 flex items-center justify-center gap-3 rounded-lg border border-[#dce8e2] bg-[#f7fbf9] py-2 text-xs font-semibold">
-                   <button type="button" className="text-[#1f5c49]">English</button>
+                   <button
+                     type="button"
+                     onClick={() => onLocaleChange("en")}
+                     className={locale === "en" ? "text-[#1f5c49]" : "text-[#4f665d]"}
+                   >
+                     {t("language.english")}
+                   </button>
                    <span className="text-[#9db2a8]">|</span>
-                   <button type="button" className="text-[#4f665d]">বাংলা</button>
+                   <button
+                     type="button"
+                     onClick={() => onLocaleChange("bn")}
+                     className={locale === "bn" ? "text-[#1f5c49]" : "text-[#4f665d]"}
+                   >
+                     {t("language.bangla")}
+                   </button>
                  </div>
                  {isAuthenticated ? (
                   <>
@@ -1027,7 +1073,7 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                       {avatarUrl ? (
                         <img
                           src={avatarUrl}
-                          alt={user?.fullname || "User Avatar"}
+                          alt={user?.fullname || t("userAvatarAlt")}
                           className="h-10 w-10 rounded-full object-cover"
                           loading="lazy"
                         />
@@ -1037,9 +1083,9 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                         </span>
                       )}
                       <div className="min-w-0">
-                        <p className="text-[11px] uppercase tracking-[0.14em] text-[#648578]">Logged In</p>
+                        <p className="text-[11px] uppercase tracking-[0.14em] text-[#648578]">{t("loggedIn")}</p>
                         <p className="truncate text-sm font-semibold text-[#1f5c49]">
-                          {user?.fullname || "KhanCosmetics User"}
+                          {user?.fullname || t("defaultUserName")}
                         </p>
                         <p className="truncate text-xs text-[#648578]">{user?.email || ""}</p>
                       </div>
@@ -1050,7 +1096,7 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#dce8e2] bg-[#f7fbf9] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
                     >
                       <Heart className="h-4 w-4" />
-                      Wishlist ({wishlistCount || 0})
+                      {t("wishlistWithCount", {count: wishlistCount || 0})}
                     </Link>
                     <button
                       type="button"
@@ -1058,7 +1104,7 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#f1d7d7] bg-[#fff5f5] py-3 text-sm font-semibold tracking-wide text-[#b42318]"
                     >
                       <LogOut className="h-4 w-4" />
-                      Logout
+                      {t("logout")}
                     </button>
                   </>
                  ) : (
@@ -1068,14 +1114,14 @@ const MobileMenu = ({ data, onClose, isAuthenticated, user, avatarUrl, wishlistC
                       onClick={onClose}
                       className="block w-full rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-center text-sm font-semibold tracking-wide text-[#1f5c49]"
                     >
-                      Sign In
+                      {t("signIn")}
                     </Link>
                     <Link
                       href="/signup"
                       onClick={onClose}
                       className="block w-full rounded-lg bg-[#1f5c49] py-3 text-center text-sm font-semibold tracking-wide text-white"
                     >
-                      Create Account
+                      {t("createAccount")}
                     </Link>
                   </>
                  )}

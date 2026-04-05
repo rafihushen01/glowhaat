@@ -1,22 +1,30 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, {useEffect, useState} from "react";
 import Link from "next/link";
 import axios from "axios";
-import { useDispatch, useSelector } from "react-redux";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { serverurl } from "../utils/constants/serverurl";
+import {useDispatch, useSelector} from "react-redux";
+import {useLocale, useTranslations} from "next-intl";
+import {Minus, Plus, ShoppingBag, Trash2} from "lucide-react";
+import {serverurl} from "../utils/constants/serverurl";
 import {
   clearCart,
   removeFromCart,
   setCartItems,
   updateCartItem,
 } from "../reduxcomponents/CartSlice";
-import { getRequestConfig } from "../utils/requestConfig";
+import {getRequestConfig} from "../utils/requestConfig";
 
-const formatPrice = (value) => `৳${Number(value || 0).toLocaleString()}`;
+const formatPrice = (value, locale) =>
+  new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-BD", {
+    style: "currency",
+    currency: "BDT",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
 
 export default function CartPage() {
+  const t = useTranslations("CartPage");
+  const locale = useLocale();
   const dispatch = useDispatch();
   const cartItems = useSelector((state) => state.cart.cartItems);
   const subtotalFromStore = useSelector((state) => state.cart.subtotal);
@@ -30,16 +38,13 @@ export default function CartPage() {
   const fetchCart = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
+      const {data} = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
       if (data?.success) {
         dispatch(setCartItems(data.items || []));
         setDeliveryTotal(Number(data.deliverytotal || 0));
       }
     } catch (error) {
-      setStatus(
-        error?.response?.data?.message ||
-          "Could not load your cart right now."
-      );
+      setStatus(error?.response?.data?.message || t("errors.loadCart"));
     } finally {
       setLoading(false);
     }
@@ -53,42 +58,42 @@ export default function CartPage() {
   const handleChangeQuantity = async (item, nextQty) => {
     const quantity = Math.max(1, Number(nextQty) || 1);
     try {
-      const { data } = await axios.patch(
+      const {data} = await axios.patch(
         `${serverurl}/cart/quantity/${item._id}`,
-        { quantity },
+        {quantity},
         getRequestConfig()
       );
       if (data?.success && data?.item) {
         dispatch(updateCartItem(data.item));
       }
     } catch (error) {
-      setStatus(error?.response?.data?.message || "Could not update quantity.");
+      setStatus(error?.response?.data?.message || t("errors.updateQty"));
     }
   };
 
   const handleRemove = async (id) => {
     try {
-      const { data } = await axios.delete(`${serverurl}/cart/remove/${id}`, {
+      const {data} = await axios.delete(`${serverurl}/cart/remove/${id}`, {
         ...getRequestConfig(),
       });
       if (data?.success) {
         dispatch(removeFromCart(id));
       }
     } catch (error) {
-      setStatus(error?.response?.data?.message || "Could not remove item.");
+      setStatus(error?.response?.data?.message || t("errors.removeItem"));
     }
   };
 
   const handleClearCart = async () => {
     try {
-      const { data } = await axios.delete(`${serverurl}/cart/clear`, {
+      const {data} = await axios.delete(`${serverurl}/cart/clear`, {
         ...getRequestConfig(),
       });
       if (data?.success) {
         dispatch(clearCart());
       }
     } catch (error) {
-      setStatus(error?.response?.data?.message || "Could not clear cart.");
+      setStatus(error?.response?.data?.message || t("errors.clearCart"));
     }
   };
 
@@ -96,9 +101,9 @@ export default function CartPage() {
     return (
       <div className="min-h-screen bg-white text-[#0b2e25] flex items-center justify-center">
         <div className="text-center">
-          <p className="text-xs tracking-[0.32em] uppercase text-emerald-600">KhanCosmetics</p>
-          <h1 className="mt-4 text-3xl md:text-4xl font-semibold" style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif' }}>
-            Preparing Your Cart
+          <p className="text-xs tracking-[0.32em] uppercase text-emerald-600">{t("brand")}</p>
+          <h1 className="mt-4 text-3xl md:text-4xl font-semibold" style={{fontFamily: '"Cormorant Garamond", "Times New Roman", serif'}}>
+            {t("preparing")}
           </h1>
         </div>
       </div>
@@ -112,25 +117,19 @@ export default function CartPage() {
       <div className="relative max-w-7xl mx-auto px-4 py-10 md:py-14">
         <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
           <div>
-            <p className="text-[11px] tracking-[0.35em] uppercase text-emerald-600">KhanCosmetics Bag</p>
+            <p className="text-[11px] tracking-[0.35em] uppercase text-emerald-600">{t("bagLabel")}</p>
             <h1
               className="text-4xl md:text-6xl leading-tight"
-              style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif' }}
+              style={{fontFamily: '"Cormorant Garamond", "Times New Roman", serif'}}
             >
-              Add To Cart
+              {t("title")}
             </h1>
-            <p className="mt-3 text-[#4b6b61] text-sm md:text-base">
-              Polished essentials for your glow journey.
-            </p>
+            <p className="mt-3 text-[#4b6b61] text-sm md:text-base">{t("subtitle")}</p>
             <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-emerald-100 bg-white/90 px-4 py-2 shadow-sm">
-              <img
-                src="/khancosmeticslogo.png"
-                alt="KhanCosmetics"
-                className="h-8 w-8 object-contain"
-              />
+              <img src="/khancosmeticslogo.png" alt={t("brand")} className="h-8 w-8 object-contain" />
               <div className="text-left">
-                <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-600">KhanCosmetics Signature</p>
-                <p className="text-sm text-emerald-900">Crafted for global beauty lovers</p>
+                <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-600">{t("signature")}</p>
+                <p className="text-sm text-emerald-900">{t("signatureText")}</p>
               </div>
             </div>
           </div>
@@ -140,33 +139,31 @@ export default function CartPage() {
               href="/"
               className="h-11 px-5 border border-emerald-200 hover:border-emerald-500 text-sm uppercase tracking-[0.14em] flex items-center text-emerald-700"
             >
-              Continue Shopping
+              {t("continueShopping")}
             </Link>
             {cartItems.length > 0 ? (
               <button
                 onClick={handleClearCart}
                 className="h-11 px-5 bg-emerald-700 hover:bg-emerald-800 text-sm uppercase tracking-[0.14em] flex items-center text-white"
               >
-                Clear Cart
+                {t("clearCart")}
               </button>
             ) : null}
           </div>
         </header>
 
-        {status ? (
-          <p className="mt-6 text-sm text-emerald-700">{status}</p>
-        ) : null}
+        {status ? <p className="mt-6 text-sm text-emerald-700">{status}</p> : null}
 
         {cartItems.length === 0 ? (
           <section className="mt-10 border border-emerald-100 bg-white/90 p-10 text-center shadow-sm">
             <ShoppingBag className="mx-auto text-emerald-600" size={34} />
             <h2
               className="mt-4 text-3xl"
-              style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif' }}
+              style={{fontFamily: '"Cormorant Garamond", "Times New Roman", serif'}}
             >
-              Your bag is empty
+              {t("emptyTitle")}
             </h2>
-            <p className="mt-2 text-[#4b6b61]">Add premium products from Product Details to see them here.</p>
+            <p className="mt-2 text-[#4b6b61]">{t("emptyText")}</p>
           </section>
         ) : (
           <div className="mt-10 grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -184,16 +181,16 @@ export default function CartPage() {
 
                   <div className="flex-1">
                     <p className="text-[10px] uppercase tracking-[0.25em] text-emerald-600">
-                      {item.brand || "KhanCosmetics"}
+                      {item.brand || t("brand")}
                     </p>
                     <h3
                       className="mt-2 text-2xl leading-tight"
-                      style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif' }}
+                      style={{fontFamily: '"Cormorant Garamond", "Times New Roman", serif'}}
                     >
                       {item.name}
                     </h3>
                     <p className="mt-2 text-sm text-[#4b6b61]">
-                      Shade: {item.variantname || "Standard"} | Size: {item.optionname || "Default"}
+                      {t("shadeLabel")}: {item.variantname || t("standard")} | {t("sizeLabel")}: {item.optionname || t("defaultOption")}
                     </p>
                     {(item?.productsnapshot?.description ||
                       item?.productsnapshot?.highlight ||
@@ -204,7 +201,7 @@ export default function CartPage() {
                         ) : null}
                         {item?.productsnapshot?.highlight ? (
                           <p className="line-clamp-2">
-                            <span className="font-semibold text-emerald-700">Key:</span>{" "}
+                            <span className="font-semibold text-emerald-700">{t("keyLabel")}:</span>{" "}
                             {item.productsnapshot.highlight}
                           </p>
                         ) : null}
@@ -219,7 +216,7 @@ export default function CartPage() {
                         <button
                           onClick={() => handleChangeQuantity(item, item.quantity - 1)}
                           className="h-full w-10 hover:bg-emerald-50 flex items-center justify-center"
-                          aria-label="Decrease quantity"
+                          aria-label={t("decreaseQty")}
                         >
                           <Minus size={16} />
                         </button>
@@ -229,7 +226,7 @@ export default function CartPage() {
                         <button
                           onClick={() => handleChangeQuantity(item, item.quantity + 1)}
                           className="h-full w-10 hover:bg-emerald-50 flex items-center justify-center"
-                          aria-label="Increase quantity"
+                          aria-label={t("increaseQty")}
                         >
                           <Plus size={16} />
                         </button>
@@ -240,16 +237,16 @@ export default function CartPage() {
                         className="h-11 px-4 border border-emerald-200 hover:border-emerald-400 text-emerald-700 text-xs uppercase tracking-[0.15em] flex items-center gap-2"
                       >
                         <Trash2 size={14} />
-                        Remove
+                        {t("remove")}
                       </button>
                     </div>
                   </div>
 
                   <div className="md:text-right">
-                    <p className="text-xs text-emerald-600 uppercase tracking-[0.16em]">Unit Price</p>
-                    <p className="text-xl mt-1">{formatPrice(item.unitprice)}</p>
-                    <p className="text-xs text-emerald-600 uppercase tracking-[0.16em] mt-4">Line Total</p>
-                    <p className="text-2xl mt-1 font-semibold">{formatPrice(item.totalprice)}</p>
+                    <p className="text-xs text-emerald-600 uppercase tracking-[0.16em]">{t("unitPrice")}</p>
+                    <p className="text-xl mt-1">{formatPrice(item.unitprice, locale)}</p>
+                    <p className="text-xs text-emerald-600 uppercase tracking-[0.16em] mt-4">{t("lineTotal")}</p>
+                    <p className="text-2xl mt-1 font-semibold">{formatPrice(item.totalprice, locale)}</p>
                   </div>
                 </article>
               ))}
@@ -258,24 +255,24 @@ export default function CartPage() {
             <aside className="border border-emerald-100 bg-white/95 p-6 h-fit sticky top-6 shadow-sm">
               <h2
                 className="text-3xl"
-                style={{ fontFamily: '"Cormorant Garamond", "Times New Roman", serif' }}
+                style={{fontFamily: '"Cormorant Garamond", "Times New Roman", serif'}}
               >
-                Order Summary
+                {t("orderSummary")}
               </h2>
 
               <div className="mt-6 space-y-3 text-sm">
                 <div className="flex justify-between text-[#4b6b61]">
-                  <span>Subtotal</span>
-                  <span>{formatPrice(subtotalFromStore)}</span>
+                  <span>{t("subtotal")}</span>
+                  <span>{formatPrice(subtotalFromStore, locale)}</span>
                 </div>
                 <div className="flex justify-between text-[#4b6b61]">
-                  <span>Delivery</span>
-                  <span>{formatPrice(shipping)}</span>
+                  <span>{t("delivery")}</span>
+                  <span>{formatPrice(shipping, locale)}</span>
                 </div>
                 <div className="h-px bg-emerald-100 my-2" />
                 <div className="flex justify-between text-lg font-semibold text-emerald-900">
-                  <span>Total</span>
-                  <span>{formatPrice(grandTotal)}</span>
+                  <span>{t("total")}</span>
+                  <span>{formatPrice(grandTotal, locale)}</span>
                 </div>
               </div>
 
@@ -283,7 +280,7 @@ export default function CartPage() {
                 href="/checkout"
                 className="mt-6 h-12 w-full bg-emerald-700 hover:bg-emerald-800 text-white font-semibold uppercase tracking-[0.18em] text-xs inline-flex items-center justify-center"
               >
-                Proceed To Checkout
+                {t("proceedCheckout")}
               </Link>
             </aside>
           </div>
@@ -292,3 +289,4 @@ export default function CartPage() {
     </div>
   );
 }
+

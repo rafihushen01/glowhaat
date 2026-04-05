@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useDispatch } from 'react-redux'
+import {useTranslations} from "next-intl";
 import { 
   ChevronRight, Minus, Plus, ShoppingBag,
   Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Globe, Heart
@@ -18,6 +19,7 @@ import { trackRecommendationEvent } from '../utils/recommendation'
 
 
 const ProductView = () => {
+  const t = useTranslations("ProductView");
   const { slug } = useParams();
   const searchParams = useSearchParams();
   const shareToken = searchParams.get("share");
@@ -94,7 +96,7 @@ const ProductView = () => {
             setMainImage(item.whiteimage);
           }
         } else {
-          setError("Product not found");
+          setError(t("errors.productNotFound"));
         }
       } catch (err) {
         setError(err.message);
@@ -103,7 +105,7 @@ const ProductView = () => {
       }
     };
     fetchProduct();
-  }, [slug]);
+  }, [slug, t]);
 
   useEffect(() => {
     if (!shareToken) return;
@@ -182,8 +184,8 @@ const ProductView = () => {
     };
   }, [product?._id, product?.slug]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-emerald-800 animate-pulse">Loading Khan Cosmetics...</div>;
-  if (error || !product) return <div className="min-h-screen flex items-center justify-center text-red-500">Error: {error || "Item not found"}</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-emerald-800 animate-pulse">{t("loading")}</div>;
+  if (error || !product) return <div className="min-h-screen flex items-center justify-center text-red-500">{t("errorPrefix")}: {error || t("errors.itemNotFound")}</div>;
 
   // Helpers
   const currentVariant = product.variants[selectedVariantIndex];
@@ -215,12 +217,12 @@ const ProductView = () => {
       );
 
       if (!data?.success || !data?.item) {
-        setCartStatus(data?.message || "Could not add product to cart.");
+        setCartStatus(data?.message || t("errors.addToCart"));
         return;
       }
 
       dispatch(addToCart(data.item));
-      setCartStatus("Added to cart successfully.");
+      setCartStatus(t("success.addedToCart"));
       trackRecommendationEvent({
         eventtype: "add_to_cart",
         slug: product.slug,
@@ -229,7 +231,7 @@ const ProductView = () => {
     } catch (err) {
       setCartStatus(
         err?.response?.data?.message ||
-          "Could not add this product to cart."
+          t("errors.addToCart")
       );
     } finally {
       setIsAdding(false);
@@ -249,12 +251,12 @@ const ProductView = () => {
       );
 
       if (!data?.success) {
-        setWishlistStatus(data?.message || "Could not update wishlist right now.");
+        setWishlistStatus(data?.message || t("errors.wishlistUpdate"));
         return;
       }
 
       setIsWishlisted(Boolean(data.iswishlisted));
-      setWishlistStatus(data?.message || "Wishlist updated.");
+      setWishlistStatus(data?.message || t("success.wishlistUpdated"));
       trackRecommendationEvent({
         eventtype: data?.iswishlisted ? "wishlist_add" : "wishlist_remove",
         slug: product.slug,
@@ -262,7 +264,7 @@ const ProductView = () => {
     } catch (err) {
       setWishlistStatus(
         err?.response?.data?.message ||
-          "Could not update wishlist right now."
+          t("errors.wishlistUpdate")
       );
     } finally {
       setWishlistLoading(false);
@@ -319,40 +321,40 @@ const ProductView = () => {
       setShareStatus("");
 
       const shareUrl = await createTrackedShareLink(platform);
-      const shareText = `Check out ${product.name} on KhanCosmetics`;
+      const shareText = t("share.shareText", {name: product.name});
       const encodedUrl = encodeURIComponent(shareUrl);
       const encodedText = encodeURIComponent(`${shareText} ${shareUrl}`);
 
       if (platform === "whatsapp") {
         window.open(`https://wa.me/?text=${encodedText}`, "_blank", "noopener,noreferrer");
-        setShareStatus("Shared on WhatsApp.");
+        setShareStatus(t("share.sharedWhatsapp"));
         return;
       }
 
       if (platform === "facebook") {
         window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`, "_blank", "noopener,noreferrer");
-        setShareStatus("Shared on Facebook.");
+        setShareStatus(t("share.sharedFacebook"));
         return;
       }
 
       if (platform === "messenger") {
         const copied = await copyToClipboard(shareUrl);
         window.open(`fb-messenger://share/?link=${encodedUrl}`, "_blank", "noopener,noreferrer");
-        setShareStatus(copied ? "Link copied. Paste it in Messenger." : "Opened Messenger share.");
+        setShareStatus(copied ? t("share.copiedMessenger") : t("share.openedMessenger"));
         return;
       }
 
       if (platform === "instagram") {
         const copied = await copyToClipboard(shareUrl);
         window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-        setShareStatus(copied ? "Link copied. Paste it on Instagram." : "Opened Instagram.");
+        setShareStatus(copied ? t("share.copiedInstagram") : t("share.openedInstagram"));
         return;
       }
 
       const copied = await copyToClipboard(shareUrl);
-      setShareStatus(copied ? "Share link copied." : "Could not copy share link.");
+      setShareStatus(copied ? t("share.linkCopied") : t("share.copyFailed"));
     } catch (_error) {
-      setShareStatus("Could not share right now. Please try again.");
+      setShareStatus(t("share.shareFailed"));
     } finally {
       setSharingPlatform("");
     }
@@ -363,9 +365,9 @@ const ProductView = () => {
       
       {/* Navbar / Breadcrumbs */}
       <nav className="w-full max-w-7xl mx-auto px-4 py-4 text-sm text-gray-500 flex items-center gap-2">
-        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/')}>Home</span>
+        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/')}>{t("breadcrumbs.home")}</span>
         <ChevronRight size={14} />
-        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/products')}>Products</span>
+        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/products')}>{t("breadcrumbs.products")}</span>
         <ChevronRight size={14} />
         <span className="text-gray-900 font-medium truncate">{product.name}</span>
       </nav>
@@ -411,14 +413,14 @@ const ProductView = () => {
 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white/75 backdrop-blur-[2px] px-3 py-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-500 ease-out flex items-center gap-1.5 pointer-events-none transform translate-y-4 group-hover:translate-y-0">
   <Maximize2 size={12} className="text-emerald-800" />
   <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-800 leading-none mt-[1px]">
-    Tap to Zoom
+    {t("tapToZoom")}
   </span>
 </div>
 
               {/* Tags */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
-                 {discount > 0 && <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 uppercase">-{discount}% Sale</span>}
-                 {product.flashsale && <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 uppercase ">Flash Sale</span>}
+                 {discount > 0 && <span className="bg-red-600 text-white text-xs font-bold px-3 py-1 uppercase">-{discount}% {t("sale")}</span>}
+                 {product.flashsale && <span className="bg-emerald-600 text-white text-xs font-bold px-3 py-1 uppercase ">{t("flashSale")}</span>}
               </div>
             </div>
           </div>
@@ -427,10 +429,10 @@ const ProductView = () => {
         {/* RIGHT: DETAILS */}
         <div className="flex flex-col pt-2">
           <div className="mb-6 border-b border-gray-100 pb-6">
-            <h2 className="text-emerald-700 text-sm font-bold tracking-widest uppercase mb-2">KhanCosmetics Exclusive</h2>
+            <h2 className="text-emerald-700 text-sm font-bold tracking-widest uppercase mb-2">{t("exclusive")}</h2>
             <h1 className="text-4xl md:text-5xl font-serif text-gray-900 mb-4 leading-tight">{product.name}</h1>
             <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">
-              {Number(product?.star || 0).toFixed(2)} stars | {Number(product?.reviewcount || 0)} verified reviews
+              {Number(product?.star || 0).toFixed(2)} {t("stars")} | {Number(product?.reviewcount || 0)} {t("verifiedReviews")}
             </p>
             <div className="flex items-baseline gap-4 mt-2">
               <span className="text-3xl font-medium text-gray-900">৳{currentPrice.toLocaleString()}</span>
@@ -441,17 +443,17 @@ const ProductView = () => {
           <div className="mb-6 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4">
             <div className="flex items-center gap-2 text-emerald-800">
               <Share2 size={16} />
-              <h3 className="text-sm font-semibold uppercase tracking-[0.16em]">Share This Product</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-[0.16em]">{t("share.title")}</h3>
             </div>
-            <p className="mt-1 text-xs text-emerald-700/80">Send this product directly to friends. They will land on this exact product page.</p>
+            <p className="mt-1 text-xs text-emerald-700/80">{t("share.subtitle")}</p>
 
             <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
               {[
-                { key: "whatsapp", label: "WhatsApp", className: "border-[#b7e9ce] text-[#1a7f4c] hover:bg-[#ebfff4]", icon: <MessageCircle size={14} /> },
-                { key: "facebook", label: "Facebook", className: "border-[#c7d6ff] text-[#1c4fba] hover:bg-[#eef3ff]", icon: <Globe size={14} /> },
-                { key: "messenger", label: "Messenger", className: "border-[#d4d8ff] text-[#3f51d1] hover:bg-[#f1f3ff]", icon: <MessageCircle size={14} /> },
-                { key: "instagram", label: "Instagram", className: "border-[#ffd1da] text-[#be185d] hover:bg-[#fff0f5]", icon: <Instagram size={14} /> },
-                { key: "browser", label: "Copy Link", className: "border-[#d9e4dd] text-[#265445] hover:bg-[#f2f8f4]", icon: <Share2 size={14} /> },
+                { key: "whatsapp", label: t("share.whatsapp"), className: "border-[#b7e9ce] text-[#1a7f4c] hover:bg-[#ebfff4]", icon: <MessageCircle size={14} /> },
+                { key: "facebook", label: t("share.facebook"), className: "border-[#c7d6ff] text-[#1c4fba] hover:bg-[#eef3ff]", icon: <Globe size={14} /> },
+                { key: "messenger", label: t("share.messenger"), className: "border-[#d4d8ff] text-[#3f51d1] hover:bg-[#f1f3ff]", icon: <MessageCircle size={14} /> },
+                { key: "instagram", label: t("share.instagram"), className: "border-[#ffd1da] text-[#be185d] hover:bg-[#fff0f5]", icon: <Instagram size={14} /> },
+                { key: "browser", label: t("share.copyLink"), className: "border-[#d9e4dd] text-[#265445] hover:bg-[#f2f8f4]", icon: <Share2 size={14} /> },
               ].map((entry) => (
                 <button
                   key={entry.key}
@@ -461,7 +463,7 @@ const ProductView = () => {
                   className={`inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold uppercase tracking-[0.08em] transition ${entry.className} disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {entry.icon}
-                  <span>{sharingPlatform === entry.key ? "Sharing..." : entry.label}</span>
+                  <span>{sharingPlatform === entry.key ? t("share.sharing") : entry.label}</span>
                 </button>
               ))}
             </div>
@@ -473,7 +475,7 @@ const ProductView = () => {
 
           {/* Color Selection */}
           <div className="mb-6">
-             <span className="block text-sm font-medium text-gray-900 mb-3">Color: <span className="text-gray-500 font-normal">{currentVariant?.name}</span></span>
+             <span className="block text-sm font-medium text-gray-900 mb-3">{t("color")}: <span className="text-gray-500 font-normal">{currentVariant?.name}</span></span>
              <div className="flex flex-wrap gap-3">
                {product.variants.map((variant, idx) => (
                  <button
@@ -494,8 +496,8 @@ const ProductView = () => {
           {/* Size Selection */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-3">
-              <span className="block text-sm font-medium text-gray-900">Size</span>
-              <button className="text-xs text-emerald-600 underline">Size Guide</button>
+              <span className="block text-sm font-medium text-gray-900">{t("size")}</span>
+              <button className="text-xs text-emerald-600 underline">{t("sizeGuide")}</button>
             </div>
             <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
               {currentVariant?.options.map((opt, idx) => (
@@ -515,7 +517,7 @@ const ProductView = () => {
       
       {/* 3D SCROLLABLE PICKER (iOS Style) */}
       <div className="relative group">
-        <span className="absolute -top-6 left-0 text-[10px] uppercase tracking-widest text-gray-400 font-bold">Quantity</span>
+        <span className="absolute -top-6 left-0 text-[10px] uppercase tracking-widest text-gray-400 font-bold">{t("quantity")}</span>
         
         <div className="flex items-center border border-gray-200 h-[60px] bg-white overflow-hidden shadow-sm hover:border-emerald-700 transition-colors rounded-sm">
           
@@ -579,7 +581,7 @@ const ProductView = () => {
       >
         <div className="absolute inset-0 bg-white/10 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300"></div>
         <ShoppingBag size={18} className="group-hover/btn:scale-110 transition-transform" />
-        <span className="relative z-10">{isAdding ? "Adding..." : "Add to Cart"}</span>
+        <span className="relative z-10">{isAdding ? t("adding") : t("addToCart")}</span>
       </button>
 
       <button
@@ -593,7 +595,7 @@ const ProductView = () => {
         } disabled:opacity-70 disabled:cursor-not-allowed`}
       >
         <Heart className={`h-5 w-5 ${isWishlisted ? "fill-emerald-700 text-emerald-700" : ""}`} />
-        {wishlistLoading ? "Saving..." : isWishlisted ? "Wishlisted" : "Wishlist"}
+        {wishlistLoading ? t("saving") : isWishlisted ? t("wishlisted") : t("wishlist")}
       </button>
 
     </div>
@@ -607,7 +609,7 @@ const ProductView = () => {
                   onClick={() => router.push("/cart")}
                   className="mt-2 text-xs uppercase tracking-[0.16em] font-semibold text-emerald-800 underline underline-offset-4"
                 >
-                  View Cart
+                  {t("viewCart")}
                 </button>
               ) : null}
             </div>
@@ -629,18 +631,18 @@ const ProductView = () => {
 
           {/* Info Sections */}
           <div className="border-t border-gray-200">
-            {['Description', 'Features', 'Material'].map((tab) => (
+            {[t("tabs.description"), t("tabs.features"), t("tabs.material")].map((tab) => (
               <div key={tab} className="border-b border-gray-200">
                 <button 
                   onClick={() => setActiveTab(activeTab === tab.toLowerCase() ? '' : tab.toLowerCase())} 
                   className="w-full py-4 flex justify-between items-center text-left"
                 >
-                  <span className="font-serif text-lg text-gray-900">{tab === 'Material' ? 'Material & Details' : tab}</span>
+                  <span className="font-serif text-lg text-gray-900">{tab === t("tabs.material") ? t("tabs.materialDetails") : tab}</span>
                   {activeTab === tab.toLowerCase() ? <Minus size={16} /> : <Plus size={16} />}
                 </button>
                 {activeTab === tab.toLowerCase() && (
                    <div className="pb-6 text-gray-600 leading-relaxed text-sm">
-                     {formatText(tab === 'Description' ? product.description : tab === 'Features' ? product.highlight : product.aboutitems)}
+                     {formatText(tab === t("tabs.description") ? product.description : tab === t("tabs.features") ? product.highlight : product.aboutitems)}
                    </div>
                 )}
               </div>
@@ -661,7 +663,7 @@ const ProductView = () => {
           {/* Zoom Header Controls */}
           <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/50 to-transparent">
              <div className="text-white text-sm font-medium drop-shadow-md">
-                Pan to view details
+                {t("zoom.pan")}
              </div>
              <button 
                 onClick={() => setIsZoomOpen(false)}
@@ -689,8 +691,8 @@ const ProductView = () => {
                       <ZoomOut size={20} />
                     </button>
                     <div className="w-px bg-gray-300 h-6 my-auto"></div>
-                    <button onClick={() => resetTransform()} className="p-2 hover:bg-gray-100 rounded-full text-emerald-600 font-bold text-xs uppercase" title="Reset">
-                       Reset
+                    <button onClick={() => resetTransform()} className="p-2 hover:bg-gray-100 rounded-full text-emerald-600 font-bold text-xs uppercase" title={t("zoom.reset")}>
+                       {t("zoom.reset")}
                     </button>
                     <div className="w-px bg-gray-300 h-6 my-auto"></div>
                     <button onClick={() => zoomIn()} className="p-2 hover:bg-gray-100 rounded-full text-gray-700" title="Zoom In">
@@ -705,7 +707,7 @@ const ProductView = () => {
                   >
                     <img
                       src={mainImage}
-                      alt="Super Zoom"
+                      alt={t("zoom.alt")}
                       // 'cursor-grab' shows the hand. 'active:cursor-grabbing' closes the hand when clicking/dragging
                       className="max-h-screen object-contain cursor-grab active:cursor-grabbing shadow-2xl" 
                     />
