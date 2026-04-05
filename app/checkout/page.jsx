@@ -1,5 +1,6 @@
 "use client";
 
+import "leaflet/dist/leaflet.css";
 import React, { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
@@ -339,7 +340,14 @@ const CheckoutPage = () => {
               <div className="mt-5 space-y-3 text-sm">
                 {cartItems.map((item) => (
                   <div key={item._id} className="flex items-start gap-3">
-                    <img src={item.image} alt={item.name} className="h-14 w-14 rounded-lg object-cover border border-emerald-100" />
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      loading="lazy"
+                      decoding="async"
+                      fetchPriority="low"
+                      className="h-14 w-14 rounded-lg object-cover border border-emerald-100"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="truncate text-sm font-semibold text-emerald-900">{item.name}</p>
                       <p className="text-xs text-[#4f6f63]">

@@ -33,7 +33,12 @@ const SuperAdminSigninPage = () => {
     [credentials.password]
   );
 
-  const getApiError = (error, fallback) => error?.response?.data?.message || fallback;
+  const getApiError = (error, fallback) => {
+    const message = error?.response?.data?.message;
+    const detail = error?.response?.data?.detail;
+    if (message && detail) return `${message}: ${detail}`;
+    return message || fallback;
+  };
 
   const validateCredentials = () => {
     if (!sanitizedEmail) return "Email is required.";

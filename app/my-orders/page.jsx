@@ -92,7 +92,14 @@ const MyOrdersPage = () => {
                 <div className="mt-5 grid gap-3 md:grid-cols-2">
                   {order.items?.slice(0, 4).map((item, idx) => (
                     <div key={`${order._id}-${idx}`} className="flex items-center gap-3 rounded-xl border border-emerald-100 p-3">
-                      <img src={item.image} alt={item.name} className="h-14 w-14 rounded-lg object-cover border border-emerald-100" />
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
+                        className="h-14 w-14 rounded-lg object-cover border border-emerald-100"
+                      />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-emerald-900">{item.name}</p>
                         <p className="text-xs text-[#4f6f63]">

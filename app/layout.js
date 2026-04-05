@@ -1,5 +1,4 @@
 import "./globals.css";
-import "leaflet/dist/leaflet.css";
 import ReduxProvider from "./reduxprovider";
 
 export const metadata = {
