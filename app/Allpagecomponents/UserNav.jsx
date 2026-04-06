@@ -323,6 +323,9 @@ const UserNav = () => {
               <Link href="/contact" className="hover:text-[#1f5c49] transition-colors">
                 {t("contact")}
               </Link>
+              <Link href="/become-seller" className="hover:text-[#1f5c49] transition-colors">
+                Become Seller
+              </Link>
             </div>
 
             <div className="flex items-center gap-2 text-gray-900" ref={searchRef}>
@@ -416,6 +419,16 @@ const UserNav = () => {
                         >
                           <Heart className="h-4 w-4" />
                           {t("myWishlist")}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
+                            router.push("/become-seller");
+                          }}
+                          className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#cfe0d7] bg-[#f3faf6] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                        >
+                          Become Seller
                         </button>
                         <button
                           type="button"
@@ -1098,6 +1111,13 @@ const MobileMenu = ({
                       <Heart className="h-4 w-4" />
                       {t("wishlistWithCount", {count: wishlistCount || 0})}
                     </Link>
+                    <Link
+                      href="/become-seller"
+                      onClick={onClose}
+                      className="flex w-full items-center justify-center rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                    >
+                      Become Seller
+                    </Link>
                     <button
                       type="button"
                       onClick={onLogout}
@@ -1109,6 +1129,13 @@ const MobileMenu = ({
                   </>
                  ) : (
                   <>
+                    <Link
+                      href="/become-seller"
+                      onClick={onClose}
+                      className="block w-full rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-center text-sm font-semibold tracking-wide text-[#1f5c49]"
+                    >
+                      Become Seller
+                    </Link>
                     <Link
                       href="/signin"
                       onClick={onClose}

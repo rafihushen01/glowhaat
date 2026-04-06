@@ -17,6 +17,7 @@ import {
   Sparkles,
   Truck,
   Users,
+  Store,
 } from "lucide-react";
 import { serverurl } from "../../utils/constants/serverurl";
 import { clearUserData } from "../../reduxcomponents/UserSlice";
@@ -62,6 +63,9 @@ const SuperAdminNav = () => {
           </NavLink>
           <NavLink href="/SuperAdminRecommendationInsights" icon={<Sparkles className="h-4 w-4" />}>
             Recommendation AI
+          </NavLink>
+          <NavLink href="/SuperAdminSellerRequests" icon={<Store className="h-4 w-4" />}>
+            Seller Requests
           </NavLink>
           <NavLink href="/AdminItemManagments" icon={<Package className="h-4 w-4" />}>
             Item Management

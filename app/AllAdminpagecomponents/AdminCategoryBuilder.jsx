@@ -43,6 +43,7 @@ const AdminCategoryBuilder = () => {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [view, setView] = useState('list'); // 'list' | 'create' | 'edit'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
   
   // --- Form State ---
   const [formData, setFormData] = useState({
@@ -63,12 +64,19 @@ const AdminCategoryBuilder = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Ensure these endpoints exist in your backend
       const [catRes, treeRes] = await Promise.all([
-        axios.get(`${serverurl}/category/active`),
-        axios.get(`${serverurl}/category/fulltree`)
+        (async () => {
+          try {
+            return await axios.get(`${serverurl}/category/all`);
+          } catch (_err) {
+            return axios.get(`${serverurl}/category/active`);
+          }
+        })(),
+        axios.get(`${serverurl}/category/fulltree`),
       ]);
-      setCategories(catRes.data.data || []);
+
+      const loadedCategories = Array.isArray(catRes?.data?.data) ? catRes.data.data : [];
+      setCategories(loadedCategories);
       setNavTree(treeRes.data.data || []);
     } catch (err) {
       console.error(err);
@@ -81,6 +89,16 @@ const AdminCategoryBuilder = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const totalCount = categories.length;
+  const activeCount = categories.filter((cat) => cat?.isactive).length;
+  const inactiveCount = totalCount - activeCount;
+
+  const visibleCategories = categories.filter((cat) => {
+    if (statusFilter === 'active') return Boolean(cat?.isactive);
+    if (statusFilter === 'inactive') return !cat?.isactive;
+    return true;
+  });
 
   // --- Form Handlers ---
   const handleInputChange = (e) => {
@@ -338,61 +356,88 @@ const AdminCategoryBuilder = () => {
           
           {/* VIEW: LIST OF CATEGORIES */}
           {view === 'list' && (
-            <motion.div 
-              key="list"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            >
-              {loading && <div className="col-span-full text-center py-20 text-slate-500 flex flex-col items-center"><Loader2 className="animate-spin mb-4"/> Loading System...</div>}
-              
-              {!loading && categories.map((cat, idx) => (
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
-                  key={cat._id}
-                  className={`group relative ${THEME.card} border ${THEME.border} rounded-3xl p-6 hover:border-violet-500/30 transition-all duration-300 flex flex-col h-full`}
-                >
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="bg-violet-500/10 p-2 rounded-lg text-violet-400">
-                      <ListTree size={20} />
-                    </div>
-                    <div className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${cat.isactive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                      {cat.isactive ? 'LIVE' : 'HIDDEN'}
-                    </div>
-                  </div>
+            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="mb-6 flex flex-wrap items-center gap-3">
+                {[
+                  { key: 'all', label: `All (${totalCount})` },
+                  { key: 'active', label: `Active (${activeCount})` },
+                  { key: 'inactive', label: `Inactive (${inactiveCount})` },
+                ].map((filter) => {
+                  const isCurrent = statusFilter === filter.key;
+                  return (
+                    <button
+                      key={filter.key}
+                      onClick={() => setStatusFilter(filter.key)}
+                      className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                        isCurrent
+                          ? 'bg-violet-500 text-white'
+                          : 'bg-slate-900/70 text-slate-300 hover:bg-slate-800'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-                  <h3 className="text-xl font-bold text-white mb-1 group-hover:text-violet-300 transition-colors">{cat.name}</h3>
-                  <p className="text-xs text-slate-500 mb-4">{cat.slug}</p>
-
-                  <div className="space-y-2 mb-6 flex-grow">
-                    <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-900/50 p-2 rounded">
-                      <FaSitemap className="text-violet-500/70" size={12}/>
-                      <span className="truncate">{cat.navrootid?.name || 'Unassigned Root'}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                       <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
-                        <Tags size={12}/> {cat.segments?.length || 0} Filters
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {loading && <div className="col-span-full text-center py-20 text-slate-500 flex flex-col items-center"><Loader2 className="animate-spin mb-4"/> Loading System...</div>}
+                
+                {!loading && visibleCategories.map((cat, idx) => (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={cat._id}
+                    className={`group relative ${THEME.card} border ${THEME.border} rounded-3xl p-6 hover:border-violet-500/30 transition-all duration-300 flex flex-col h-full`}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="bg-violet-500/10 p-2 rounded-lg text-violet-400">
+                        <ListTree size={20} />
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
-                        <ImagePlus size={12}/> {cat.media?.length || 0} Media
+                      <div className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${cat.isactive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                        {cat.isactive ? 'LIVE' : 'HIDDEN'}
                       </div>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-2 mt-auto">
-                    <button onClick={() => handleToggleStatus(cat._id)} className="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex justify-center">
-                      {cat.isactive ? <FaEyeSlash /> : <FaEye />}
-                    </button>
-                    <button onClick={() => handleEditClick(cat)} className="py-2 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 flex justify-center">
-                      <FaEdit />
-                    </button>
-                    <button onClick={() => handleDelete(cat._id)} className="py-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 flex justify-center">
-                      <FaTrash />
-                    </button>
+                    <h3 className="text-xl font-bold text-white mb-1 group-hover:text-violet-300 transition-colors">{cat.name}</h3>
+                    <p className="text-xs text-slate-500 mb-4">{cat.slug}</p>
+
+                    <div className="space-y-2 mb-6 flex-grow">
+                      <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-900/50 p-2 rounded">
+                        <FaSitemap className="text-violet-500/70" size={12}/>
+                        <span className="truncate">{cat.navrootid?.name || 'Unassigned Root'}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                         <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
+                          <Tags size={12}/> {cat.segments?.length || 0} Filters
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
+                          <ImagePlus size={12}/> {cat.media?.length || 0} Media
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 mt-auto">
+                      <button onClick={() => handleToggleStatus(cat._id)} className="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex justify-center">
+                        {cat.isactive ? <FaEyeSlash /> : <FaEye />}
+                      </button>
+                      <button onClick={() => handleEditClick(cat)} className="py-2 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 flex justify-center">
+                        <FaEdit />
+                      </button>
+                      <button onClick={() => handleDelete(cat._id)} className="py-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 flex justify-center">
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {!loading && visibleCategories.length === 0 && (
+                  <div className="col-span-full rounded-2xl border border-slate-800 bg-slate-900/40 p-10 text-center text-slate-400">
+                    No categories found for this filter.
                   </div>
-                </motion.div>
-              ))}
+                )}
+              </div>
             </motion.div>
           )}
 
