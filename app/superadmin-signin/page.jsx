@@ -14,6 +14,8 @@ import { setUserData } from "../reduxcomponents/UserSlice";
 const inputClass =
   "w-full rounded-xl border border-[#d5e3dc] bg-[#fbfdfc] px-3 py-2.5 text-sm text-[#17372b] outline-none transition placeholder:text-[#789486] focus:border-[#1f5c49] focus:ring-2 focus:ring-[#9ec7b4]/40";
 
+const API_TIMEOUT_MS = 20000;
+
 const SuperAdminSigninPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -34,6 +36,9 @@ const SuperAdminSigninPage = () => {
   );
 
   const getApiError = (error, fallback) => {
+    if (error?.code === "ECONNABORTED") {
+      return "The server took too long to respond. Please retry.";
+    }
     const message = error?.response?.data?.message;
     const detail = error?.response?.data?.detail;
     if (message && detail) return `${message}: ${detail}`;
@@ -59,7 +64,7 @@ const SuperAdminSigninPage = () => {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/signinotp`,
         { email: sanitizedEmail, password: sanitizedPassword },
-        { withCredentials: true, timeout: 12000 }
+        { withCredentials: true, timeout: API_TIMEOUT_MS }
       );
 
       if (!data?.success) {
@@ -95,7 +100,7 @@ const SuperAdminSigninPage = () => {
       const { data } = await axios.post(
         `${serverurl}/auth/superadmin/verifyotp`,
         { email: sanitizedEmail, otp: otp.trim() },
-        { withCredentials: true, timeout: 12000 }
+        { withCredentials: true, timeout: API_TIMEOUT_MS }
       );
 
       if (!data?.success) {

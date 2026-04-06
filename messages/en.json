@@ -264,5 +264,79 @@
       "invalidMobileForGoogle": "Please enter a valid mobile number before Google signin.",
       "googleSignin": "Google signin failed. Please try again."
     }
+  },
+  "SignupPage": {
+    "title": "Secure Signup",
+    "createAccount": "Create account",
+    "hero": {
+      "tag": "Premium Beauty Club",
+      "title": "Join KhanCosmetics",
+      "desc": "Build your beauty profile, unlock early product drops, and get a secure OTP verified account designed for fast checkout and trusted order tracking.",
+      "p1": "OTP based signup with encrypted password storage",
+      "p2": "Instant account verification and protected session cookie",
+      "p3": "Brand-first experience crafted for KhanCosmetics customers",
+      "securityTitle": "Security promise",
+      "securityText": "We never expose your password in plain text and every signup must pass OTP verification before account activation."
+    },
+    "steps": {
+      "details": "1. Details",
+      "verify": "2. Verify OTP"
+    },
+    "fields": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "mobile": "Mobile",
+      "gender": "Gender",
+      "password": "Password",
+      "otp": "One-Time Password"
+    },
+    "placeholders": {
+      "fullName": "Enter your full name",
+      "email": "you@example.com",
+      "mobile": "+8801XXXXXXXXX",
+      "password": "Create a secure password",
+      "otp": "Enter 6-digit OTP"
+    },
+    "gender": {
+      "select": "Select gender",
+      "male": "Male",
+      "female": "Female",
+      "other": "Other"
+    },
+    "passwordStrength": "Password strength",
+    "agreePolicy": "I agree to KhanCosmetics privacy and account security policy.",
+    "sendOtp": "Send OTP",
+    "googleSignup": "Continue with Google (mobile required)",
+    "otpSentTo": "OTP sent to",
+    "yourEmail": "your email",
+    "verifyCreate": "Verify and Create Account",
+    "editDetails": "Edit details",
+    "resending": "Resending...",
+    "resendOtp": "Resend OTP",
+    "resendIn": "Resend in {seconds}s",
+    "alreadyHave": "Already have an account?",
+    "signin": "Sign in",
+    "success": {
+      "otpSent": "OTP sent to your email.",
+      "accountCreated": "Account created successfully.",
+      "otpResent": "A new OTP has been sent.",
+      "googleSignup": "Google signup successful."
+    },
+    "errors": {
+      "nameMin": "Please enter your full name (min 3 characters).",
+      "invalidEmail": "Please enter a valid email address.",
+      "passwordRules": "Password must be at least 8 characters and include letters and numbers.",
+      "mobileRange": "Mobile number must be 8 to 15 digits.",
+      "chooseGender": "Please choose your gender.",
+      "acceptPolicy": "Please accept the privacy policy to continue.",
+      "sendOtp": "Unable to send OTP.",
+      "signupService": "Could not connect to signup service.",
+      "enterOtp": "Enter your 6-digit OTP.",
+      "otpVerify": "OTP verification failed.",
+      "resendOtp": "Unable to resend OTP.",
+      "resendFailed": "Resend failed. Please try again.",
+      "googleMobile": "Please enter a valid mobile number before Google signup.",
+      "googleSignup": "Google signup failed. Please try again."
+    }
   }
 }

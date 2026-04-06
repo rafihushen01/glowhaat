@@ -23,6 +23,7 @@ import {
 import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
+import {useTranslations} from "next-intl";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
@@ -64,6 +65,7 @@ const getPasswordStrength = (password) => {
 const normalizeMobile = (value) => value.replace(/[^\d+]/g, "").slice(0, 15);
 
 const Signup = () => {
+  const t = useTranslations("SignupPage");
   const router = useRouter();
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
@@ -114,27 +116,27 @@ const Signup = () => {
     const mobile = formData.mobile.trim();
 
     if (!name || name.length < 3) {
-      return "Please enter your full name (min 3 characters).";
+      return t("errors.nameMin");
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return "Please enter a valid email address.";
+      return t("errors.invalidEmail");
     }
 
     if (formData.password.length < 8 || !/[A-Za-z]/.test(formData.password) || !/\d/.test(formData.password)) {
-      return "Password must be at least 8 characters and include letters and numbers.";
+      return t("errors.passwordRules");
     }
 
     if (mobile && !/^\+?\d{8,15}$/.test(mobile)) {
-      return "Mobile number must be 8 to 15 digits.";
+      return t("errors.mobileRange");
     }
 
     if (!["Male", "Female", "Other"].includes(formData.gender)) {
-      return "Please choose your gender.";
+      return t("errors.chooseGender");
     }
 
     if (!agreedToPolicy) {
-      return "Please accept the privacy policy to continue.";
+      return t("errors.acceptPolicy");
     }
 
     return "";
@@ -156,11 +158,11 @@ const Signup = () => {
       });
 
       if (!data?.success) {
-        toast.error(data?.message || "Unable to send OTP.");
+        toast.error(data?.message || t("errors.sendOtp"));
         return;
       }
 
-      toast.success(data.message || "OTP sent to your email.");
+      toast.success(data.message || t("success.otpSent"));
       setStep("verify");
       setOtpCountdown(60);
       setOtp("");
@@ -171,7 +173,7 @@ const Signup = () => {
         mobile: payload.mobile || "",
       }));
     } catch (error) {
-      toast.error(getApiError(error, "Could not connect to signup service."));
+      toast.error(getApiError(error, t("errors.signupService")));
     } finally {
       setLoading(false);
     }
@@ -180,7 +182,7 @@ const Signup = () => {
   const verifySignupOtp = async (event) => {
     event.preventDefault();
     if (!/^\d{6}$/.test(otp.trim())) {
-      toast.error("Enter your 6-digit OTP.");
+      toast.error(t("errors.enterOtp"));
       return;
     }
 
@@ -196,7 +198,7 @@ const Signup = () => {
       );
 
       if (!data?.success) {
-        toast.error(data?.message || "OTP verification failed.");
+        toast.error(data?.message || t("errors.otpVerify"));
         return;
       }
 
@@ -214,10 +216,10 @@ const Signup = () => {
         dispatch(setUserData(authuser));
       }
 
-      toast.success("Account created successfully.");
+      toast.success(t("success.accountCreated"));
       setTimeout(() => router.push("/"), 900);
     } catch (error) {
-      toast.error(getApiError(error, "OTP verification failed."));
+      toast.error(getApiError(error, t("errors.otpVerify")));
     } finally {
       setLoading(false);
     }
@@ -233,14 +235,14 @@ const Signup = () => {
       });
 
       if (!data?.success) {
-        toast.error(data?.message || "Unable to resend OTP.");
+        toast.error(data?.message || t("errors.resendOtp"));
         return;
       }
 
-      toast.success("A new OTP has been sent.");
+      toast.success(t("success.otpResent"));
       setOtpCountdown(60);
     } catch (error) {
-      toast.error(getApiError(error, "Resend failed. Please try again."));
+      toast.error(getApiError(error, t("errors.resendFailed")));
     } finally {
       setResending(false);
     }
@@ -249,7 +251,7 @@ const Signup = () => {
   const handleGoogleSignup = async () => {
     const mobile = formData.mobile.trim();
     if (!mobile || !/^\+?\d{8,15}$/.test(mobile)) {
-      toast.error("Please enter a valid mobile number before Google signup.");
+      toast.error(t("errors.googleMobile"));
       return;
     }
 
@@ -268,7 +270,7 @@ const Signup = () => {
       );
 
       if (!data?.success) {
-        toast.error(data?.message || "Google signup failed.");
+        toast.error(data?.message || t("errors.googleSignup"));
         return;
       }
 
@@ -276,10 +278,10 @@ const Signup = () => {
         dispatch(setUserData(data.user));
       }
 
-      toast.success(data?.message || "Google signup successful.");
+      toast.success(data?.message || t("success.googleSignup"));
       setTimeout(() => router.push("/"), 700);
     } catch (error) {
-      toast.error(getApiError(error, "Google signup failed. Please try again."));
+      toast.error(getApiError(error, t("errors.googleSignup")));
     } finally {
       setGoogleLoading(false);
     }
@@ -326,26 +328,25 @@ const Signup = () => {
                 <Image src={khancosmeticslogo} alt="KhanCosmetics" width={130} height={42} priority />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6f52]">Premium Beauty Club</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#8a6f52]">{t("hero.tag")}</p>
                 <h1
                   className="text-3xl leading-tight text-[#201810] md:text-4xl"
                   style={{ fontFamily: "\"Cormorant Garamond\", \"Times New Roman\", serif" }}
                 >
-                  Join KhanCosmetics
+                  {t("hero.title")}
                 </h1>
               </div>
             </div>
 
             <p className="max-w-xl text-[15px] leading-relaxed text-[#4d3e33] md:text-base">
-              Build your beauty profile, unlock early product drops, and get a secure OTP verified account
-              designed for fast checkout and trusted order tracking.
+              {t("hero.desc")}
             </p>
 
             <div className="mt-8 grid gap-3 text-sm">
               {[
-                "OTP based signup with encrypted password storage",
-                "Instant account verification and protected session cookie",
-                "Brand-first experience crafted for KhanCosmetics customers",
+                t("hero.p1"),
+                t("hero.p2"),
+                t("hero.p3"),
               ].map((point) => (
                 <motion.div
                   key={point}
@@ -363,10 +364,9 @@ const Signup = () => {
             <div className="mt-8 rounded-2xl border border-[#eadccf] bg-white/70 p-4 text-sm text-[#4b3d31]">
               <div className="mb-2 flex items-center gap-2 text-[#2f6c58]">
                 <ShieldCheck className="h-4 w-4" />
-                <span className="font-semibold">Security promise</span>
+                <span className="font-semibold">{t("hero.securityTitle")}</span>
               </div>
-              We never expose your password in plain text and every signup must pass OTP verification before
-              account activation.
+              {t("hero.securityText")}
             </div>
           </motion.section>
 
@@ -379,9 +379,9 @@ const Signup = () => {
           >
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">Create account</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">{t("createAccount")}</p>
                 <h2 className="mt-1 text-2xl text-[#0f2f24]" style={{ fontFamily: "\"Cormorant Garamond\", serif" }}>
-                  Secure Signup
+                  {t("title")}
                 </h2>
               </div>
               <div className="rounded-full border border-[#d7e8e0] bg-[#f3f9f6] p-2">
@@ -395,7 +395,7 @@ const Signup = () => {
                 onClick={() => setStep("details")}
                 className={`rounded-lg px-3 py-2 transition ${step === "details" ? "bg-white text-[#1d4f3f] shadow-sm" : ""}`}
               >
-                1. Details
+                {t("steps.details")}
               </button>
               <button
                 type="button"
@@ -405,7 +405,7 @@ const Signup = () => {
                   step === "verify" ? "bg-white text-[#1d4f3f] shadow-sm" : "disabled:cursor-not-allowed disabled:opacity-50"
                 }`}
               >
-                2. Verify OTP
+                {t("steps.verify")}
               </button>
             </div>
 
@@ -420,7 +420,7 @@ const Signup = () => {
                   onSubmit={requestSignupOtp}
                   className="space-y-4"
                 >
-                  <FieldLabel label="Full Name" icon={<User className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.fullName")} icon={<User className="h-4 w-4" />} />
                   <input
                     type="text"
                     value={formData.fullname}
@@ -430,12 +430,12 @@ const Signup = () => {
                         fullname: event.target.value,
                       }))
                     }
-                    placeholder="Enter your full name"
+                    placeholder={t("placeholders.fullName")}
                     autoComplete="name"
                     className={fieldInputClass}
                   />
 
-                  <FieldLabel label="Email Address" icon={<Mail className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.email")} icon={<Mail className="h-4 w-4" />} />
                   <input
                     type="email"
                     value={formData.email}
@@ -445,14 +445,14 @@ const Signup = () => {
                         email: event.target.value,
                       }))
                     }
-                    placeholder="you@example.com"
+                    placeholder={t("placeholders.email")}
                     autoComplete="email"
                     className={fieldInputClass}
                   />
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <FieldLabel label="Mobile " icon={<Phone className="h-4 w-4" />} />
+                      <FieldLabel label={t("fields.mobile")} icon={<Phone className="h-4 w-4" />} />
                       <input
                         type="tel"
                         value={formData.mobile}
@@ -462,13 +462,13 @@ const Signup = () => {
                             mobile: normalizeMobile(event.target.value),
                           }))
                         }
-                        placeholder="+8801XXXXXXXXX"
+                        placeholder={t("placeholders.mobile")}
                         autoComplete="tel"
                         className={fieldInputClass}
                       />
                     </div>
                     <div>
-                      <FieldLabel label="Gender" icon={<VenusAndMars className="h-4 w-4" />} />
+                      <FieldLabel label={t("fields.gender")} icon={<VenusAndMars className="h-4 w-4" />} />
                       <select
                         value={formData.gender}
                         onChange={(event) =>
@@ -479,15 +479,15 @@ const Signup = () => {
                         }
                         className={fieldInputClass}
                       >
-                        <option value="">Select gender</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
+                        <option value="">{t("gender.select")}</option>
+                        <option value="Male">{t("gender.male")}</option>
+                        <option value="Female">{t("gender.female")}</option>
+                        <option value="Other">{t("gender.other")}</option>
                       </select>
                     </div>
                   </div>
 
-                  <FieldLabel label="Password" icon={<Lock className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.password")} icon={<Lock className="h-4 w-4" />} />
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -498,7 +498,7 @@ const Signup = () => {
                           password: event.target.value,
                         }))
                       }
-                      placeholder="Create a secure password"
+                      placeholder={t("placeholders.password")}
                       autoComplete="new-password"
                       className={`${fieldInputClass} pr-12`}
                     />
@@ -519,7 +519,7 @@ const Signup = () => {
                       />
                     </div>
                     <p className="text-xs text-[#496457]">
-                      Password strength: <span className="font-semibold">{passwordStrength.label}</span>
+                      {t("passwordStrength")}: <span className="font-semibold">{passwordStrength.label}</span>
                     </p>
                   </div>
 
@@ -531,7 +531,7 @@ const Signup = () => {
                       className="mt-0.5 accent-[#1d4f3f]"
                     />
                     <span>
-                      I agree to KhanCosmetics privacy and account security policy.
+                      {t("agreePolicy")}
                     </span>
                   </label>
 
@@ -541,7 +541,7 @@ const Signup = () => {
                     type="submit"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("sendOtp")} <ArrowRight className="h-4 w-4" /></>}
                   </motion.button>
 
                   <div className="flex items-center gap-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#6e867b]">
@@ -562,7 +562,7 @@ const Signup = () => {
                     ) : (
                       <>
                         <FcGoogle className="h-5 w-5" />
-                        Continue with Google (mobile required)
+                        {t("googleSignup")}
                       </>
                     )}
                   </motion.button>
@@ -578,17 +578,17 @@ const Signup = () => {
                   className="space-y-4"
                 >
                   <div className="rounded-xl border border-[#d8e8e0] bg-[#f4faf7] p-3 text-sm text-[#2f5648]">
-                    OTP sent to <span className="font-semibold">{formData.email || "your email"}</span>
+                    {t("otpSentTo")} <span className="font-semibold">{formData.email || t("yourEmail")}</span>
                   </div>
 
-                  <FieldLabel label="One-Time Password" icon={<ShieldCheck className="h-4 w-4" />} />
+                  <FieldLabel label={t("fields.otp")} icon={<ShieldCheck className="h-4 w-4" />} />
                   <input
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={otp}
                     onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder="Enter 6-digit OTP"
+                    placeholder={t("placeholders.otp")}
                     autoComplete="one-time-code"
                     className={`${fieldInputClass} text-center text-lg tracking-[0.35em]`}
                   />
@@ -599,7 +599,7 @@ const Signup = () => {
                     type="submit"
                     className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify and Create Account"}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("verifyCreate")}
                   </motion.button>
 
                   <div className="flex items-center justify-between gap-4 text-xs">
@@ -608,7 +608,7 @@ const Signup = () => {
                       onClick={() => setStep("details")}
                       className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49]"
                     >
-                      Edit details
+                      {t("editDetails")}
                     </button>
 
                     <button
@@ -617,7 +617,7 @@ const Signup = () => {
                       disabled={otpCountdown > 0 || resending}
                       className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {resending ? "Resending..." : otpCountdown > 0 ? `Resend in ${otpCountdown}s` : "Resend OTP"}
+                      {resending ? t("resending") : otpCountdown > 0 ? t("resendIn", {seconds: otpCountdown}) : t("resendOtp")}
                     </button>
                   </div>
                 </motion.form>
@@ -625,9 +625,9 @@ const Signup = () => {
             </AnimatePresence>
 
             <p className="mt-6 text-center text-sm text-[#526d61]">
-              Already have an account?{" "}
+              {t("alreadyHave")}{" "}
               <Link href="/signin" className="font-semibold text-[#1f5c49] underline underline-offset-4">
-                Sign in
+                {t("signin")}
               </Link>
             </p>
           </motion.section>

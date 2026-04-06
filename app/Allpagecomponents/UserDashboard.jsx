@@ -3,7 +3,7 @@
 import React from 'react'
 import UserNav from './UserNav'
 import UserHomebanner from './UserHomebanner'
-import NewItem from './NewItem'
+import NewItem from "../Allpagecomponents/NewItem"
 import CategoryShowcase from './UsersCategorySlider'
 import BehaviorRecommendations from './BehaviorRecommendations'
 import BrandFooter from './BrandFooter'
@@ -18,9 +18,9 @@ const UserDashboard = () => {
 
    <UserHomebanner  />
       </div>
-      <div>
-        <NewItem />
-      </div>
+      <section id="new-arrivals">
+        <NewItem/>
+      </section>
       <section id="shop-by-category" className="mt-10">
         <CategoryShowcase />
       </section>

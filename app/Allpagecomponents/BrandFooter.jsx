@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Facebook, Instagram, MessageCircle } from "lucide-react";
 import khancoslogo from "../../public/khancosmeticslogo.png";
 import { Link } from "@/i18n/navigation";
+import { frontendurl } from "../utils/constants/serverurl";
 
 const xIcon = (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
@@ -10,21 +11,25 @@ const xIcon = (
 );
 
 const shopLinks = [
-  { label: "Makeup", href: "/#shop-by-category" },
-  { label: "Skin", href: "/#shop-by-category" },
-  { label: "Eye Care", href: "/#shop-by-category" },
-  { label: "Hair", href: "/#shop-by-category" },
-  { label: "Personal Care", href: "/#shop-by-category" },
-  { label: "Natural", href: "/#shop-by-category" },
-  { label: "Mom & Baby", href: "/#shop-by-category" },
+  { label: "Makeup", href: `${frontendurl}/s/makeup` },
+  { label: "Skin", href: `${frontendurl}/s/skin` },
+  { label: "Eye Care", href: `${frontendurl}/s/makeup` },
+  { label: "Hair", href: `${frontendurl}/s/hair` },
+  { label: "Personal Care", href: `${frontendurl}/s/personalcare` },
+  { label: "Undergarments", href: `${frontendurl}/s/undergarments` },
+  { label: "Women Jewlerry", href: `${frontendurl}/s/jewellery` },
+  { label: "Khan Cakes", href: `${frontendurl}/s/khancakes` },
+  { label: "Men Product", href: `${frontendurl}/s/men` },
+  { label: "Fragrance", href: `${frontendurl}/s/fragrance` },
+  { label: "Mom & Baby", href: `${frontendurl}/s/mom-and-baby` },
 ];
 
 const quickLinks = [
   { label: "Offers", href: "/#deals-you-cant-miss" },
-  { label: "Mens Products", href: "/#shop-by-category" },
+  { label: "Mens Products", href: `${frontendurl}/s/men` },
   { label: "Skin Concerns", href: "/#shop-by-category" },
   { label: "New Arrival", href: "/#new-arrivals" },
-  { label: "Makeup", href: "/#shop-by-category" },
+  { label: "Makeup", href: `${frontendurl}/s/makeup` },
 ];
 
 const beautyLinks = [
@@ -68,7 +73,13 @@ const socials = [
   },
 ];
 
-const paymentMethods = ["bKash", "Nagad", "Mastercard", "Visa", "Amex"];
+const paymentMethods = [
+  { label: "SSLCommerz", src: "/sslgcommez.png", width: 90 },
+  { label: "bKash", src: "/bikash.png", width: 62 },
+  { label: "Nagad", src: "/nagad.png", width: 62 },
+  { label: "Mastercard", src: "/mastercard.png", width: 70 },
+  { label: "Visa", src: "/visacard.png", width: 62 },
+];
 
 const FooterLinkColumn = ({ title, links, accentFirst = false }) => (
   <div>
@@ -76,15 +87,27 @@ const FooterLinkColumn = ({ title, links, accentFirst = false }) => (
     <ul className="mt-5 space-y-3">
       {links.map((link, index) => (
         <li key={link.label}>
-          <Link
-            href={link.href}
-            className={`group inline-flex items-center gap-2 text-sm transition hover:text-[#d5ffef] ${
-              accentFirst && index === 1 ? "text-[#9cffd3]" : "text-white/90"
-            }`}
-          >
-            <span className="h-px w-0 bg-[#91ffd0] transition-all duration-300 group-hover:w-5" />
-            <span>{link.label}</span>
-          </Link>
+          {link.href.startsWith("http") ? (
+            <a
+              href={link.href}
+              className={`group inline-flex items-center gap-2 text-sm transition hover:text-[#d5ffef] ${
+                accentFirst && index === 1 ? "text-[#9cffd3]" : "text-white/90"
+              }`}
+            >
+              <span className="h-px w-0 bg-[#91ffd0] transition-all duration-300 group-hover:w-5" />
+              <span>{link.label}</span>
+            </a>
+          ) : (
+            <Link
+              href={link.href}
+              className={`group inline-flex items-center gap-2 text-sm transition hover:text-[#d5ffef] ${
+                accentFirst && index === 1 ? "text-[#9cffd3]" : "text-white/90"
+              }`}
+            >
+              <span className="h-px w-0 bg-[#91ffd0] transition-all duration-300 group-hover:w-5" />
+              <span>{link.label}</span>
+            </Link>
+          )}
         </li>
       ))}
     </ul>
@@ -152,13 +175,19 @@ const BrandFooter = () => {
             <FooterLinkColumn title="Help" links={helpLinks} />
             <div className="mt-6 border-t border-white/30 pt-4">
               <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">Payments Accepted</p>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {paymentMethods.map((method) => (
                   <span
-                    key={method}
-                    className="inline-flex items-center rounded-md border border-white/45 bg-white/10 px-2.5 py-1 text-[11px] font-semibold tracking-wide text-white/95"
+                    key={method.label}
+                    className="inline-flex h-8 items-center rounded-md border border-white/45 bg-white px-2 shadow-[0_4px_12px_-9px_rgba(0,0,0,0.45)]"
                   >
-                    {method}
+                    <Image
+                      src={method.src}
+                      alt={method.label}
+                      width={method.width}
+                      height={22}
+                      className="h-auto max-h-5 w-auto object-contain"
+                    />
                   </span>
                 ))}
               </div>

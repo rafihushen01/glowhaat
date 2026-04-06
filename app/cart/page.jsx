@@ -14,6 +14,7 @@ import {
   updateCartItem,
 } from "../reduxcomponents/CartSlice";
 import {getRequestConfig} from "../utils/requestConfig";
+import {calculateDeliveryCharge} from "../utils/constants/bdDeliveryZones";
 
 const formatPrice = (value, locale) =>
   new Intl.NumberFormat(locale === "bn" ? "bn-BD" : "en-BD", {
@@ -41,7 +42,12 @@ export default function CartPage() {
       const {data} = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
       if (data?.success) {
         dispatch(setCartItems(data.items || []));
-        setDeliveryTotal(Number(data.deliverytotal || 0));
+        setDeliveryTotal(
+          calculateDeliveryCharge({
+            district: data.district || "",
+            hasFreeDelivery: Boolean(data.hasfreedelivery),
+          })
+        );
       }
     } catch (error) {
       setStatus(error?.response?.data?.message || t("errors.loadCart"));
@@ -289,4 +295,3 @@ export default function CartPage() {
     </div>
   );
 }
-

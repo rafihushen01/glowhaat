@@ -13,6 +13,12 @@ import useGetMyLocation from "../hooks/useGetMyLocation";
 import {serverurl} from "../utils/constants/serverurl";
 import {clearCart, setCartItems} from "../reduxcomponents/CartSlice";
 import {getRequestConfig} from "../utils/requestConfig";
+import {
+  calculateDeliveryCharge,
+  getAreasByDistrictAndCity,
+  getCitiesByDistrict,
+  getDistrictOptions,
+} from "../utils/constants/bdDeliveryZones";
 
 const LocationPickerMap = dynamic(() => import("../components/LocationPickerMap"), {
   ssr: false,
@@ -24,6 +30,13 @@ const formatPrice = (value, locale) =>
     currency: "BDT",
     maximumFractionDigits: 0,
   }).format(Number(value || 0));
+
+const withCurrentOption = (options, currentValue) => {
+  const current = String(currentValue || "").trim();
+  if (!current) return options;
+  const hasCurrent = options.some((entry) => String(entry).toLowerCase() === current.toLowerCase());
+  return hasCurrent ? options : [current, ...options];
+};
 
 const CheckoutPage = () => {
   const t = useTranslations("CheckoutPage");
@@ -46,6 +59,7 @@ const CheckoutPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [manualQuery, setManualQuery] = useState("");
   const [deliveryTotal, setDeliveryTotal] = useState(0);
+  const [hasFreeDelivery, setHasFreeDelivery] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
   const [cartItems, setLocalCartItems] = useState([]);
 
@@ -76,6 +90,16 @@ const CheckoutPage = () => {
     setLocation,
   } = useGetMyLocation();
 
+  const districtOptions = useMemo(() => getDistrictOptions(), []);
+  const cityOptions = useMemo(
+    () => withCurrentOption(getCitiesByDistrict(form.district), form.city),
+    [form.city, form.district]
+  );
+  const areaOptions = useMemo(
+    () => withCurrentOption(getAreasByDistrictAndCity(form.district, form.city), form.area),
+    [form.area, form.city, form.district]
+  );
+
   const grandTotal = useMemo(() => subtotal + deliveryTotal, [subtotal, deliveryTotal]);
 
   useEffect(() => {
@@ -84,9 +108,16 @@ const CheckoutPage = () => {
         const {data} = await axios.get(`${serverurl}/cart/my`, getRequestConfig());
         if (data?.success) {
           const items = Array.isArray(data.items) ? data.items : [];
+          const freeDelivery = Boolean(data.hasfreedelivery);
           setLocalCartItems(items);
+          setHasFreeDelivery(freeDelivery);
           setSubtotal(Number(data.subtotal || 0));
-          setDeliveryTotal(Number(data.deliverytotal || 0));
+          setDeliveryTotal(
+            calculateDeliveryCharge({
+              district: form.district || data.district || "",
+              hasFreeDelivery: freeDelivery,
+            })
+          );
           dispatch(setCartItems(items));
         }
       } catch (error) {
@@ -98,6 +129,10 @@ const CheckoutPage = () => {
 
     fetchCart();
   }, [dispatch, t]);
+
+  useEffect(() => {
+    setDeliveryTotal(calculateDeliveryCharge({district: form.district, hasFreeDelivery}));
+  }, [form.district, hasFreeDelivery]);
 
   useEffect(() => {
     if (!location) return;
@@ -197,10 +232,42 @@ const CheckoutPage = () => {
                   <Input label={t("fields.fullName")} value={form.fullname} onChange={(v) => setForm((p) => ({...p, fullname: v}))} required />
                   <Input label={t("fields.mobile")} value={form.mobile} onChange={(v) => setForm((p) => ({...p, mobile: v}))} required />
                   <Input label={t("fields.emailOptional")} value={form.email} onChange={(v) => setForm((p) => ({...p, email: v}))} />
-                  <Input label={t("fields.district")} value={form.district} onChange={(v) => setForm((p) => ({...p, district: v}))} required />
-                  <Input label={t("fields.city")} value={form.city} onChange={(v) => setForm((p) => ({...p, city: v}))} required />
+                  <SelectInput
+                    label={t("fields.district")}
+                    value={form.district}
+                    options={districtOptions}
+                    onChange={(v) =>
+                      setForm((p) => ({
+                        ...p,
+                        district: v,
+                        city: "",
+                        area: "",
+                        upzilla: "",
+                      }))
+                    }
+                    required
+                  />
+                  <SelectInput
+                    label={t("fields.city")}
+                    value={form.city}
+                    options={cityOptions}
+                    onChange={(v) =>
+                      setForm((p) => ({
+                        ...p,
+                        city: v,
+                        upzilla: v,
+                        area: "",
+                      }))
+                    }
+                    required
+                  />
                   <Input label={t("fields.upzilla")} value={form.upzilla} onChange={(v) => setForm((p) => ({...p, upzilla: v}))} />
-                  <Input label={t("fields.area")} value={form.area} onChange={(v) => setForm((p) => ({...p, area: v}))} />
+                  <SelectInput
+                    label={t("fields.area")}
+                    value={form.area}
+                    options={areaOptions}
+                    onChange={(v) => setForm((p) => ({...p, area: v}))}
+                  />
                   <Input label={t("fields.landmark")} value={form.landmark} onChange={(v) => setForm((p) => ({...p, landmark: v}))} />
                 </div>
                 <label className="mt-4 block text-sm text-emerald-900">
@@ -404,5 +471,23 @@ const Input = ({label, value, onChange, required = false, placeholder = ""}) => 
   </label>
 );
 
-export default CheckoutPage;
+const SelectInput = ({label, value, onChange, options = [], required = false}) => (
+  <label className="text-sm text-emerald-900">
+    {label}
+    <select
+      required={required}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="mt-2 h-11 w-full rounded-xl border border-emerald-200 px-3 outline-none focus:border-emerald-500 bg-white"
+    >
+      <option value="">{`Select ${label}`}</option>
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </select>
+  </label>
+);
 
+export default CheckoutPage;
