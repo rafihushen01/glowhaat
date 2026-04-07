@@ -2,18 +2,15 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import { serverurl } from "../utils/constants/serverurl";
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const statusList = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
 const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
 
 const SuperAdminOrders = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = userData?.user || userData?.data || userData || null;
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,12 +18,6 @@ const SuperAdminOrders = () => {
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState("");
   const [updatingId, setUpdatingId] = useState("");
-
-  useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") {
-      router.replace("/superadmin-signin");
-    }
-  }, [user, router]);
 
   const fetchOrders = async () => {
     try {
@@ -46,9 +37,10 @@ const SuperAdminOrders = () => {
   };
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
     fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter]);
+  }, [isSuperAdmin, statusFilter]);
 
   const summary = useMemo(() => {
     const counts = { placed: 0, processing: 0, shipped: 0, delivered: 0, returned: 0, canceled: 0 };
@@ -59,6 +51,12 @@ const SuperAdminOrders = () => {
     });
     return counts;
   }, [orders]);
+
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   const handleUpdateStatus = async (id, status) => {
     setMessage("");

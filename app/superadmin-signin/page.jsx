@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import toast, { Toaster } from "react-hot-toast";
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
@@ -19,12 +19,21 @@ const API_TIMEOUT_MS = 20000;
 const SuperAdminSigninPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
+  const { userData, loading: userLoading } = useSelector((state) => state.user);
   const [step, setStep] = useState("credentials");
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const currentUser = userData?.user || userData?.data || userData || null;
+  const isSuperAdmin = String(currentUser?.role || "").toLowerCase() === "superadmin";
+
+  useEffect(() => {
+    if (!userLoading && isSuperAdmin) {
+      router.replace("/SuperAdmin");
+    }
+  }, [isSuperAdmin, router, userLoading]);
 
   const sanitizedEmail = useMemo(
     () => credentials.email.trim().toLowerCase(),
@@ -34,6 +43,8 @@ const SuperAdminSigninPage = () => {
     () => credentials.password.trim(),
     [credentials.password]
   );
+
+  if (!userLoading && isSuperAdmin) return null;
 
   const getApiError = (error, fallback) => {
     if (error?.code === "ECONNABORTED") {
@@ -121,6 +132,7 @@ const SuperAdminSigninPage = () => {
   return (
     <div className="min-h-screen bg-white">
       <Toaster position="top-right" />
+      {userLoading ? <div className="mx-auto max-w-xl px-4 py-6 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div> : null}
 
       <main className="mx-auto max-w-xl px-4 py-16">
         <div className="rounded-3xl border border-[#d6e3dc] bg-white p-8 shadow-[0_20px_60px_rgba(36,74,63,0.12)]">

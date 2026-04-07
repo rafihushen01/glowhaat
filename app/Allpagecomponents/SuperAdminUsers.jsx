@@ -2,19 +2,16 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
 import { Search, ShieldCheck, Trash2, PencilLine, Download, UserX, UserCheck } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const inputClass =
   "w-full rounded-xl border border-[#d5e3dc] bg-white px-3 py-2 text-sm text-[#17372b] outline-none transition placeholder:text-[#789486] focus:border-[#1f5c49] focus:ring-2 focus:ring-[#9ec7b4]/40";
 
 const SuperAdminUsers = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = userData?.user || userData?.data || userData || null;
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   const [filters, setFilters] = useState({
     q: "",
@@ -34,12 +31,6 @@ const SuperAdminUsers = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
   const [bulkRole, setBulkRole] = useState("");
-
-  useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") {
-      router.replace("/superadmin-signin");
-    }
-  }, [user, router]);
 
   const buildQuery = () => {
     const params = new URLSearchParams();
@@ -73,9 +64,10 @@ const SuperAdminUsers = () => {
   };
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
     fetchUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit]);
+  }, [isSuperAdmin, page, limit]);
 
   const handleFilterChange = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -206,6 +198,12 @@ const SuperAdminUsers = () => {
     () => `Page ${page} of ${totalPages}`,
     [page, totalPages]
   );
+
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   return (
     <div className="min-h-screen bg-white">

@@ -17,7 +17,12 @@ const IMAGE_FIELDS = [
   { key: "dateofbirthproof", label: "Date of Birth Proof", required: false, width: 1200, height: 760 },
 ];
 
-const STORE_MODELS = ["Physical Store", "Facebook", "Instagram", "Website", "Mixed"];
+const SOCIAL_CHANNELS = [
+  { key: "facebook", label: "Facebook" },
+  { key: "instagram", label: "Instagram" },
+  { key: "website", label: "Website" },
+];
+
 const DEFAULT_CATEGORIES = ["Makeup", "Skin", "Undergarments", "Hair Care", "Body Care"];
 const LS_KEY = "kc_seller_status_email";
 
@@ -51,6 +56,7 @@ const optimizeImage = async (file, width, height) => {
   let sy = 0;
   let sw = image.width;
   let sh = image.height;
+
   if (srcAspect > targetAspect) {
     sw = image.height * targetAspect;
     sx = (image.width - sw) / 2;
@@ -58,30 +64,48 @@ const optimizeImage = async (file, width, height) => {
     sh = image.width / targetAspect;
     sy = (image.height - sh) / 2;
   }
+
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   canvas.getContext("2d").drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+
   const blob = await new Promise((resolve, reject) =>
     canvas.toBlob((out) => (out ? resolve(out) : reject(new Error("Image optimize failed"))), "image/jpeg", 0.88)
   );
-  return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+
+  return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
 };
 
 const BecomeSeller = () => {
   const { userData } = useSelector((state) => state.user);
   const user = userData?.user || userData?.data || userData || null;
+
   const districtOptions = useMemo(() => getDistrictOptions(), []);
+
   const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
   const [status, setStatus] = useState(null);
+  const [statusMeta, setStatusMeta] = useState({
+    totalAttempts: 0,
+    consecutiveRejections: 0,
+    hasPending: false,
+    isBlocked: false,
+    canApply: true,
+  });
   const [loadingStatus, setLoadingStatus] = useState(true);
+
   const [step, setStep] = useState(1);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepToken, setStepToken] = useState("");
+
   const [files, setFiles] = useState({});
   const [previews, setPreviews] = useState({});
 
@@ -90,6 +114,8 @@ const BecomeSeller = () => {
     email: user?.email || "",
     mobile: user?.mobile || "",
     whatsapp: "",
+    sellerpassword: "",
+    confirmpassword: "",
     otp: "",
   });
 
@@ -100,7 +126,6 @@ const BecomeSeller = () => {
     businessname: "",
     businessgmail: user?.email || "",
     businessphone: "",
-    businessmodel: "Physical Store",
     physicalstorename: "",
     physicalstoreaddress: "",
     physicalstoredistrict: "",
@@ -117,8 +142,15 @@ const BecomeSeller = () => {
     deliverymanphone: "",
   });
 
+  const [socialChannels, setSocialChannels] = useState([]);
+
   const cityOptions = useMemo(() => getCitiesByDistrict(form.pickupdistrict), [form.pickupdistrict]);
-  const areaOptions = useMemo(() => getAreasByDistrictAndCity(form.pickupdistrict, form.pickupcity), [form.pickupdistrict, form.pickupcity]);
+  const areaOptions = useMemo(
+    () => getAreasByDistrictAndCity(form.pickupdistrict, form.pickupcity),
+    [form.pickupdistrict, form.pickupcity]
+  );
+
+  const physicalStoreNameExists = Boolean(trim(form.physicalstorename));
 
   const fetchStatus = async (emailArg = "") => {
     setLoadingStatus(true);
@@ -128,8 +160,10 @@ const BecomeSeller = () => {
       const query = email ? `?email=${encodeURIComponent(email)}` : "";
       const { data } = await axios.get(`${serverurl}/seller/status${query}`, getRequestConfig({ timeout: 12000 }));
       setStatus(data?.success && data?.hasrequest ? data.request : null);
+      setStatusMeta(data?.meta || { totalAttempts: 0, consecutiveRejections: 0, hasPending: false, isBlocked: false, canApply: true });
     } catch {
       setStatus(null);
+      setStatusMeta({ totalAttempts: 0, consecutiveRejections: 0, hasPending: false, isBlocked: false, canApply: true });
     } finally {
       setLoadingStatus(false);
     }
@@ -161,19 +195,56 @@ const BecomeSeller = () => {
     });
   };
 
+  const toggleSocialChannel = (channelKey) => {
+    setSocialChannels((prev) => {
+      const exists = prev.includes(channelKey);
+      if (exists) return prev.filter((k) => k !== channelKey);
+      return [...prev, channelKey];
+    });
+  };
+
+  const getBusinessModel = () => {
+    const hasPhysical = physicalStoreNameExists;
+    const hasFacebook = socialChannels.includes("facebook");
+    const hasInstagram = socialChannels.includes("instagram");
+    const hasWebsite = socialChannels.includes("website");
+    const picked = [hasPhysical, hasFacebook, hasInstagram, hasWebsite].filter(Boolean).length;
+
+    if (picked > 1) return "Mixed";
+    if (hasPhysical) return "Physical Store";
+    if (hasFacebook) return "Facebook";
+    if (hasInstagram) return "Instagram";
+    if (hasWebsite) return "Website";
+    return "Physical Store";
+  };
+
   const requestOtp = async () => {
     setError("");
     setNotice("");
+
     const payload = {
       fullname: trim(stepOne.fullname),
       email: trim(stepOne.email),
       mobile: trim(stepOne.mobile),
       whatsapp: trim(stepOne.whatsapp),
+      sellerpassword: trim(stepOne.sellerpassword),
     };
-    if (!payload.fullname || !payload.email || !payload.mobile) {
-      setError("Full name, email and mobile are required.");
+
+    if (!payload.fullname || !payload.email || !payload.mobile || !payload.sellerpassword) {
+      setError("Full name, email, mobile and seller password are required.");
       return;
     }
+
+    if (payload.sellerpassword.length < 6) {
+      setError("Seller password must be at least 6 characters.");
+      return;
+    }
+
+    if (trim(stepOne.sellerpassword) !== trim(stepOne.confirmpassword)) {
+      setError("Seller password and confirm password do not match.");
+      return;
+    }
+
     try {
       setSendingOtp(true);
       const { data } = await axios.post(`${serverurl}/seller/request-otp`, payload, getRequestConfig({ timeout: 12000 }));
@@ -189,6 +260,12 @@ const BecomeSeller = () => {
   const verifyOtp = async () => {
     setError("");
     setNotice("");
+
+    if (trim(stepOne.sellerpassword) !== trim(stepOne.confirmpassword)) {
+      setError("Seller password and confirm password do not match.");
+      return;
+    }
+
     try {
       setVerifyingOtp(true);
       const payload = {
@@ -196,6 +273,7 @@ const BecomeSeller = () => {
         email: trim(stepOne.email),
         mobile: trim(stepOne.mobile),
         whatsapp: trim(stepOne.whatsapp),
+        sellerpassword: trim(stepOne.sellerpassword),
         otp: trim(stepOne.otp),
       };
       const { data } = await axios.post(`${serverurl}/seller/verify-otp`, payload, getRequestConfig({ timeout: 12000 }));
@@ -235,26 +313,54 @@ const BecomeSeller = () => {
   const submit = async () => {
     setError("");
     setNotice("");
+
     if (!stepToken) {
       setError("OTP verification missing.");
       return;
     }
+
     const missing = IMAGE_FIELDS.find((x) => x.required && !files[x.key]);
     if (missing) {
       setError(`${missing.label} is required.`);
       return;
     }
+
     if (!form.preferredcategories.length) {
       setError("Select at least one category.");
       return;
     }
+
+    if (physicalStoreNameExists && (!trim(form.physicalstoredistrict) || !trim(form.physicalstorecity))) {
+      setError("If physical store name is given, physical store district and city are required.");
+      return;
+    }
+
+    if (socialChannels.includes("facebook") && (!trim(form.facebookpagename) || !trim(form.facebookpagelink))) {
+      setError("Facebook page name and page link are required.");
+      return;
+    }
+
+    if (socialChannels.includes("instagram") && (!trim(form.instagramidname) || !trim(form.instagramlink))) {
+      setError("Instagram ID name and link are required.");
+      return;
+    }
+
+    if (socialChannels.includes("website") && !trim(form.websiteurl)) {
+      setError("Website link is required.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const payload = new FormData();
       payload.append("stepToken", stepToken);
+      payload.append("sellerloginemail", trim(stepOne.email));
+      payload.append("businessmodel", getBusinessModel());
+
       Object.entries(form).forEach(([k, v]) => {
         payload.append(k, k === "preferredcategories" ? v.join(",") : v || "");
       });
+
       Object.entries(files).forEach(([k, v]) => {
         if (v) payload.append(k, v);
       });
@@ -275,6 +381,7 @@ const BecomeSeller = () => {
   };
 
   const resetForNewApply = () => {
+    if (statusMeta?.hasPending || statusMeta?.isBlocked) return;
     setStatus(null);
     setStep(1);
     setStepToken("");
@@ -289,7 +396,7 @@ const BecomeSeller = () => {
           <p className="text-xs uppercase tracking-[0.25em] text-emerald-700">KhanCosmetics Partner Program</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-950">Become A Seller</h1>
           <p className="mt-2 text-sm text-emerald-800">
-            Join as a verified seller. Choose your core store type and sell under it, plus additional categories added by superadmin.
+            Professional seller onboarding with review by authority, protected account creation, and secure OTP login.
           </p>
         </div>
 
@@ -303,21 +410,34 @@ const BecomeSeller = () => {
             <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Seller Status</p>
             <h2 className="mt-2 text-2xl font-semibold text-emerald-950">{status.status}</h2>
             <p className="mt-2 text-sm text-emerald-800">
-              {status.status === "Pending" && "KhanCosmetics authority is reviewing your credentials."}
-              {status.status === "Approved" && "Congratulations, your seller profile is approved and verified."}
-              {status.status === "Rejected" && "Your request was rejected. You can apply again after fixing details."}
+              {status.status === "Pending" && "Your request is under review. You cannot submit another request until authority responds."}
+              {status.status === "Approved" && "Congratulations. Your seller account is approved. Use your seller Gmail + password, then verify OTP in sign-in."}
+              {status.status === "Rejected" && "Your request was rejected. You can apply again only if you are not blocked by rejection policy."}
             </p>
+
+            <div className="mt-3 text-xs text-emerald-700">
+              Attempts: {statusMeta?.totalAttempts || 0} / 5 | Consecutive Rejections: {statusMeta?.consecutiveRejections || 0} / 4
+            </div>
+
+            {statusMeta?.isBlocked ? (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+                Dear applicant, our authority rejected your seller requests repeatedly. Your seller request access is permanently blocked.
+              </div>
+            ) : null}
+
             {status.status === "Rejected" ? (
               <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
                 <p className="font-semibold">Reject Reason</p>
-                <p className="mt-1">{status.rejectreason || "Not provided by admin."}</p>
+                <p className="mt-1">{status.rejectreason || "Not provided by authority."}</p>
               </div>
             ) : null}
+
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
                 onClick={resetForNewApply}
-                className="rounded-full border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800"
+                disabled={Boolean(statusMeta?.hasPending || statusMeta?.isBlocked)}
+                className="rounded-full border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Start New Request
               </button>
@@ -326,19 +446,28 @@ const BecomeSeller = () => {
               </Link>
             </div>
           </div>
+        ) : statusMeta?.isBlocked ? (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-900">
+            Dear applicant, our authority rejected your seller requests repeatedly. Your seller request access is permanently blocked.
+          </div>
         ) : (
           <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.8fr]">
             <div className="rounded-2xl border border-emerald-200 bg-white p-5">
               <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Step 1</p>
               <h2 className="mt-2 text-xl font-semibold text-emerald-950">Personal Verification</h2>
+
               <label className="mt-4 block text-sm">Real Name<input className={inputClass} value={stepOne.fullname} onChange={(e) => onStepOne("fullname", e.target.value)} /></label>
-              <label className="mt-3 block text-sm">Gmail<input className={inputClass} value={stepOne.email} onChange={(e) => onStepOne("email", e.target.value)} /></label>
+              <label className="mt-3 block text-sm">Seller Gmail<input className={inputClass} value={stepOne.email} onChange={(e) => onStepOne("email", e.target.value)} /></label>
               <label className="mt-3 block text-sm">Business Mobile<input className={inputClass} value={stepOne.mobile} onChange={(e) => onStepOne("mobile", e.target.value)} /></label>
               <label className="mt-3 block text-sm">WhatsApp (optional)<input className={inputClass} value={stepOne.whatsapp} onChange={(e) => onStepOne("whatsapp", e.target.value)} /></label>
+              <label className="mt-3 block text-sm">Seller Password<input type="password" className={inputClass} value={stepOne.sellerpassword} onChange={(e) => onStepOne("sellerpassword", e.target.value)} /></label>
+              <label className="mt-3 block text-sm">Confirm Password<input type="password" className={inputClass} value={stepOne.confirmpassword} onChange={(e) => onStepOne("confirmpassword", e.target.value)} /></label>
+
               <button type="button" onClick={requestOtp} disabled={sendingOtp} className="mt-4 w-full rounded-xl bg-emerald-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white">
                 {sendingOtp ? "Sending..." : "Send OTP"}
               </button>
-              <label className="mt-3 block text-sm">OTP<input className={inputClass} value={stepOne.otp} onChange={(e) => onStepOne("otp", e.target.value)} /></label>
+
+              <label className="mt-3 block text-sm">OTP<input className={inputClass} value={stepOne.otp} onChange={(e) => onStepOne("otp", e.target.value.replace(/\D/g, "").slice(0, 6))} /></label>
               <button type="button" onClick={verifyOtp} disabled={verifyingOtp} className="mt-4 w-full rounded-xl border border-emerald-700 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
                 {verifyingOtp ? "Verifying..." : "Verify OTP"}
               </button>
@@ -361,7 +490,6 @@ const BecomeSeller = () => {
                 <label className="text-sm">Business Name<input className={inputClass} disabled={step !== 2} value={form.businessname} onChange={(e) => onForm("businessname", e.target.value)} /></label>
                 <label className="text-sm">Business Gmail<input className={inputClass} disabled={step !== 2} value={form.businessgmail} onChange={(e) => onForm("businessgmail", e.target.value)} /></label>
                 <label className="text-sm">Business Phone<input className={inputClass} disabled={step !== 2} value={form.businessphone} onChange={(e) => onForm("businessphone", e.target.value)} /></label>
-                <label className="text-sm">Business Model<select className={inputClass} disabled={step !== 2} value={form.businessmodel} onChange={(e) => onForm("businessmodel", e.target.value)}>{STORE_MODELS.map((m) => <option key={m} value={m}>{m}</option>)}</select></label>
               </div>
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
@@ -378,17 +506,59 @@ const BecomeSeller = () => {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="text-sm">Physical Store Name<input className={inputClass} disabled={step !== 2} value={form.physicalstorename} onChange={(e) => onForm("physicalstorename", e.target.value)} /></label>
-                <label className="text-sm">Physical Store District<input className={inputClass} disabled={step !== 2} value={form.physicalstoredistrict} onChange={(e) => onForm("physicalstoredistrict", e.target.value)} /></label>
-                <label className="text-sm">Physical Store City<input className={inputClass} disabled={step !== 2} value={form.physicalstorecity} onChange={(e) => onForm("physicalstorecity", e.target.value)} /></label>
-                <label className="text-sm">Facebook Page Name<input className={inputClass} disabled={step !== 2} value={form.facebookpagename} onChange={(e) => onForm("facebookpagename", e.target.value)} /></label>
-                <label className="text-sm">Facebook Link<input className={inputClass} disabled={step !== 2} value={form.facebookpagelink} onChange={(e) => onForm("facebookpagelink", e.target.value)} /></label>
-                <label className="text-sm">Instagram ID<input className={inputClass} disabled={step !== 2} value={form.instagramidname} onChange={(e) => onForm("instagramidname", e.target.value)} /></label>
-                <label className="text-sm">Instagram Link<input className={inputClass} disabled={step !== 2} value={form.instagramlink} onChange={(e) => onForm("instagramlink", e.target.value)} /></label>
-                <label className="text-sm">Website Link<input className={inputClass} disabled={step !== 2} value={form.websiteurl} onChange={(e) => onForm("websiteurl", e.target.value)} /></label>
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
+                <p className="text-sm font-semibold text-emerald-900">Physical Store (Optional)</p>
+                <label className="mt-3 block text-sm">Physical Store Name<input className={inputClass} disabled={step !== 2} value={form.physicalstorename} onChange={(e) => onForm("physicalstorename", e.target.value)} /></label>
+
+                {physicalStoreNameExists ? (
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <label className="text-sm">Physical Store District<input className={inputClass} disabled={step !== 2} value={form.physicalstoredistrict} onChange={(e) => onForm("physicalstoredistrict", e.target.value)} /></label>
+                    <label className="text-sm">Physical Store City<input className={inputClass} disabled={step !== 2} value={form.physicalstorecity} onChange={(e) => onForm("physicalstorecity", e.target.value)} /></label>
+                  </div>
+                ) : null}
+
+                <label className="mt-3 block text-sm">Physical Store Address<textarea className={textClass} disabled={step !== 2} value={form.physicalstoreaddress} onChange={(e) => onForm("physicalstoreaddress", e.target.value)} /></label>
               </div>
-              <label className="mt-3 block text-sm">Physical Store Address<textarea className={textClass} disabled={step !== 2} value={form.physicalstoreaddress} onChange={(e) => onForm("physicalstoreaddress", e.target.value)} /></label>
+
+              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-sm font-semibold text-emerald-900">Digital Presence</p>
+                <p className="mt-1 text-xs text-emerald-700">Select only the channels you have. Fields appear only for selected channels.</p>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {SOCIAL_CHANNELS.map((item) => {
+                    const active = socialChannels.includes(item.key);
+                    return (
+                      <button
+                        key={item.key}
+                        type="button"
+                        disabled={step !== 2}
+                        onClick={() => toggleSocialChannel(item.key)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800"}`}
+                      >
+                        {item.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {socialChannels.includes("facebook") ? (
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <label className="text-sm">Facebook Page Name<input className={inputClass} disabled={step !== 2} value={form.facebookpagename} onChange={(e) => onForm("facebookpagename", e.target.value)} /></label>
+                    <label className="text-sm">Facebook Page Link<input className={inputClass} disabled={step !== 2} value={form.facebookpagelink} onChange={(e) => onForm("facebookpagelink", e.target.value)} /></label>
+                  </div>
+                ) : null}
+
+                {socialChannels.includes("instagram") ? (
+                  <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <label className="text-sm">Instagram ID Name<input className={inputClass} disabled={step !== 2} value={form.instagramidname} onChange={(e) => onForm("instagramidname", e.target.value)} /></label>
+                    <label className="text-sm">Instagram Link<input className={inputClass} disabled={step !== 2} value={form.instagramlink} onChange={(e) => onForm("instagramlink", e.target.value)} /></label>
+                  </div>
+                ) : null}
+
+                {socialChannels.includes("website") ? (
+                  <label className="mt-3 block text-sm">Website Link<input className={inputClass} disabled={step !== 2} value={form.websiteurl} onChange={(e) => onForm("websiteurl", e.target.value)} /></label>
+                ) : null}
+              </div>
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                 <p className="text-sm font-semibold text-emerald-900">Pickup Location (Steadfast)</p>

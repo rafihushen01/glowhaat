@@ -3,18 +3,15 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
 import { BarChart3, Heart, ShoppingBag, TrendingUp } from "lucide-react";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import { serverurl } from "../utils/constants/serverurl";
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const numberFmt = (value) => Number(value || 0).toLocaleString();
 
 const SuperAdminWishlistInsights = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = userData?.user || userData?.data || userData || null;
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -22,10 +19,7 @@ const SuperAdminWishlistInsights = () => {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") {
-      router.replace("/superadmin-signin");
-      return;
-    }
+    if (!isSuperAdmin) return;
 
     const fetchInsights = async () => {
       try {
@@ -44,9 +38,15 @@ const SuperAdminWishlistInsights = () => {
     };
 
     fetchInsights();
-  }, [router, user]);
+  }, [isSuperAdmin]);
 
   const topFive = useMemo(() => products.slice(0, 5), [products]);
+
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   return (
     <div className="min-h-screen bg-white px-4 py-10">

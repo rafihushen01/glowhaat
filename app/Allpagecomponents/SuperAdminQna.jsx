@@ -2,12 +2,9 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import { serverurl } from "../utils/constants/serverurl";
-
-const normalizeUser = (userData) => userData?.user || userData?.data || userData || null;
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -19,9 +16,7 @@ const formatDate = (value) => {
 };
 
 const SuperAdminQna = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = normalizeUser(userData);
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,12 +25,6 @@ const SuperAdminQna = () => {
   const [message, setMessage] = useState("");
   const [draftAnswers, setDraftAnswers] = useState({});
   const [submittingId, setSubmittingId] = useState("");
-
-  useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") {
-      router.replace("/superadmin-signin");
-    }
-  }, [router, user]);
 
   const fetchQuestions = async () => {
     setMessage("");
@@ -59,9 +48,10 @@ const SuperAdminQna = () => {
   };
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
     fetchQuestions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+  }, [filter, isSuperAdmin]);
 
   const stats = useMemo(() => {
     let answered = 0;
@@ -72,6 +62,12 @@ const SuperAdminQna = () => {
     });
     return { answered, unanswered, total: questions.length };
   }, [questions]);
+
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   const handleSubmitAnswer = async (questionId) => {
     const answertext = String(draftAnswers[questionId] || "").trim();
@@ -229,4 +225,3 @@ const SuperAdminQna = () => {
 };
 
 export default SuperAdminQna;
-

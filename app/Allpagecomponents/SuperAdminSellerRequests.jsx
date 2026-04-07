@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const inputClass = "h-10 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm outline-none focus:border-emerald-500";
 
@@ -18,19 +17,13 @@ const normalizeAssetUrl = (value = "") => {
 };
 
 const SuperAdminSellerRequests = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = userData?.user || userData?.data || userData || null;
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState("");
   const [q, setQ] = useState("");
   const [rejectText, setRejectText] = useState({});
-
-  useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") router.replace("/superadmin-signin");
-  }, [router, user]);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -51,9 +44,16 @@ const SuperAdminSellerRequests = () => {
   };
 
   useEffect(() => {
+    if (!isSuperAdmin) return;
     fetchRequests();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isSuperAdmin]);
+
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   const takeDecision = async (id, decision) => {
     try {
@@ -112,6 +112,7 @@ const SuperAdminSellerRequests = () => {
 
               <div className="mt-4 grid grid-cols-1 gap-3 text-sm text-emerald-900 md:grid-cols-2">
                 <p><span className="font-semibold">Business Gmail:</span> {req.businessgmail || "N/A"}</p>
+                <p><span className="font-semibold">Seller Login Gmail:</span> {req.sellerloginemail || req.email || "N/A"}</p>
                 <p><span className="font-semibold">Business Phone:</span> {req.businessphone || "N/A"}</p>
                 <p><span className="font-semibold">WhatsApp:</span> {req.whatsapp || "N/A"}</p>
                 <p><span className="font-semibold">DOB:</span> {req.dateofbirth ? new Date(req.dateofbirth).toLocaleDateString() : "N/A"}</p>

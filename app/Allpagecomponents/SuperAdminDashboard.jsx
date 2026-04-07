@@ -1,23 +1,20 @@
  "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSelector } from "react-redux";
 import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarChart3, Sparkles, Store } from "lucide-react";
 import { Users } from "lucide-react";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
+import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const SuperAdminDashboard = () => {
-  const router = useRouter();
-  const { userData } = useSelector((state) => state.user);
-  const user = userData?.user || userData?.data || userData || null;
+  const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
-  useEffect(() => {
-    if (!user || user?.role !== "SuperAdmin") {
-      router.replace("/superadmin-signin");
-    }
-  }, [user, router]);
+  if (isCheckingAuth) {
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+  }
+
+  if (!isSuperAdmin) return null;
 
   return (
     <div className="min-h-screen bg-white px-4 py-10">

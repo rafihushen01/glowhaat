@@ -185,6 +185,8 @@ const Signin = () => {
       setTimeout(() => {
         if (authuser?.role === "SuperAdmin") {
           router.push("/SuperAdmin");
+        } else if (authuser?.role === "Seller") {
+          router.push("/seller-dashboard");
         } else {
           router.push("/");
         }
@@ -261,6 +263,8 @@ const Signin = () => {
       setTimeout(() => {
         if (data?.user?.role === "SuperAdmin") {
           router.push("/SuperAdmin");
+        } else if (data?.user?.role === "Seller") {
+          router.push("/seller-dashboard");
         } else {
           router.push("/");
         }
