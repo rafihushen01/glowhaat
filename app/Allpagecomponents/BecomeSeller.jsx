@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 import { useSelector } from "react-redux";
+import { Eye, EyeOff } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import { getAreasByDistrictAndCity, getCitiesByDistrict, getDistrictOptions } from "../utils/constants/bdDeliveryZones";
@@ -105,6 +106,8 @@ const BecomeSeller = () => {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepToken, setStepToken] = useState("");
+  const [showSellerPassword, setShowSellerPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [files, setFiles] = useState({});
   const [previews, setPreviews] = useState({});
@@ -460,8 +463,44 @@ const BecomeSeller = () => {
               <label className="mt-3 block text-sm">Seller Gmail<input className={inputClass} value={stepOne.email} onChange={(e) => onStepOne("email", e.target.value)} /></label>
               <label className="mt-3 block text-sm">Business Mobile<input className={inputClass} value={stepOne.mobile} onChange={(e) => onStepOne("mobile", e.target.value)} /></label>
               <label className="mt-3 block text-sm">WhatsApp (optional)<input className={inputClass} value={stepOne.whatsapp} onChange={(e) => onStepOne("whatsapp", e.target.value)} /></label>
-              <label className="mt-3 block text-sm">Seller Password<input type="password" className={inputClass} value={stepOne.sellerpassword} onChange={(e) => onStepOne("sellerpassword", e.target.value)} /></label>
-              <label className="mt-3 block text-sm">Confirm Password<input type="password" className={inputClass} value={stepOne.confirmpassword} onChange={(e) => onStepOne("confirmpassword", e.target.value)} /></label>
+              <label className="mt-3 block text-sm">
+                Seller Password
+                <span className="relative block">
+                  <input
+                    type={showSellerPassword ? "text" : "password"}
+                    className={`${inputClass} pr-10`}
+                    value={stepOne.sellerpassword}
+                    onChange={(e) => onStepOne("sellerpassword", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSellerPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-700"
+                    aria-label={showSellerPassword ? "Hide password" : "Show password"}
+                  >
+                    {showSellerPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </span>
+              </label>
+              <label className="mt-3 block text-sm">
+                Confirm Password
+                <span className="relative block">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    className={`${inputClass} pr-10`}
+                    value={stepOne.confirmpassword}
+                    onChange={(e) => onStepOne("confirmpassword", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((prev) => !prev)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-700"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </span>
+              </label>
 
               <button type="button" onClick={requestOtp} disabled={sendingOtp} className="mt-4 w-full rounded-xl bg-emerald-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white">
                 {sendingOtp ? "Sending..." : "Send OTP"}

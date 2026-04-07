@@ -67,6 +67,9 @@ const SuperAdminNav = () => {
           <NavLink href="/SuperAdminSellerRequests" icon={<Store className="h-4 w-4" />}>
             Seller Requests
           </NavLink>
+          <NavLink href="/SuperAdminSellerOperations" icon={<Store className="h-4 w-4" />}>
+            Seller Ops
+          </NavLink>
           <NavLink href="/AdminItemManagments" icon={<Package className="h-4 w-4" />}>
             Item Management
           </NavLink>

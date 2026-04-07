@@ -85,6 +85,12 @@ const SuperAdminDashboard = () => {
             description="Verify seller credentials, approve partnerships, or reject with reason."
             icon={<Store className="h-5 w-5" />}
           />
+          <DashboardCard
+            href="/SuperAdminSellerOperations"
+            title="Seller Operations"
+            description="Control sponsorship, commission, shop health/freeze, and subscriptions."
+            icon={<Store className="h-5 w-5" />}
+          />
         </div>
       </div>
     </div>
