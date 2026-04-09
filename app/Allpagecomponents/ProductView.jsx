@@ -14,6 +14,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { serverurl } from '../utils/constants/serverurl'
 import { addToCart } from '../reduxcomponents/CartSlice'
 import ProductReviewQnaPanel from './ProductReviewQnaPanel'
+import ProductDetailRecommendations from "./ProductDetailRecommendations";
 import { getRequestConfig } from "../utils/requestConfig";
 import { trackRecommendationEvent } from '../utils/recommendation'
 
@@ -653,6 +654,7 @@ const ProductView = () => {
       <div className="mx-auto w-full max-w-7xl px-4 pb-16">
         <ProductReviewQnaPanel product={product} />
       </div>
+      <ProductDetailRecommendations product={product} />
 
       {/* =========================================================================
           SUPER ADVANCED ZOOM MODAL (HAND ICON + PANNING)

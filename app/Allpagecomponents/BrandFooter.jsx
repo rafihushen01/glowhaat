@@ -25,7 +25,7 @@ const shopLinks = [
 ];
 
 const quickLinks = [
-  { label: "Offers", href: "/#deals-you-cant-miss" },
+  { label: "BiggestOfferinKhanCakes", href: `${frontendurl}/s/khancakes` },
   { label: "Mens Products", href: `${frontendurl}/s/men` },
   { label: "Skin Concerns", href: "/#shop-by-category" },
   { label: "New Arrival", href: "/#new-arrivals" },
@@ -40,14 +40,14 @@ const beautyLinks = [
 ];
 
 const helpLinks = [
-  { label: "Contact Us", href: "/#contact" },
-  { label: "Points", href: "/#points" },
-  { label: "FAQs", href: "/#faqs" },
-  { label: "Shipping & Delivery", href: "/#shipping" },
-  { label: "Terms & Conditions", href: "/#terms" },
-  { label: "Refund & Return Policy", href: "/#refund-policy" },
-  { label: "Trade License", href: "/#trade-license" },
-  { label: "Privacy Policy", href: "/#privacy-policy" },
+  { label: "Contact Us", href: "/contact" },
+  { label: "Points", href: "/points" },
+  { label: "FAQs", href: "/faqs" },
+  { label: "Shipping & Delivery", href: "/#hipping" },
+  { label: "Terms & Conditions", href: "/terms" },
+  { label: "Refund & Return Policy", href: "/refund-policy" },
+  { label: "Trade License", href: "/trade-license" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
 ];
 
 const socials = [
@@ -74,11 +74,11 @@ const socials = [
 ];
 
 const paymentMethods = [
-  { label: "SSLCommerz", src: "/sslgcommez.png", width: 90 },
-  { label: "bKash", src: "/bikash.png", width: 62 },
-  { label: "Nagad", src: "/nagad.png", width: 62 },
-  { label: "Mastercard", src: "/mastercard.png", width: 70 },
-  { label: "Visa", src: "/visacard.png", width: 62 },
+  { label: "SSLCommerz", src: "/sslgcommez.png", width: 90,href:"https://sslcommerz.com/" },
+  { label: "bKash", src: "/bikash.png", width: 62   ,href:"https://www.bkash.com/"},
+  { label: "Nagad", src: "/nagad.png", width: 62 ,href:"https://nagad.com.bd/"},
+  { label: "Mastercard", src: "/mastercard.png", width: 70 ,c  ,href:"https://www.mastercard.com/"},
+  { label: "Visa", src: "/visacard.png", width: 62 ,href:"https://www.visa.com/"},
 ];
 
 const FooterLinkColumn = ({ title, links, accentFirst = false }) => (
@@ -90,12 +90,12 @@ const FooterLinkColumn = ({ title, links, accentFirst = false }) => (
           {link.href.startsWith("http") ? (
             <a
               href={link.href}
-              className={`group inline-flex items-center gap-2 text-sm transition hover:text-[#d5ffef] ${
+              className={`group inline-flex items-center cursor-pointer gap-2 text-sm transition hover:text-[#d5ffef] ${
                 accentFirst && index === 1 ? "text-[#9cffd3]" : "text-white/90"
               }`}
             >
-              <span className="h-px w-0 bg-[#91ffd0] transition-all duration-300 group-hover:w-5" />
-              <span>{link.label}</span>
+              <span className="h-px w-0 bg-[#91ffd0] transition-all cursor-pointer duration-300 group-hover:w-5" />
+              <span className="cursor-pointer">{link.label}</span>
             </a>
           ) : (
             <Link
@@ -136,16 +136,16 @@ const BrandFooter = () => {
             </Link>
             <ul className="mt-5 space-y-2 text-sm text-white/95">
               <li>
-                <Link href="/#our-story" className="hover:text-[#c9ffe6]">Our Story</Link>
+                <Link href="/ourstory" className="hover:text-[#c9ffe6]">Our Story</Link>
               </li>
               <li>
-                <Link href="/#beauty-journal" className="hover:text-[#c9ffe6]">KhanCosmetics Magazine</Link>
+                <Link href="/beautyjournal" className="hover:text-[#c9ffe6]">KhanCosmetics Magazine</Link>
               </li>
               <li>
-                <Link href="/#careers" className="hover:text-[#c9ffe6]">Join Our Team</Link>
+                <Link href="/khancosmeticscareers" className="hover:text-[#c9ffe6]">Join Our Team</Link>
               </li>
               <li>
-                <Link href="/#authenticity" className="hover:text-[#c9ffe6]">Authenticity</Link>
+                <Link href="/authenticity" className="hover:text-[#c9ffe6]">Authenticity</Link>
               </li>
             </ul>
 
@@ -160,7 +160,7 @@ const BrandFooter = () => {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={social.label}
-                  className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/45 bg-white/5 text-white shadow-[0_0_0_rgba(52,211,153,0)] transition-all duration-250 hover:-translate-y-0.5 hover:border-[#9affd5] hover:bg-[#125242] hover:text-[#d9ffef] hover:shadow-[0_0_16px_rgba(52,211,153,0.32)]"
+                  className="group inline-flex h-10 w-10 items-center cursor-pointer justify-center rounded-full border border-white/45 bg-white/5 text-white shadow-[0_0_0_rgba(52,211,153,0)] transition-all duration-250 hover:-translate-y-0.5 hover:border-[#9affd5] hover:bg-[#125242] hover:text-[#d9ffef] hover:shadow-[0_0_16px_rgba(52,211,153,0.32)]"
                 >
                   {social.icon}
                 </a>
@@ -174,19 +174,19 @@ const BrandFooter = () => {
           <div>
             <FooterLinkColumn title="Help" links={helpLinks} />
             <div className="mt-6 border-t border-white/30 pt-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">Payments Accepted</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">Payments Accepted By KhanCosmetics</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {paymentMethods.map((method) => (
                   <span
                     key={method.label}
-                    className="inline-flex h-8 items-center rounded-md border border-white/45 bg-white px-2 shadow-[0_4px_12px_-9px_rgba(0,0,0,0.45)]"
+                    className="inline-flex h-8 items-center rounded-md border cursor-pointer border-white/45 bg-white px-2 shadow-[0_4px_12px_-9px_rgba(0,0,0,0.45)]"
                   >
                     <Image
                       src={method.src}
                       alt={method.label}
                       width={method.width}
                       height={22}
-                      className="h-auto max-h-5 w-auto object-contain"
+                      className="h-auto max-h-5 w-auto object-contain cursor-pointer"
                     />
                   </span>
                 ))}
@@ -197,23 +197,23 @@ const BrandFooter = () => {
 
         <div className="mt-10 border-t border-white/30 pt-5">
           <div className="flex flex-wrap justify-center gap-x-7 gap-y-2 text-sm text-white/95">
-            <Link href="/#authenticity" className="hover:text-[#d1ffe8]">
+            <Link href="/authenticity" className="hover:text-[#d1ffe8]">
               Authenticity
             </Link>
-            <Link href="/#terms" className="hover:text-[#d1ffe8]">
+            <Link href="/terms" className="hover:text-[#d1ffe8]">
               Terms & Conditions
             </Link>
-            <Link href="/#privacy-policy" className="hover:text-[#d1ffe8]">
+            <Link href="/privacy-policy" className="hover:text-[#d1ffe8]">
               Privacy Policy
             </Link>
-            <Link href="/#refund-policy" className="hover:text-[#d1ffe8]">
+            <Link href="/refund-policy" className="hover:text-[#d1ffe8]">
               Refund & Return Policy
             </Link>
-            <Link href="/#faqs" className="hover:text-[#d1ffe8]">
+            <Link href="/faqs" className="hover:text-[#d1ffe8]">
               FAQs
             </Link>
           </div>
-          <p className="mt-4 text-center text-sm text-white/90">Copyright {year} KhanCosmetics. All rights reserved.</p>
+          <p className="mt-4 text-center text-sm text-white/90">Copyright {year} KhanCosmetics. All rights reserved By KhanCosmetics.</p>
         </div>
       </div>
     </footer>
