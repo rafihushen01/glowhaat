@@ -77,7 +77,7 @@ const paymentMethods = [
   { label: "SSLCommerz", src: "/sslgcommez.png", width: 90,href:"https://sslcommerz.com/" },
   { label: "bKash", src: "/bikash.png", width: 62   ,href:"https://www.bkash.com/"},
   { label: "Nagad", src: "/nagad.png", width: 62 ,href:"https://nagad.com.bd/"},
-  { label: "Mastercard", src: "/mastercard.png", width: 70 ,c  ,href:"https://www.mastercard.com/"},
+  { label: "Mastercard", src: "/mastercard.png", width: 70   ,href:"https://www.mastercard.com/"},
   { label: "Visa", src: "/visacard.png", width: 62 ,href:"https://www.visa.com/"},
 ];
 
