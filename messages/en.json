@@ -209,12 +209,12 @@
     "hero": {
       "tag": "Luxury Beauty Access",
       "title": "Welcome Back",
-      "desc": "Sign in to your KhanCosmetics account with secure OTP verification for safer checkout, personalized beauty picks, and trusted order tracking.",
-      "p1": "Step-based sign in for secure account access",
-      "p2": "OTP verification on every session start",
+      "desc": "Sign in to your KhanCosmetics account with your email and password for safer checkout, personalized beauty picks, and trusted order tracking.",
+      "p1": "Fast email and password sign in",
+      "p2": "Simple single-step authentication flow",
       "p3": "Backend aligned with KhanCosmetics auth router",
       "securityTitle": "Security-first sign in",
-      "securityText": "Your session is created only after OTP verification, and authentication cookies are handled by the backend with secure settings."
+      "securityText": "Your session is protected with secure cookies and validated credentials handled by the backend."
     },
     "steps": {
       "credentials": "1. Credentials",
@@ -234,6 +234,7 @@
     },
     "showPassword": "Show password",
     "hidePassword": "Hide password",
+    "googleSigninHint": "Google sign in only needs your Google account now. Mobile is optional and can be added later in profile.",
     "rememberDevice": "Keep this device trusted for faster future sign-in.",
     "continueOtp": "Continue with OTP",
     "googleSignin": "Sign in with Google",
@@ -272,12 +273,12 @@
     "hero": {
       "tag": "Premium Beauty Club",
       "title": "Join KhanCosmetics",
-      "desc": "Build your beauty profile, unlock early product drops, and get a secure OTP verified account designed for fast checkout and trusted order tracking.",
-      "p1": "OTP based signup with encrypted password storage",
-      "p2": "Instant account verification and protected session cookie",
+      "desc": "Build your beauty profile, unlock early product drops, and create your account instantly with email and password for trusted order tracking.",
+      "p1": "Password-based signup with encrypted password storage",
+      "p2": "Instant account creation with protected session cookie",
       "p3": "Brand-first experience crafted for KhanCosmetics customers",
       "securityTitle": "Security promise",
-      "securityText": "We never expose your password in plain text and every signup must pass OTP verification before account activation."
+      "securityText": "We never expose your password in plain text and secure your session with backend authentication cookies."
     },
     "steps": {
       "details": "1. Details",
@@ -305,6 +306,7 @@
       "other": "Other"
     },
     "passwordStrength": "Password strength",
+    "passwordHint": "Use at least 8 characters with letters and numbers.",
     "agreePolicy": "I agree to KhanCosmetics privacy and account security policy.",
     "sendOtp": "Send OTP",
     "googleSignup": "Continue with Google (mobile required)",

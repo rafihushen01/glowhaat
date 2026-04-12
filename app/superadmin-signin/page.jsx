@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import toast, { Toaster } from "react-hot-toast";
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
@@ -20,11 +20,8 @@ const SuperAdminSigninPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { userData, loading: userLoading } = useSelector((state) => state.user);
-  const [step, setStep] = useState("credentials");
   const [credentials, setCredentials] = useState({ email: "", password: "" });
-  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const currentUser = userData?.user || userData?.data || userData || null;
   const isSuperAdmin = String(currentUser?.role || "").toLowerCase() === "superadmin";
@@ -62,7 +59,7 @@ const SuperAdminSigninPage = () => {
     return "";
   };
 
-  const requestOtp = async (event) => {
+  const submitSignin = async (event) => {
     event.preventDefault();
     const validationError = validateCredentials();
     if (validationError) {
@@ -73,57 +70,21 @@ const SuperAdminSigninPage = () => {
     setLoading(true);
     try {
       const { data } = await axios.post(
-        `${serverurl}/auth/superadmin/signinotp`,
+        `${serverurl}/auth/superadmin/signin`,
         { email: sanitizedEmail, password: sanitizedPassword },
         { withCredentials: true, timeout: API_TIMEOUT_MS }
       );
 
       if (!data?.success) {
-        toast.error(data?.message || "Could not send OTP.");
-        return;
-      }
-
-      if (data?.delivery === "fallback") {
-        const fallbackLabel = data?.devOtp ? ` OTP: ${data.devOtp}` : "";
-        toast.success(`OTP generated.${fallbackLabel}`);
-      } else {
-        toast.success("OTP sent to SuperAdmin email.");
-      }
-      setStep("verify");
-      setOtp("");
-      setOtpCountdown(60);
-    } catch (error) {
-      toast.error(getApiError(error, "OTP request failed."));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyOtp = async (event) => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(otp.trim())) {
-      toast.error("Enter your 6-digit OTP.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data } = await axios.post(
-        `${serverurl}/auth/superadmin/verifyotp`,
-        { email: sanitizedEmail, otp: otp.trim() },
-        { withCredentials: true, timeout: API_TIMEOUT_MS }
-      );
-
-      if (!data?.success) {
-        toast.error(data?.message || "OTP verification failed.");
+        toast.error(data?.message || "Signin failed.");
         return;
       }
 
       dispatch(setUserData(data.user));
-      toast.success("SuperAdmin verified.");
+      toast.success(data?.message || "SuperAdmin signin successful.");
       router.push("/SuperAdmin");
     } catch (error) {
-      toast.error(getApiError(error, "OTP verification failed."));
+      toast.error(getApiError(error, "Signin failed."));
     } finally {
       setLoading(false);
     }
@@ -142,87 +103,55 @@ const SuperAdminSigninPage = () => {
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">SuperAdmin Access</p>
-              <h1 className="text-2xl text-[#0f2f24]">Secure OTP Login</h1>
+              <h1 className="text-2xl text-[#0f2f24]">Secure Credential Login</h1>
             </div>
           </div>
 
-          {step === "credentials" ? (
-            <form onSubmit={requestOtp} className="space-y-4">
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d6d60]">
-                SuperAdmin Email
-              </label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
-                <input
-                  type="email"
-                  className={`${inputClass} pl-9`}
-                  value={credentials.email}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
-                  placeholder="superadmin@khancosmetics.com"
-                />
-              </div>
+          <form onSubmit={submitSignin} className="space-y-4">
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d6d60]">
+              SuperAdmin Email
+            </label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
+              <input
+                type="email"
+                className={`${inputClass} pl-9`}
+                value={credentials.email}
+                onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="superadmin@khancosmetics.com"
+              />
+            </div>
 
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d6d60]">
-                SuperAdmin Password
-              </label>
-              <div className="relative">
-                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className={`${inputClass} pl-9 pr-10`}
-                  value={credentials.password}
-                  onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
-                  placeholder="Enter superadmin password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5c7f70] transition hover:text-[#1f5c49]"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
-
+            <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d6d60]">
+              SuperAdmin Password
+            </label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
+              <input
+                type={showPassword ? "text" : "password"}
+                className={`${inputClass} pl-9 pr-10`}
+                value={credentials.password}
+                onChange={(e) => setCredentials((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Enter superadmin password"
+              />
               <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:opacity-70"
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#5c7f70] transition hover:text-[#1f5c49]"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send OTP <ArrowRight className="h-4 w-4" /></>}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
-            </form>
-          ) : (
-            <form onSubmit={verifyOtp} className="space-y-4">
-              <div className="rounded-xl border border-[#d8e8e0] bg-[#f4faf7] p-3 text-sm text-[#2f5648]">
-                OTP sent to <span className="font-semibold">{sanitizedEmail}</span>
-              </div>
+            </div>
 
-              <label className="text-xs font-semibold uppercase tracking-[0.12em] text-[#4d6d60]">
-                One-Time Password
-              </label>
-              <div className="relative">
-                <ShieldCheck className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#789486]" />
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className={`${inputClass} pl-9 text-center tracking-[0.3em]`}
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  placeholder="------"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:opacity-70"
-              >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Verify & Continue"}
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:opacity-70"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Signin to SuperAdmin"}
+            </button>
+          </form>
         </div>
       </main>
     </div>

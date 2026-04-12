@@ -30,21 +30,24 @@ const SuperAdminSellerOperations = () => {
   const [sponsorships, setSponsorships] = useState([]);
   const [commissionConfig, setCommissionConfig] = useState(null);
   const [commissionPayments, setCommissionPayments] = useState([]);
+  const [khanSummary, setKhanSummary] = useState(null);
   const [shops, setShops] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
   const [preview, setPreview] = useState({ open: false, src: "", title: "" });
 
   const [globalPercent, setGlobalPercent] = useState(5);
+  const [khanPercent, setKhanPercent] = useState(10);
   const [sellerOverride, setSellerOverride] = useState({ sellerid: "", percentage: 5, note: "" });
 
   const loadAll = async () => {
     setLoading(true);
     setError("");
     try {
-      const [sponsorRes, configRes, paymentRes, shopRes, subRes] = await Promise.all([
+      const [sponsorRes, configRes, paymentRes, khanSummaryRes, shopRes, subRes] = await Promise.all([
         axios.get(`${serverurl}/seller/admin/panel/sponsorships`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/commission-config`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/commission-payments`, getRequestConfig({ timeout: 20000 })),
+        axios.get(`${serverurl}/seller/admin/panel/commission/khan-summary`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/shops`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/subscriptions`, getRequestConfig({ timeout: 20000 })),
       ]);
@@ -52,9 +55,11 @@ const SuperAdminSellerOperations = () => {
       setSponsorships(sponsorRes.data?.requests || []);
       setCommissionConfig(configRes.data?.config || null);
       setCommissionPayments(paymentRes.data?.payments || []);
+      setKhanSummary(khanSummaryRes.data?.summary || null);
       setShops(shopRes.data?.shops || []);
       setSubscriptions(subRes.data?.subscriptions || []);
       setGlobalPercent(Number(configRes.data?.config?.globalpercentage || 5));
+      setKhanPercent(Number(configRes.data?.config?.khancommissionpercentage || 10));
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to load seller operations.");
     } finally {
@@ -86,6 +91,17 @@ const SuperAdminSellerOperations = () => {
       await loadAll();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Failed to update global commission.");
+    }
+  };
+
+  const saveKhanPercent = async () => {
+    try {
+      const { data } = await axios.patch(`${serverurl}/seller/admin/panel/commission-config/khan`, { percentage: Number(khanPercent) }, getRequestConfig({ timeout: 20000 }));
+      if (!data?.success) throw new Error(data?.message || "Update failed");
+      setNotice("Khan distributor commission updated.");
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to update Khan commission.");
     }
   };
 
@@ -220,6 +236,11 @@ const SuperAdminSellerOperations = () => {
               </label>
               <button type="button" onClick={saveGlobalPercent} className="mt-3 rounded-xl bg-[#1f5c49] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-white">Save Global</button>
 
+              <label className="mt-4 block text-sm">Khan Distributor Commission Percent
+                <input type="number" min={0} max={100} className={input} value={khanPercent} onChange={(e) => setKhanPercent(e.target.value)} />
+              </label>
+              <button type="button" onClick={saveKhanPercent} className="mt-3 rounded-xl bg-[#1f5c49] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-white">Save Khan %</button>
+
               <form className="mt-5 border-t border-[#e6efea] pt-4" onSubmit={saveSellerOverride}>
                 <p className="text-sm font-semibold text-[#1f5c49]">Set Seller Override</p>
                 <label className="mt-2 block text-sm">Seller User ID<input className={input} value={sellerOverride.sellerid} onChange={(e) => setSellerOverride((p) => ({ ...p, sellerid: e.target.value }))} required /></label>
@@ -231,6 +252,11 @@ const SuperAdminSellerOperations = () => {
 
             <div className={card}>
               <h2 className="text-lg font-semibold text-[#1f5c49]">Commission Payments</h2>
+              <div className="mt-3 rounded-xl border border-[#e6efea] bg-[#f5fbf8] p-3 text-xs text-[#1f5c49]">
+                <p className="font-semibold">Khan Distributor Commission Summary</p>
+                <p className="mt-1">Base (Total - Delivery): Tk {Number(khanSummary?.commissionbase || 0).toFixed(2)}</p>
+                <p className="mt-1">Rate: {Number(khanSummary?.percentage || 0)}% | Commission: Tk {Number(khanSummary?.commissionamount || 0).toFixed(2)}</p>
+              </div>
               <div className="mt-3 max-h-[520px] space-y-2 overflow-y-auto pr-1">
                 {commissionPayments.length === 0 ? <p className="text-sm text-[#4b6b61]">No commission payments.</p> : commissionPayments.map((p) => (
                   <div key={p._id} className="rounded-xl border border-[#e6efea] bg-[#f5fbf8] p-3">

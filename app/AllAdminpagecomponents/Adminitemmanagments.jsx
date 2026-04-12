@@ -48,7 +48,7 @@ const AdminItemManagements = () => {
  categoryids: [], categorytree: [], categorypath: "",
 
     flashsale: false, eidsale: false, coustomsale: false, isreturnable: true,
-    warrantynotavalible: false, isperishable: false, isactive: true,
+    warrantynotavalible: false, isperishable: false, isactive: true, iskhanproduct: true,
     expirydate: "", warranty: "", warrantyperiod: "",
     deliveryschema: { name: "Standard Delivery", deliverytime: "3-5 Days", deliverycharge: 60, isfreeshipping: false },
     whiteimage: null, hoverimage: null, gallery: [],
@@ -277,6 +277,7 @@ const AdminItemManagements = () => {
                 <Toggle label="Flash Sale" name="flashsale" checked={formData.flashsale} onChange={handleChange} activeColor="bg-red-500" theme={theme} />
                 <Toggle label="Eid Sale" name="eidsale" checked={formData.eidsale} onChange={handleChange} activeColor="bg-green-500" theme={theme} />
                 <Toggle label="Custom Sale" name="coustomsale" checked={formData.coustomsale} onChange={handleChange} activeColor="bg-purple-500" theme={theme} />
+                <Toggle label="Khan Own Product" name="iskhanproduct" checked={formData.iskhanproduct} onChange={handleChange} activeColor="bg-emerald-500" theme={theme} />
                 <Toggle label="Perishable (Food)" name="isperishable" checked={formData.isperishable} onChange={handleChange} activeColor="bg-orange-500" theme={theme} />
                 <Toggle label="Returnable" name="isreturnable" checked={formData.isreturnable} onChange={handleChange} activeColor="bg-blue-500" theme={theme} />
                 <Toggle label="No Warranty" name="warrantynotavalible" checked={formData.warrantynotavalible} onChange={handleChange} activeColor="bg-gray-500" theme={theme} />

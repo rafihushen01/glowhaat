@@ -102,8 +102,7 @@ const BecomeSeller = () => {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [verifyingStepOne, setVerifyingStepOne] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [stepToken, setStepToken] = useState("");
   const [showSellerPassword, setShowSellerPassword] = useState(false);
@@ -119,7 +118,6 @@ const BecomeSeller = () => {
     whatsapp: "",
     sellerpassword: "",
     confirmpassword: "",
-    otp: "",
   });
 
   const [form, setForm] = useState({
@@ -221,46 +219,7 @@ const BecomeSeller = () => {
     return "Physical Store";
   };
 
-  const requestOtp = async () => {
-    setError("");
-    setNotice("");
-
-    const payload = {
-      fullname: trim(stepOne.fullname),
-      email: trim(stepOne.email),
-      mobile: trim(stepOne.mobile),
-      whatsapp: trim(stepOne.whatsapp),
-      sellerpassword: trim(stepOne.sellerpassword),
-    };
-
-    if (!payload.fullname || !payload.email || !payload.mobile || !payload.sellerpassword) {
-      setError("Full name, email, mobile and seller password are required.");
-      return;
-    }
-
-    if (payload.sellerpassword.length < 6) {
-      setError("Seller password must be at least 6 characters.");
-      return;
-    }
-
-    if (trim(stepOne.sellerpassword) !== trim(stepOne.confirmpassword)) {
-      setError("Seller password and confirm password do not match.");
-      return;
-    }
-
-    try {
-      setSendingOtp(true);
-      const { data } = await axios.post(`${serverurl}/seller/request-otp`, payload, getRequestConfig({ timeout: 12000 }));
-      if (data?.success) setNotice("OTP sent to your email.");
-      else setError(data?.message || "OTP send failed.");
-    } catch (err) {
-      setError(err?.response?.data?.message || "OTP send failed.");
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  const verifyOtp = async () => {
+  const verifyStepOne = async () => {
     setError("");
     setNotice("");
 
@@ -270,28 +229,28 @@ const BecomeSeller = () => {
     }
 
     try {
-      setVerifyingOtp(true);
+      setVerifyingStepOne(true);
       const payload = {
         fullname: trim(stepOne.fullname),
         email: trim(stepOne.email),
         mobile: trim(stepOne.mobile),
         whatsapp: trim(stepOne.whatsapp),
         sellerpassword: trim(stepOne.sellerpassword),
-        otp: trim(stepOne.otp),
+        confirmpassword: trim(stepOne.confirmpassword),
       };
-      const { data } = await axios.post(`${serverurl}/seller/verify-otp`, payload, getRequestConfig({ timeout: 12000 }));
+      const { data } = await axios.post(`${serverurl}/seller/start`, payload, getRequestConfig({ timeout: 12000 }));
       if (data?.success && data?.token) {
         setStepToken(data.token);
         setStep(2);
-        setNotice("OTP verified. Complete step 2.");
+        setNotice("Step 1 completed. Continue with step 2.");
         if (typeof window !== "undefined") localStorage.setItem(LS_KEY, payload.email);
       } else {
-        setError(data?.message || "OTP verification failed.");
+        setError(data?.message || "Step 1 verification failed.");
       }
     } catch (err) {
-      setError(err?.response?.data?.message || "OTP verification failed.");
+      setError(err?.response?.data?.message || "Step 1 verification failed.");
     } finally {
-      setVerifyingOtp(false);
+      setVerifyingStepOne(false);
     }
   };
 
@@ -318,7 +277,7 @@ const BecomeSeller = () => {
     setNotice("");
 
     if (!stepToken) {
-      setError("OTP verification missing.");
+      setError("Step 1 verification missing.");
       return;
     }
 
@@ -399,7 +358,7 @@ const BecomeSeller = () => {
           <p className="text-xs uppercase tracking-[0.25em] text-emerald-700">KhanCosmetics Partner Program</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-950">Become A Seller</h1>
           <p className="mt-2 text-sm text-emerald-800">
-            Professional seller onboarding with review by authority, protected account creation, and secure OTP login.
+            Professional seller onboarding with review by authority, protected account creation, and secure email-password login.
           </p>
         </div>
 
@@ -414,7 +373,7 @@ const BecomeSeller = () => {
             <h2 className="mt-2 text-2xl font-semibold text-emerald-950">{status.status}</h2>
             <p className="mt-2 text-sm text-emerald-800">
               {status.status === "Pending" && "Your request is under review. You cannot submit another request until authority responds."}
-              {status.status === "Approved" && "Congratulations. Your seller account is approved. Use your seller Gmail + password, then verify OTP in sign-in."}
+              {status.status === "Approved" && "Congratulations. Your seller account is approved. Use your seller Gmail + password to sign in."}
               {status.status === "Rejected" && "Your request was rejected. You can apply again only if you are not blocked by rejection policy."}
             </p>
 
@@ -502,13 +461,8 @@ const BecomeSeller = () => {
                 </span>
               </label>
 
-              <button type="button" onClick={requestOtp} disabled={sendingOtp} className="mt-4 w-full rounded-xl bg-emerald-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white">
-                {sendingOtp ? "Sending..." : "Send OTP"}
-              </button>
-
-              <label className="mt-3 block text-sm">OTP<input className={inputClass} value={stepOne.otp} onChange={(e) => onStepOne("otp", e.target.value.replace(/\D/g, "").slice(0, 6))} /></label>
-              <button type="button" onClick={verifyOtp} disabled={verifyingOtp} className="mt-4 w-full rounded-xl border border-emerald-700 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
-                {verifyingOtp ? "Verifying..." : "Verify OTP"}
+              <button type="button" onClick={verifyStepOne} disabled={verifyingStepOne} className="mt-4 w-full rounded-xl border border-emerald-700 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
+                {verifyingStepOne ? "Verifying..." : "Continue Step 2"}
               </button>
             </div>
 

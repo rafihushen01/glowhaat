@@ -4,7 +4,7 @@ import {getAuth} from "firebase/auth"
 
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDoss9uSi6b2vlY2qJxo_3KoH32VLtNfQo",
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
   authDomain: "khancosmetics.firebaseapp.com",
   projectId: "khancosmetics",
   storageBucket: "khancosmetics.firebasestorage.app",

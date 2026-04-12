@@ -4,26 +4,13 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
-import {
-  ArrowRight,
-  BadgeCheck,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  Phone,
-  ShieldCheck,
-  Sparkles,
-  User,
-  VenusAndMars,
-} from "lucide-react";
+import { BadgeCheck, Eye, EyeOff, Loader2, Lock, Mail, Phone, ShieldCheck, Sparkles, User, VenusAndMars } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import {useTranslations} from "next-intl";
+import { useTranslations } from "next-intl";
 import { serverurl } from "../utils/constants/serverurl";
 import khancosmeticslogo from "../../public/khancosmeticslogo.png";
 import { setUserData } from "../reduxcomponents/UserSlice";
@@ -32,12 +19,6 @@ import { signInWithGoogleAndGetIdToken } from "../UserAuthenticationComponents/f
 const panelMotion = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
-};
-
-const stepMotion = {
-  initial: { opacity: 0, y: 14, scale: 0.98 },
-  animate: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.35 } },
-  exit: { opacity: 0, y: -10, scale: 0.98, transition: { duration: 0.22 } },
 };
 
 const initialForm = {
@@ -70,28 +51,16 @@ const Signup = () => {
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
 
-  const [step, setStep] = useState("details");
   const [formData, setFormData] = useState(initialForm);
-  const [otp, setOtp] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToPolicy, setAgreedToPolicy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [otpCountdown, setOtpCountdown] = useState(0);
 
   const passwordStrength = getPasswordStrength(formData.password);
 
   useEffect(() => {
-    if (otpCountdown <= 0) return;
-    const timer = setTimeout(() => setOtpCountdown((prev) => prev - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [otpCountdown]);
-
-  useEffect(() => {
-    if (userData) {
-      router.replace("/");
-    }
+    if (userData) router.replace("/");
   }, [userData, router]);
 
   const buildSignupPayload = () => {
@@ -107,42 +76,25 @@ const Signup = () => {
     return payload;
   };
 
-  const getApiError = (error, fallbackMessage) =>
-    error?.response?.data?.message || fallbackMessage;
+  const getApiError = (error, fallbackMessage) => error?.response?.data?.message || fallbackMessage;
 
   const validateSignupFields = () => {
     const name = formData.fullname.trim();
     const email = formData.email.trim().toLowerCase();
     const mobile = formData.mobile.trim();
 
-    if (!name || name.length < 3) {
-      return t("errors.nameMin");
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return t("errors.invalidEmail");
-    }
-
+    if (!name || name.length < 3) return t("errors.nameMin");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return t("errors.invalidEmail");
     if (formData.password.length < 8 || !/[A-Za-z]/.test(formData.password) || !/\d/.test(formData.password)) {
       return t("errors.passwordRules");
     }
-
-    if (mobile && !/^\+?\d{8,15}$/.test(mobile)) {
-      return t("errors.mobileRange");
-    }
-
-    if (!["Male", "Female", "Other"].includes(formData.gender)) {
-      return t("errors.chooseGender");
-    }
-
-    if (!agreedToPolicy) {
-      return t("errors.acceptPolicy");
-    }
-
+    if (mobile && !/^\+?\d{8,15}$/.test(mobile)) return t("errors.mobileRange");
+    if (!["Male", "Female", "Other"].includes(formData.gender)) return t("errors.chooseGender");
+    if (!agreedToPolicy) return t("errors.acceptPolicy");
     return "";
   };
 
-  const requestSignupOtp = async (event) => {
+  const handleSignup = async (event) => {
     event.preventDefault();
     const errorMessage = validateSignupFields();
     if (errorMessage) {
@@ -153,57 +105,16 @@ const Signup = () => {
     setLoading(true);
     try {
       const payload = buildSignupPayload();
-      const { data } = await axios.post(`${serverurl}/auth/signupotp`, payload, {
+      const { data } = await axios.post(`${serverurl}/auth/signup`, payload, {
         withCredentials: true,
       });
 
       if (!data?.success) {
-        toast.error(data?.message || t("errors.sendOtp"));
-        return;
-      }
-
-      toast.success(data.message || t("success.otpSent"));
-      setStep("verify");
-      setOtpCountdown(60);
-      setOtp("");
-      setFormData((prev) => ({
-        ...prev,
-        fullname: payload.fullname,
-        email: payload.email,
-        mobile: payload.mobile || "",
-      }));
-    } catch (error) {
-      toast.error(getApiError(error, t("errors.signupService")));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifySignupOtp = async (event) => {
-    event.preventDefault();
-    if (!/^\d{6}$/.test(otp.trim())) {
-      toast.error(t("errors.enterOtp"));
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const { data } = await axios.post(
-        `${serverurl}/auth/verifysignupotp`,
-        {
-          email: formData.email.trim().toLowerCase(),
-          otp: otp.trim(),
-        },
-        { withCredentials: true }
-      );
-
-      if (!data?.success) {
-        toast.error(data?.message || t("errors.otpVerify"));
+        toast.error(data?.message || t("errors.signupService"));
         return;
       }
 
       let authuser = data?.user || null;
-
       if (!authuser) {
         const meRes = await axios.get(`${serverurl}/auth/me`, {
           withCredentials: true,
@@ -212,39 +123,14 @@ const Signup = () => {
         authuser = meRes?.data?.user || null;
       }
 
-      if (authuser) {
-        dispatch(setUserData(authuser));
-      }
+      if (authuser) dispatch(setUserData(authuser));
 
-      toast.success(t("success.accountCreated"));
+      toast.success(data?.message || t("success.accountCreated"));
       setTimeout(() => router.push("/"), 900);
     } catch (error) {
-      toast.error(getApiError(error, t("errors.otpVerify")));
+      toast.error(getApiError(error, t("errors.signupService")));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const resendOtp = async () => {
-    if (otpCountdown > 0 || resending || loading) return;
-    setResending(true);
-    try {
-      const payload = buildSignupPayload();
-      const { data } = await axios.post(`${serverurl}/auth/signupotp`, payload, {
-        withCredentials: true,
-      });
-
-      if (!data?.success) {
-        toast.error(data?.message || t("errors.resendOtp"));
-        return;
-      }
-
-      toast.success(t("success.otpResent"));
-      setOtpCountdown(60);
-    } catch (error) {
-      toast.error(getApiError(error, t("errors.resendFailed")));
-    } finally {
-      setResending(false);
     }
   };
 
@@ -264,7 +150,7 @@ const Signup = () => {
           idToken,
           mobile,
           fullname: formData.fullname.trim() || profile.fullname || "",
-          gender: formData.gender || "Other",
+          gender: formData.gender || "Male",
         },
         { withCredentials: true, timeout: 15000 }
       );
@@ -274,9 +160,7 @@ const Signup = () => {
         return;
       }
 
-      if (data?.user) {
-        dispatch(setUserData(data.user));
-      }
+      if (data?.user) dispatch(setUserData(data.user));
 
       toast.success(data?.message || t("success.googleSignup"));
       setTimeout(() => router.push("/"), 700);
@@ -288,7 +172,10 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f5ef]" style={{ fontFamily: "\"Manrope\", \"Segoe UI\", sans-serif" }}>
+    <div
+      className="min-h-screen bg-[radial-gradient(circle_at_16%_20%,#f6d8be_0%,#f7efe3_32%,#f6f4ee_62%,#edf6f1_100%)]"
+      style={{ fontFamily: "\"Manrope\", \"Segoe UI\", sans-serif" }}
+    >
       <Toaster
         position="top-right"
         toastOptions={{
@@ -315,6 +202,13 @@ const Signup = () => {
           transition={{ duration: 0.8, delay: 0.15 }}
           className="pointer-events-none absolute -right-24 bottom-0 h-80 w-80 rounded-full bg-[#d8e8df]/55 blur-3xl"
         />
+        <motion.div
+          aria-hidden
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 0.5, y: 0 }}
+          transition={{ duration: 0.9, delay: 0.2 }}
+          className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-28 w-[min(92%,1000px)] rounded-b-[3rem] bg-gradient-to-r from-[#184237]/85 via-[#2d6a58]/80 to-[#195b47]/85 blur-2xl"
+        />
 
         <div className="mx-auto grid w-full max-w-6xl gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <motion.section
@@ -338,16 +232,10 @@ const Signup = () => {
               </div>
             </div>
 
-            <p className="max-w-xl text-[15px] leading-relaxed text-[#4d3e33] md:text-base">
-              {t("hero.desc")}
-            </p>
+            <p className="max-w-xl text-[15px] leading-relaxed text-[#4d3e33] md:text-base">{t("hero.desc")}</p>
 
             <div className="mt-8 grid gap-3 text-sm">
-              {[
-                t("hero.p1"),
-                t("hero.p2"),
-                t("hero.p3"),
-              ].map((point) => (
+              {[t("hero.p1"), t("hero.p2"), t("hero.p3")].map((point) => (
                 <motion.div
                   key={point}
                   initial={{ opacity: 0, x: -10 }}
@@ -389,240 +277,128 @@ const Signup = () => {
               </div>
             </div>
 
-            <div className="mb-6 grid grid-cols-2 gap-2 rounded-xl bg-[#eef5f2] p-1 text-xs font-semibold tracking-wide text-[#56796a]">
-              <button
-                type="button"
-                onClick={() => setStep("details")}
-                className={`rounded-lg px-3 py-2 transition ${step === "details" ? "bg-white text-[#1d4f3f] shadow-sm" : ""}`}
-              >
-                {t("steps.details")}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep("verify")}
-                disabled={!formData.email}
-                className={`rounded-lg px-3 py-2 transition ${
-                  step === "verify" ? "bg-white text-[#1d4f3f] shadow-sm" : "disabled:cursor-not-allowed disabled:opacity-50"
-                }`}
-              >
-                {t("steps.verify")}
-              </button>
-            </div>
+            <form onSubmit={handleSignup} className="space-y-4">
+              <FieldLabel label={t("fields.fullName")} icon={<User className="h-4 w-4" />} />
+              <input
+                type="text"
+                value={formData.fullname}
+                onChange={(event) => setFormData((prev) => ({ ...prev, fullname: event.target.value }))}
+                placeholder={t("placeholders.fullName")}
+                autoComplete="name"
+                className={fieldInputClass}
+              />
 
-            <AnimatePresence mode="wait">
-              {step === "details" ? (
-                <motion.form
-                  key="details-step"
-                  variants={stepMotion}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  onSubmit={requestSignupOtp}
-                  className="space-y-4"
-                >
-                  <FieldLabel label={t("fields.fullName")} icon={<User className="h-4 w-4" />} />
+              <FieldLabel label={t("fields.email")} icon={<Mail className="h-4 w-4" />} />
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(event) => setFormData((prev) => ({ ...prev, email: event.target.value }))}
+                placeholder={t("placeholders.email")}
+                autoComplete="email"
+                className={fieldInputClass}
+              />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <FieldLabel label={t("fields.mobile")} icon={<Phone className="h-4 w-4" />} />
                   <input
-                    type="text"
-                    value={formData.fullname}
-                    onChange={(event) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        fullname: event.target.value,
-                      }))
-                    }
-                    placeholder={t("placeholders.fullName")}
-                    autoComplete="name"
+                    type="tel"
+                    value={formData.mobile}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, mobile: normalizeMobile(event.target.value) }))}
+                    placeholder={t("placeholders.mobile")}
+                    autoComplete="tel"
                     className={fieldInputClass}
                   />
-
-                  <FieldLabel label={t("fields.email")} icon={<Mail className="h-4 w-4" />} />
-                  <input
-                    type="email"
-                    value={formData.email}
-                    onChange={(event) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        email: event.target.value,
-                      }))
-                    }
-                    placeholder={t("placeholders.email")}
-                    autoComplete="email"
+                </div>
+                <div>
+                  <FieldLabel label={t("fields.gender")} icon={<VenusAndMars className="h-4 w-4" />} />
+                  <select
+                    value={formData.gender}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, gender: event.target.value }))}
                     className={fieldInputClass}
-                  />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <FieldLabel label={t("fields.mobile")} icon={<Phone className="h-4 w-4" />} />
-                      <input
-                        type="tel"
-                        value={formData.mobile}
-                        onChange={(event) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            mobile: normalizeMobile(event.target.value),
-                          }))
-                        }
-                        placeholder={t("placeholders.mobile")}
-                        autoComplete="tel"
-                        className={fieldInputClass}
-                      />
-                    </div>
-                    <div>
-                      <FieldLabel label={t("fields.gender")} icon={<VenusAndMars className="h-4 w-4" />} />
-                      <select
-                        value={formData.gender}
-                        onChange={(event) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            gender: event.target.value,
-                          }))
-                        }
-                        className={fieldInputClass}
-                      >
-                        <option value="">{t("gender.select")}</option>
-                        <option value="Male">{t("gender.male")}</option>
-                        <option value="Female">{t("gender.female")}</option>
-                        <option value="Other">{t("gender.other")}</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <FieldLabel label={t("fields.password")} icon={<Lock className="h-4 w-4" />} />
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={formData.password}
-                      onChange={(event) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          password: event.target.value,
-                        }))
-                      }
-                      placeholder={t("placeholders.password")}
-                      autoComplete="new-password"
-                      className={`${fieldInputClass} pr-12`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#56796a] transition hover:text-[#1d4f3f]"
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-
-                  <div className="space-y-1">
-                    <div className="h-1.5 w-full rounded-full bg-[#e6efe9]">
-                      <div
-                        className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                        style={{ width: passwordStrength.width }}
-                      />
-                    </div>
-                    <p className="text-xs text-[#496457]">
-                      {t("passwordStrength")}: <span className="font-semibold">{passwordStrength.label}</span>
-                    </p>
-                  </div>
-
-                  <label className="flex items-start gap-2 rounded-lg border border-[#d9e6df] bg-[#f8fcfa] px-3 py-2 text-xs text-[#3b5a4e]">
-                    <input
-                      type="checkbox"
-                      checked={agreedToPolicy}
-                      onChange={(event) => setAgreedToPolicy(event.target.checked)}
-                      className="mt-0.5 accent-[#1d4f3f]"
-                    />
-                    <span>
-                      {t("agreePolicy")}
-                    </span>
-                  </label>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    disabled={loading}
-                    type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("sendOtp")} <ArrowRight className="h-4 w-4" /></>}
-                  </motion.button>
+                    <option value="">{t("gender.select")}</option>
+                    <option value="Male">{t("gender.male")}</option>
+                    <option value="Female">{t("gender.female")}</option>
+                    <option value="Other">{t("gender.other")}</option>
+                  </select>
+                </div>
+              </div>
 
-                  <div className="flex items-center gap-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#6e867b]">
-                    <span className="h-px flex-1 bg-[#d8e6df]" />
-                    Or
-                    <span className="h-px flex-1 bg-[#d8e6df]" />
-                  </div>
-
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={handleGoogleSignup}
-                    disabled={googleLoading || loading}
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#cfded7] bg-white px-4 py-3 text-sm font-semibold text-[#174737] transition hover:bg-[#f5faf8] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {googleLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <FcGoogle className="h-5 w-5" />
-                        {t("googleSignup")}
-                      </>
-                    )}
-                  </motion.button>
-                </motion.form>
-              ) : (
-                <motion.form
-                  key="verify-step"
-                  variants={stepMotion}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                  onSubmit={verifySignupOtp}
-                  className="space-y-4"
+              <FieldLabel label={t("fields.password")} icon={<Lock className="h-4 w-4" />} />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={formData.password}
+                  onChange={(event) => setFormData((prev) => ({ ...prev, password: event.target.value }))}
+                  placeholder={t("placeholders.password")}
+                  autoComplete="new-password"
+                  className={`${fieldInputClass} pr-12`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#56796a] transition hover:text-[#1d4f3f]"
                 >
-                  <div className="rounded-xl border border-[#d8e8e0] bg-[#f4faf7] p-3 text-sm text-[#2f5648]">
-                    {t("otpSentTo")} <span className="font-semibold">{formData.email || t("yourEmail")}</span>
-                  </div>
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
 
-                  <FieldLabel label={t("fields.otp")} icon={<ShieldCheck className="h-4 w-4" />} />
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    value={otp}
-                    onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0, 6))}
-                    placeholder={t("placeholders.otp")}
-                    autoComplete="one-time-code"
-                    className={`${fieldInputClass} text-center text-lg tracking-[0.35em]`}
+              <div className="space-y-1">
+                <div className="h-1.5 w-full rounded-full bg-[#e6efe9]">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                    style={{ width: passwordStrength.width }}
                   />
+                </div>
+                <p className="text-xs text-[#496457]">
+                  {t("passwordStrength")}: <span className="font-semibold">{passwordStrength.label}</span>
+                </p>
+                <p className="text-[11px] text-[#628273]">{t("passwordHint")}</p>
+              </div>
 
-                  <motion.button
-                    whileTap={{ scale: 0.98 }}
-                    disabled={loading}
-                    type="submit"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#1f5c49] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#174737] disabled:cursor-not-allowed disabled:opacity-70"
-                  >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("verifyCreate")}
-                  </motion.button>
+              <label className="flex items-start gap-2 rounded-lg border border-[#d9e6df] bg-[#f8fcfa] px-3 py-2 text-xs text-[#3b5a4e]">
+                <input
+                  type="checkbox"
+                  checked={agreedToPolicy}
+                  onChange={(event) => setAgreedToPolicy(event.target.checked)}
+                  className="mt-0.5 accent-[#1d4f3f]"
+                />
+                <span>{t("agreePolicy")}</span>
+              </label>
 
-                  <div className="flex items-center justify-between gap-4 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setStep("details")}
-                      className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49]"
-                    >
-                      {t("editDetails")}
-                    </button>
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                disabled={loading}
+                type="submit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#1f5c49] via-[#1f6d56] to-[#174737] px-4 py-3 text-sm font-semibold text-white transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : t("createAccount")}
+              </motion.button>
 
-                    <button
-                      type="button"
-                      onClick={resendOtp}
-                      disabled={otpCountdown > 0 || resending}
-                      className="font-semibold text-[#3e6658] transition hover:text-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {resending ? t("resending") : otpCountdown > 0 ? t("resendIn", {seconds: otpCountdown}) : t("resendOtp")}
-                    </button>
-                  </div>
-                </motion.form>
-              )}
-            </AnimatePresence>
+              <div className="flex items-center gap-3 py-1 text-[11px] uppercase tracking-[0.18em] text-[#6e867b]">
+                <span className="h-px flex-1 bg-[#d8e6df]" />
+                Or
+                <span className="h-px flex-1 bg-[#d8e6df]" />
+              </div>
+
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={googleLoading || loading}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#cfded7] bg-white px-4 py-3 text-sm font-semibold text-[#174737] transition hover:bg-[#f5faf8] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {googleLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <FcGoogle className="h-5 w-5" />
+                    {t("googleSignup")}
+                  </>
+                )}
+              </motion.button>
+            </form>
 
             <p className="mt-6 text-center text-sm text-[#526d61]">
               {t("alreadyHave")}{" "}
