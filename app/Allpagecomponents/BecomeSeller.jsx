@@ -98,13 +98,10 @@ const BecomeSeller = () => {
   });
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  const [step, setStep] = useState(1);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
-  const [verifyingStepOne, setVerifyingStepOne] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [stepToken, setStepToken] = useState("");
   const [showSellerPassword, setShowSellerPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -219,39 +216,20 @@ const BecomeSeller = () => {
     return "Physical Store";
   };
 
-  const verifyStepOne = async () => {
-    setError("");
-    setNotice("");
-
-    if (trim(stepOne.sellerpassword) !== trim(stepOne.confirmpassword)) {
-      setError("Seller password and confirm password do not match.");
-      return;
+  const getStepToken = async () => {
+    const payload = {
+      fullname: trim(stepOne.fullname),
+      email: trim(stepOne.email),
+      mobile: trim(stepOne.mobile),
+      whatsapp: trim(stepOne.whatsapp),
+      sellerpassword: trim(stepOne.sellerpassword),
+      confirmpassword: trim(stepOne.confirmpassword),
+    };
+    const { data } = await axios.post(`${serverurl}/seller/start`, payload, getRequestConfig({ timeout: 12000 }));
+    if (!data?.success || !data?.token) {
+      throw new Error(data?.message || "Seller request start failed.");
     }
-
-    try {
-      setVerifyingStepOne(true);
-      const payload = {
-        fullname: trim(stepOne.fullname),
-        email: trim(stepOne.email),
-        mobile: trim(stepOne.mobile),
-        whatsapp: trim(stepOne.whatsapp),
-        sellerpassword: trim(stepOne.sellerpassword),
-        confirmpassword: trim(stepOne.confirmpassword),
-      };
-      const { data } = await axios.post(`${serverurl}/seller/start`, payload, getRequestConfig({ timeout: 12000 }));
-      if (data?.success && data?.token) {
-        setStepToken(data.token);
-        setStep(2);
-        setNotice("Step 1 completed. Continue with step 2.");
-        if (typeof window !== "undefined") localStorage.setItem(LS_KEY, payload.email);
-      } else {
-        setError(data?.message || "Step 1 verification failed.");
-      }
-    } catch (err) {
-      setError(err?.response?.data?.message || "Step 1 verification failed.");
-    } finally {
-      setVerifyingStepOne(false);
-    }
+    return { token: data.token, email: payload.email };
   };
 
   const onImageChange = async (key, file) => {
@@ -275,11 +253,6 @@ const BecomeSeller = () => {
   const submit = async () => {
     setError("");
     setNotice("");
-
-    if (!stepToken) {
-      setError("Step 1 verification missing.");
-      return;
-    }
 
     const missing = IMAGE_FIELDS.find((x) => x.required && !files[x.key]);
     if (missing) {
@@ -314,8 +287,14 @@ const BecomeSeller = () => {
 
     try {
       setSubmitting(true);
+      if (trim(stepOne.sellerpassword) !== trim(stepOne.confirmpassword)) {
+        setError("Seller password and confirm password do not match.");
+        return;
+      }
+
+      const stepStart = await getStepToken();
       const payload = new FormData();
-      payload.append("stepToken", stepToken);
+      payload.append("stepToken", stepStart.token);
       payload.append("sellerloginemail", trim(stepOne.email));
       payload.append("businessmodel", getBusinessModel());
 
@@ -329,9 +308,9 @@ const BecomeSeller = () => {
 
       const { data } = await axios.post(`${serverurl}/seller/submit`, payload, getRequestConfig({ timeout: 30000 }));
       if (data?.success) {
-        if (typeof window !== "undefined") localStorage.setItem(LS_KEY, trim(stepOne.email));
+        if (typeof window !== "undefined") localStorage.setItem(LS_KEY, trim(stepStart.email));
         setNotice("Seller request submitted. Please wait for verification.");
-        await fetchStatus(stepOne.email);
+        await fetchStatus(stepStart.email);
       } else {
         setError(data?.message || "Submission failed.");
       }
@@ -345,8 +324,6 @@ const BecomeSeller = () => {
   const resetForNewApply = () => {
     if (statusMeta?.hasPending || statusMeta?.isBlocked) return;
     setStatus(null);
-    setStep(1);
-    setStepToken("");
     setError("");
     setNotice("");
   };
@@ -415,8 +392,8 @@ const BecomeSeller = () => {
         ) : (
           <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_1.8fr]">
             <div className="rounded-2xl border border-emerald-200 bg-white p-5">
-              <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Step 1</p>
-              <h2 className="mt-2 text-xl font-semibold text-emerald-950">Personal Verification</h2>
+              <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Seller Account</p>
+              <h2 className="mt-2 text-xl font-semibold text-emerald-950">Personal Information</h2>
 
               <label className="mt-4 block text-sm">Real Name<input className={inputClass} value={stepOne.fullname} onChange={(e) => onStepOne("fullname", e.target.value)} /></label>
               <label className="mt-3 block text-sm">Seller Gmail<input className={inputClass} value={stepOne.email} onChange={(e) => onStepOne("email", e.target.value)} /></label>
@@ -461,28 +438,21 @@ const BecomeSeller = () => {
                 </span>
               </label>
 
-              <button type="button" onClick={verifyStepOne} disabled={verifyingStepOne} className="mt-4 w-full rounded-xl border border-emerald-700 bg-emerald-50 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">
-                {verifyingStepOne ? "Verifying..." : "Continue Step 2"}
-              </button>
+              <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                Submit once from the button below. No OTP or email verification step is required.
+              </p>
             </div>
 
             <div className="rounded-2xl border border-emerald-200 bg-white p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Step 2</p>
-                  <h2 className="mt-2 text-xl font-semibold text-emerald-950">Business Information</h2>
-                </div>
-                <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${step === 2 ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
-                  {step === 2 ? "Unlocked" : "Locked"}
-                </span>
-              </div>
+              <p className="text-xs uppercase tracking-[0.16em] text-emerald-700">Business Setup</p>
+              <h2 className="mt-2 text-xl font-semibold text-emerald-950">Business Information</h2>
 
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
-                <label className="text-sm">Date of Birth<input type="date" className={inputClass} disabled={step !== 2} value={form.dateofbirth} onChange={(e) => onForm("dateofbirth", e.target.value)} /></label>
-                <label className="text-sm">Main Store Type<select className={inputClass} disabled={step !== 2} value={form.storetype} onChange={(e) => onForm("storetype", e.target.value)}>{categories.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-                <label className="text-sm">Business Name<input className={inputClass} disabled={step !== 2} value={form.businessname} onChange={(e) => onForm("businessname", e.target.value)} /></label>
-                <label className="text-sm">Business Gmail<input className={inputClass} disabled={step !== 2} value={form.businessgmail} onChange={(e) => onForm("businessgmail", e.target.value)} /></label>
-                <label className="text-sm">Business Phone<input className={inputClass} disabled={step !== 2} value={form.businessphone} onChange={(e) => onForm("businessphone", e.target.value)} /></label>
+                <label className="text-sm">Date of Birth<input type="date" className={inputClass} value={form.dateofbirth} onChange={(e) => onForm("dateofbirth", e.target.value)} /></label>
+                <label className="text-sm">Main Store Type<select className={inputClass} value={form.storetype} onChange={(e) => onForm("storetype", e.target.value)}>{categories.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+                <label className="text-sm">Business Name<input className={inputClass} value={form.businessname} onChange={(e) => onForm("businessname", e.target.value)} /></label>
+                <label className="text-sm">Business Gmail<input className={inputClass} value={form.businessgmail} onChange={(e) => onForm("businessgmail", e.target.value)} /></label>
+                <label className="text-sm">Business Phone<input className={inputClass} value={form.businessphone} onChange={(e) => onForm("businessphone", e.target.value)} /></label>
               </div>
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
@@ -491,7 +461,7 @@ const BecomeSeller = () => {
                   {categories.map((cat) => {
                     const active = form.preferredcategories.includes(cat);
                     return (
-                      <button key={cat} type="button" disabled={step !== 2} onClick={() => toggleCategory(cat)} className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800"}`}>
+                      <button key={cat} type="button" onClick={() => toggleCategory(cat)} className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800"}`}>
                         {cat}
                       </button>
                     );
@@ -501,16 +471,16 @@ const BecomeSeller = () => {
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-4">
                 <p className="text-sm font-semibold text-emerald-900">Physical Store (Optional)</p>
-                <label className="mt-3 block text-sm">Physical Store Name<input className={inputClass} disabled={step !== 2} value={form.physicalstorename} onChange={(e) => onForm("physicalstorename", e.target.value)} /></label>
+                <label className="mt-3 block text-sm">Physical Store Name<input className={inputClass} value={form.physicalstorename} onChange={(e) => onForm("physicalstorename", e.target.value)} /></label>
 
                 {physicalStoreNameExists ? (
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <label className="text-sm">Physical Store District<input className={inputClass} disabled={step !== 2} value={form.physicalstoredistrict} onChange={(e) => onForm("physicalstoredistrict", e.target.value)} /></label>
-                    <label className="text-sm">Physical Store City<input className={inputClass} disabled={step !== 2} value={form.physicalstorecity} onChange={(e) => onForm("physicalstorecity", e.target.value)} /></label>
+                    <label className="text-sm">Physical Store District<input className={inputClass} value={form.physicalstoredistrict} onChange={(e) => onForm("physicalstoredistrict", e.target.value)} /></label>
+                    <label className="text-sm">Physical Store City<input className={inputClass} value={form.physicalstorecity} onChange={(e) => onForm("physicalstorecity", e.target.value)} /></label>
                   </div>
                 ) : null}
 
-                <label className="mt-3 block text-sm">Physical Store Address<textarea className={textClass} disabled={step !== 2} value={form.physicalstoreaddress} onChange={(e) => onForm("physicalstoreaddress", e.target.value)} /></label>
+                <label className="mt-3 block text-sm">Physical Store Address<textarea className={textClass} value={form.physicalstoreaddress} onChange={(e) => onForm("physicalstoreaddress", e.target.value)} /></label>
               </div>
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
@@ -524,7 +494,7 @@ const BecomeSeller = () => {
                       <button
                         key={item.key}
                         type="button"
-                        disabled={step !== 2}
+                       
                         onClick={() => toggleSocialChannel(item.key)}
                         className={`rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800"}`}
                       >
@@ -536,45 +506,45 @@ const BecomeSeller = () => {
 
                 {socialChannels.includes("facebook") ? (
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <label className="text-sm">Facebook Page Name<input className={inputClass} disabled={step !== 2} value={form.facebookpagename} onChange={(e) => onForm("facebookpagename", e.target.value)} /></label>
-                    <label className="text-sm">Facebook Page Link<input className={inputClass} disabled={step !== 2} value={form.facebookpagelink} onChange={(e) => onForm("facebookpagelink", e.target.value)} /></label>
+                    <label className="text-sm">Facebook Page Name<input className={inputClass} value={form.facebookpagename} onChange={(e) => onForm("facebookpagename", e.target.value)} /></label>
+                    <label className="text-sm">Facebook Page Link<input className={inputClass} value={form.facebookpagelink} onChange={(e) => onForm("facebookpagelink", e.target.value)} /></label>
                   </div>
                 ) : null}
 
                 {socialChannels.includes("instagram") ? (
                   <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <label className="text-sm">Instagram ID Name<input className={inputClass} disabled={step !== 2} value={form.instagramidname} onChange={(e) => onForm("instagramidname", e.target.value)} /></label>
-                    <label className="text-sm">Instagram Link<input className={inputClass} disabled={step !== 2} value={form.instagramlink} onChange={(e) => onForm("instagramlink", e.target.value)} /></label>
+                    <label className="text-sm">Instagram ID Name<input className={inputClass} value={form.instagramidname} onChange={(e) => onForm("instagramidname", e.target.value)} /></label>
+                    <label className="text-sm">Instagram Link<input className={inputClass} value={form.instagramlink} onChange={(e) => onForm("instagramlink", e.target.value)} /></label>
                   </div>
                 ) : null}
 
                 {socialChannels.includes("website") ? (
-                  <label className="mt-3 block text-sm">Website Link<input className={inputClass} disabled={step !== 2} value={form.websiteurl} onChange={(e) => onForm("websiteurl", e.target.value)} /></label>
+                  <label className="mt-3 block text-sm">Website Link<input className={inputClass} value={form.websiteurl} onChange={(e) => onForm("websiteurl", e.target.value)} /></label>
                 ) : null}
               </div>
 
               <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
                 <p className="text-sm font-semibold text-emerald-900">Pickup Location (Steadfast)</p>
                 <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <label className="text-sm">District<select className={inputClass} disabled={step !== 2} value={form.pickupdistrict} onChange={(e) => setForm((p) => ({ ...p, pickupdistrict: e.target.value, pickupcity: "", pickuparea: "" }))}><option value="">Select</option>{districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
-                  <label className="text-sm">City<select className={inputClass} disabled={step !== 2} value={form.pickupcity} onChange={(e) => setForm((p) => ({ ...p, pickupcity: e.target.value, pickuparea: "" }))}><option value="">Select</option>{cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
-                  <label className="text-sm">Area<select className={inputClass} disabled={step !== 2} value={form.pickuparea} onChange={(e) => onForm("pickuparea", e.target.value)}><option value="">Select</option>{areaOptions.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
-                  <label className="text-sm">Deliveryman Phone<input className={inputClass} disabled={step !== 2} value={form.deliverymanphone} onChange={(e) => onForm("deliverymanphone", e.target.value)} /></label>
+                  <label className="text-sm">District<select className={inputClass} value={form.pickupdistrict} onChange={(e) => setForm((p) => ({ ...p, pickupdistrict: e.target.value, pickupcity: "", pickuparea: "" }))}><option value="">Select</option>{districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}</select></label>
+                  <label className="text-sm">City<select className={inputClass} value={form.pickupcity} onChange={(e) => setForm((p) => ({ ...p, pickupcity: e.target.value, pickuparea: "" }))}><option value="">Select</option>{cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></label>
+                  <label className="text-sm">Area<select className={inputClass} value={form.pickuparea} onChange={(e) => onForm("pickuparea", e.target.value)}><option value="">Select</option>{areaOptions.map((a) => <option key={a} value={a}>{a}</option>)}</select></label>
+                  <label className="text-sm">Deliveryman Phone<input className={inputClass} value={form.deliverymanphone} onChange={(e) => onForm("deliverymanphone", e.target.value)} /></label>
                 </div>
-                <label className="mt-3 block text-sm">Pickup Address<textarea className={textClass} disabled={step !== 2} value={form.pickupaddressline} onChange={(e) => onForm("pickupaddressline", e.target.value)} /></label>
+                <label className="mt-3 block text-sm">Pickup Address<textarea className={textClass} value={form.pickupaddressline} onChange={(e) => onForm("pickupaddressline", e.target.value)} /></label>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                 {IMAGE_FIELDS.map((field) => (
                   <label key={field.key} className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm">
                     {field.label} {field.required ? "*" : "(optional)"}
-                    <input type="file" accept="image/*" disabled={step !== 2} onChange={(e) => onImageChange(field.key, e.target.files?.[0])} className="mt-2 w-full text-xs" />
+                    <input type="file" accept="image/*" onChange={(e) => onImageChange(field.key, e.target.files?.[0])} className="mt-2 w-full text-xs" />
                     {previews[field.key] ? <img src={previews[field.key]} alt={field.label} className="mt-2 h-36 w-full rounded-lg object-cover" /> : null}
                   </label>
                 ))}
               </div>
 
-              <button type="button" disabled={step !== 2 || submitting} onClick={submit} className="mt-5 w-full rounded-xl bg-emerald-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-60">
+              <button type="button" disabled={submitting} onClick={submit} className="mt-5 w-full rounded-xl bg-emerald-700 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white disabled:opacity-60">
                 {submitting ? "Submitting..." : "Submit Seller Request"}
               </button>
             </div>
@@ -586,3 +556,4 @@ const BecomeSeller = () => {
 };
 
 export default BecomeSeller;
+
