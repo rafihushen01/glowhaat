@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart } from "lucide-react";
+import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart, Crown, Award, Sparkles } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import {useLocale, useTranslations} from "next-intl";
@@ -88,6 +88,27 @@ const getNodeThumb = (node) => {
   const fallback = collectPreviewImages(node, 1)[0];
   return fallback?.image || "";
 };
+
+const discoveryQuickLinks = [
+  {
+    id: "best-selling",
+    label: "Best Selling Items",
+    href: "/best-selling",
+    Icon: Crown,
+  },
+  {
+    id: "five-star",
+    label: "5 Star Rated Items",
+    href: "/five-star",
+    Icon: Award,
+  },
+  {
+    id: "new-in",
+    label: "New In",
+    href: "/new-in",
+    Icon: Sparkles,
+  },
+];
 
 // --- Components ---
 
@@ -527,6 +548,23 @@ const UserNav = () => {
                 </span>
               )}
             </button>
+          </div>
+        </div>
+
+        <div className="border-t border-[#edf2ef] bg-white/95">
+          <div className="container mx-auto px-4 py-2 md:px-8">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {discoveryQuickLinks.map((entry) => (
+                <Link
+                  key={entry.id}
+                  href={entry.href}
+                  className="group inline-flex items-center justify-center gap-2 rounded-xl border border-[#d4e7df] bg-[#f5fbf8] px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1f5c49] transition hover:-translate-y-0.5 hover:border-[#1f5c49] hover:bg-[#e8f5ef]"
+                >
+                  <entry.Icon className="h-4 w-4 text-[#1f5c49]" />
+                  <span className="truncate">{entry.label}</span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </nav>
@@ -1009,6 +1047,21 @@ const MobileMenu = ({
                             </div>
                           )}
                         </div>
+                        {navStack.length === 1 && (
+                          <div className="mt-4 grid grid-cols-1 gap-2 px-2">
+                            {discoveryQuickLinks.map((entry) => (
+                              <Link
+                                key={entry.id}
+                                href={entry.href}
+                                onClick={onClose}
+                                className="inline-flex items-center gap-2 rounded-xl border border-[#d8e8e1] bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-[#1f5c49]"
+                              >
+                                <entry.Icon className="h-4 w-4" />
+                                <span>{entry.label}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                         <h2 className="text-2xl font-light mb-6 mt-6 px-2">
                           {navStack.length === 1 ? t("menu") : currentLevel.name}
                         </h2>

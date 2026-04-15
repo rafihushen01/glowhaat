@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowLeft, ArrowRight, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import {
@@ -55,24 +55,29 @@ const getTopDiscount = (product) => {
 
 const SECTION_META = [
   {
+    key: "morefromstore",
+    title: "More From This Store",
+    subtitle: "Recommended items from the same store based on shopper behavior.",
+  },
+  {
+    key: "morefromsamecategoryinstore",
+    title: "More Items In This Category",
+    subtitle: "Same category products uploaded by this store.",
+  },
+  {
+    key: "bestsellingincategoryinstore",
+    title: "Best Selling In This Category",
+    subtitle: "Top performing category items from this store.",
+  },
+  {
+    key: "storebestsellers",
+    title: "Store Best Sellers",
+    subtitle: "Most sold products from this store.",
+  },
+  {
     key: "frequentlyboughttogether",
     title: "Frequently Bought Together",
-    subtitle: "People often place these together in one order.",
-  },
-  {
-    key: "similaritems",
-    title: "Similar Items",
-    subtitle: "Products from similar category, taste, and profile.",
-  },
-  {
-    key: "alsoviewed",
-    title: "People Also Visited",
-    subtitle: "Shoppers who visited this item also viewed these.",
-  },
-  {
-    key: "dealsyoucantmiss",
-    title: "Deals You Can't Miss",
-    subtitle: "Best offers with strong customer performance.",
+    subtitle: "Delivered-order pairings related to this product category.",
   },
 ];
 
@@ -81,8 +86,8 @@ const ProductDetailRecommendations = ({ product }) => {
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState({});
   const [message, setMessage] = useState("");
-  const [chunkSize, setChunkSize] = useState(8);
-  const [visibleCountBySection, setVisibleCountBySection] = useState({});
+  const [itemsPerView, setItemsPerView] = useState(4);
+  const [sectionPageByKey, setSectionPageByKey] = useState({});
 
   useEffect(() => {
     let canceled = false;
@@ -128,38 +133,37 @@ const ProductDetailRecommendations = ({ product }) => {
   }, [product?.slug]);
 
   useEffect(() => {
-    const updateChunk = () => {
+    const updateItemsPerView = () => {
       if (typeof window === "undefined") return;
       const width = window.innerWidth;
-      if (width < 768) {
-        setChunkSize(4);
+      if (width < 640) {
+        setItemsPerView(1);
         return;
       }
-      if (width < 1280) {
-        setChunkSize(6);
+      if (width < 1024) {
+        setItemsPerView(2);
         return;
       }
-      setChunkSize(8);
+      setItemsPerView(4);
     };
 
-    updateChunk();
-    window.addEventListener("resize", updateChunk);
-    return () => window.removeEventListener("resize", updateChunk);
+    updateItemsPerView();
+    window.addEventListener("resize", updateItemsPerView);
+    return () => window.removeEventListener("resize", updateItemsPerView);
   }, []);
 
   useEffect(() => {
     if (!Object.keys(sections).length) return;
-    setVisibleCountBySection((prev) => {
+    setSectionPageByKey((prev) => {
       const next = { ...prev };
       SECTION_META.forEach((entry) => {
-        if (!Array.isArray(sections?.[entry.key])) return;
-        const max = sections[entry.key].length;
-        const current = Number(prev?.[entry.key] || 0);
-        next[entry.key] = current > 0 ? Math.min(current, max) : Math.min(chunkSize, max);
+        if (!Array.isArray(sections?.[entry.key]) || !sections[entry.key].length) return;
+        const maxPage = Math.max(0, Math.ceil(sections[entry.key].length / itemsPerView) - 1);
+        next[entry.key] = Math.min(Number(prev?.[entry.key] || 0), maxPage);
       });
       return next;
     });
-  }, [sections, chunkSize]);
+  }, [sections, itemsPerView]);
 
   const visibleSections = useMemo(
     () =>
@@ -251,6 +255,25 @@ const ProductDetailRecommendations = ({ product }) => {
     );
   };
 
+  const getCurrentItems = (sectionKey) => {
+    const all = Array.isArray(sections?.[sectionKey]) ? sections[sectionKey] : [];
+    if (!all.length) return [];
+    const page = Number(sectionPageByKey?.[sectionKey] || 0);
+    const start = page * itemsPerView;
+    return all.slice(start, start + itemsPerView);
+  };
+
+  const moveSection = (sectionKey, direction) => {
+    const all = Array.isArray(sections?.[sectionKey]) ? sections[sectionKey] : [];
+    if (!all.length) return;
+    const maxPage = Math.max(0, Math.ceil(all.length / itemsPerView) - 1);
+    setSectionPageByKey((prev) => {
+      const current = Number(prev?.[sectionKey] || 0);
+      const next = direction === "next" ? Math.min(maxPage, current + 1) : Math.max(0, current - 1);
+      return { ...prev, [sectionKey]: next };
+    });
+  };
+
   if (loading) {
     return (
       <section className="mx-auto mt-10 w-full max-w-7xl px-4 pb-6">
@@ -279,50 +302,57 @@ const ProductDetailRecommendations = ({ product }) => {
   return (
     <section className="mx-auto mt-10 w-full max-w-7xl space-y-12 px-4 pb-16">
       {visibleSections.map((section) => (
-        <div key={section.key}>
-          <div className="mb-5">
-            <h3 className="text-2xl font-semibold text-[#0f1720] md:text-3xl">{section.title}</h3>
-            <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[#4f7367]">{section.subtitle}</p>
-          </div>
-
-          <div className="md:hidden">
-            <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
-              {sections[section.key]
-                .slice(0, visibleCountBySection?.[section.key] || chunkSize)
-                .map((item) => (
-                  <div key={`${section.key}-mobile-${item._id}`} className="min-w-[74%] snap-start">
-                    {renderCard(section.key, item)}
-                  </div>
-                ))}
+        <div key={section.key} className="rounded-3xl border border-[#d2e9df] bg-gradient-to-br from-[#f8fffb] via-white to-[#ebf8f2] p-4 md:p-6">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-2xl font-semibold text-[#0f4738] md:text-3xl">{section.title}</h3>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.12em] text-[#4f7367]">{section.subtitle}</p>
             </div>
-          </div>
-
-          <div className="hidden grid-cols-1 gap-4 md:grid md:grid-cols-2 xl:grid-cols-4">
-            {sections[section.key]
-              .slice(0, visibleCountBySection?.[section.key] || chunkSize)
-              .map((item) => renderCard(section.key, item))}
-          </div>
-
-          {(visibleCountBySection?.[section.key] || chunkSize) < sections[section.key].length ? (
-            <div className="mt-5 flex items-center justify-center">
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() =>
-                  setVisibleCountBySection((prev) => ({
-                    ...prev,
-                    [section.key]: Math.min(
-                      sections[section.key].length,
-                      Number(prev?.[section.key] || chunkSize) + chunkSize
-                    ),
-                  }))
-                }
-                className="inline-flex items-center gap-2 rounded-full border border-[#1f5c49] bg-white px-6 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#1f5c49] transition-all duration-500 hover:-translate-y-0.5 hover:bg-[#1f5c49] hover:text-white"
+                onClick={() => moveSection(section.key, "prev")}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#9ac6b5] bg-white text-[#0f5b46] transition hover:bg-[#e8f5ef]"
               >
-                Show More
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => moveSection(section.key, "next")}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#9ac6b5] bg-white text-[#0f5b46] transition hover:bg-[#e8f5ef]"
+              >
                 <ArrowRight className="h-4 w-4" />
               </button>
             </div>
-          ) : null}
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {getCurrentItems(section.key).map((item) => (
+              <div key={`${section.key}-${item._id}`}>{renderCard(section.key, item)}</div>
+            ))}
+          </div>
+
+          <div className="mt-5 flex items-center justify-center gap-2">
+            {Array.from({
+              length: Math.max(1, Math.ceil((sections?.[section.key]?.length || 0) / itemsPerView)),
+            }).map((_, idx) => (
+              <button
+                key={`${section.key}-dot-${idx}`}
+                type="button"
+                onClick={() =>
+                  setSectionPageByKey((prev) => ({
+                    ...prev,
+                    [section.key]: idx,
+                  }))
+                }
+                className={`h-2.5 rounded-full transition-all ${
+                  Number(sectionPageByKey?.[section.key] || 0) === idx
+                    ? "w-7 bg-[#0f5b46]"
+                    : "w-2.5 bg-[#a6cdbf]"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       ))}
     </section>

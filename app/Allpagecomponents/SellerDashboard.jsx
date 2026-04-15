@@ -12,6 +12,7 @@ import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import SellerCategorySelector from "./SellerCategorySelector";
 import KhanChatHub from "./KhanChatHub";
+import KhanNotificationInbox from "./KhanNotificationInbox";
 
 const TABS = ["Overview", "Shop", "Add Items", "My Items", "Orders", "Chats", "Sponsorship", "Commission", "Notifications"];
 const ORDER_STATUSES = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
@@ -487,7 +488,7 @@ const SellerDashboard = () => {
                 <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Package size={18} /></div>
                 <div>
                   <h2 className="text-xl font-bold text-emerald-900">{editItemId ? "Edit Seller Item" : "Seller Item Studio"}</h2>
-                  <p className="text-sm text-emerald-700">Same powerful flow as admin, customized for seller operations.</p>
+                  <p className="text-sm text-emerald-700">KhanCosmetics Seller Item Managment Panel</p>
                 </div>
               </div>
 
@@ -752,42 +753,8 @@ const SellerDashboard = () => {
         ) : null}
 
         {!loading && activeTab === "Notifications" ? (
-          <div className="mt-6 grid gap-3">
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={markAllNotificationsRead}
-                className="rounded-xl border border-emerald-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-800"
-              >
-                Mark All Read
-              </button>
-            </div>
-            {notifications.length === 0 ? (
-              <div className={card}>No notifications yet.</div>
-            ) : (
-              notifications.map((n) => (
-                <div key={n._id} className={`${card} ${n.isread ? "" : "border-emerald-400 bg-emerald-50"}`}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-emerald-900">
-                        {n.title} {!n.isread ? <span className="ml-2 rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] text-white">New</span> : null}
-                      </p>
-                      <p className="mt-1 text-sm text-emerald-700">{n.message}</p>
-                      <p className="mt-1 text-xs text-emerald-600">{new Date(n.createdAt).toLocaleString()} | {n.type}</p>
-                    </div>
-                    {!n.isread ? (
-                      <button
-                        type="button"
-                        onClick={() => markNotificationRead(n._id)}
-                        className="rounded-xl border border-emerald-300 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
-                      >
-                        Mark Read
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              ))
-            )}
+          <div className="mt-6">
+            <KhanNotificationInbox role="Seller" />
           </div>
         ) : null}
       </div>

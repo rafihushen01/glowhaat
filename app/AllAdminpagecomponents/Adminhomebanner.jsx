@@ -38,6 +38,7 @@ const AdminHomeBanner = () => {
   const [form, setForm] = useState({
     navigationlink: `${frontendurl}/b`,
     bannernumber: "",
+    sectionkey: "home",
     image: null, // Stores the actual file object
   });
   
@@ -52,7 +53,7 @@ const AdminHomeBanner = () => {
   // ===============================
   const fetchBanners = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/gethomebanners`);
+      const { data } = await axios.get(`${API_URL}/gethomebanners?section=all`);
       if (data.success) {
         setBanners(data.banners || []);
       }
@@ -87,6 +88,7 @@ const AdminHomeBanner = () => {
     setForm({
       navigationlink: banner.navigationlink,
       bannernumber: banner.bannernumber,
+      sectionkey: banner.sectionkey || "home",
       image: null, // Reset file input
     });
     setPreview(banner.image); // Show existing Cloudinary URL as preview
@@ -96,7 +98,7 @@ const AdminHomeBanner = () => {
   // Handle Cancel/Reset
   const resetForm = () => {
     setEditMode(null);
-    setForm({ navigationlink: "", bannernumber: "", image: null });
+    setForm({ navigationlink: "", bannernumber: "", sectionkey: "home", image: null });
     setPreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -113,6 +115,7 @@ const AdminHomeBanner = () => {
     const formData = new FormData();
     formData.append("navigationlink", form.navigationlink);
     formData.append("bannernumber", form.bannernumber);
+    formData.append("sectionkey", form.sectionkey || "home");
     if (form.image) {
       formData.append("image", form.image);
     }
@@ -285,6 +288,21 @@ const AdminHomeBanner = () => {
                       </div>
                     </div>
 
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-gray-500 ml-1">CMS Section</label>
+                      <select
+                        value={form.sectionkey}
+                        onChange={(e) => setForm({ ...form, sectionkey: e.target.value })}
+                        className={`w-full px-4 py-3 rounded-xl outline-none border transition-all ${
+                          darkMode ? "bg-slate-950 border-slate-700 focus:border-blue-500 text-white" : "bg-gray-50 border-gray-200 focus:border-blue-500 text-gray-900"
+                        }`}
+                      >
+                        <option value="home">Home Hero</option>
+                        <option value="bestselling">Best Selling Section</option>
+                        <option value="fivestar">5-Star Section</option>
+                      </select>
+                    </div>
+
                     {/* Actions */}
                     <div className="flex gap-3 pt-2">
                        <button
@@ -339,6 +357,9 @@ const AdminHomeBanner = () => {
                     {/* Badge Number */}
                     <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10">
                       #{banner.bannernumber}
+                    </div>
+                    <div className="absolute top-3 right-3 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg z-10 uppercase tracking-[0.1em]">
+                      {banner.sectionkey || "home"}
                     </div>
 
                     {/* Hover Overlay */}

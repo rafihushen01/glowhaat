@@ -7,6 +7,7 @@ import NewItem from "../Allpagecomponents/NewItem"
 import CategoryShowcase from './UsersCategorySlider'
 import BehaviorRecommendations from './BehaviorRecommendations'
 import BrandFooter from './BrandFooter'
+import KhanNotificationInbox from './KhanNotificationInbox'
 
 
 const UserDashboard = () => {
@@ -26,6 +27,9 @@ const UserDashboard = () => {
       </section>
       <section id="deals-you-cant-miss">
         <BehaviorRecommendations />
+      </section>
+      <section className="mx-auto mt-10 max-w-7xl px-4">
+        <KhanNotificationInbox role="User" compact />
       </section>
       <BrandFooter />
 

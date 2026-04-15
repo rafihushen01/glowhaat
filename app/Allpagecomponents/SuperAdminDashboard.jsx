@@ -6,6 +6,7 @@ import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarCha
 import { Users } from "lucide-react";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
+import KhanNotificationInbox from "./KhanNotificationInbox";
 
 const SuperAdminDashboard = () => {
   const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
@@ -91,6 +92,9 @@ const SuperAdminDashboard = () => {
             description="Control sponsorship, commission, shop health/freeze, and subscriptions."
             icon={<Store className="h-5 w-5" />}
           />
+        </div>
+        <div className="mt-8">
+          <KhanNotificationInbox role="SuperAdmin" />
         </div>
       </div>
     </div>

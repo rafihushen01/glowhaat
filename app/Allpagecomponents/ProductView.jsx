@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux'
 import {useTranslations} from "next-intl";
 import { 
   ChevronRight, Minus, Plus, ShoppingBag,
-  Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Globe, Heart
+  Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Globe, Heart, Home, Star
 } from 'lucide-react'
 // Import the advanced zoom library
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
@@ -197,6 +197,14 @@ const ProductView = () => {
   const discount = currentOption?.discountpercentage || 0;
   const isVideoAvailable = product.gallery && product.gallery.length > 0;
   const shopProfile = product?.shopid && typeof product.shopid === "object" ? product.shopid : null;
+  const sellerProfile = product?.sellerprofile && typeof product.sellerprofile === "object" ? product.sellerprofile : null;
+  const categoryTrail = Array.isArray(product?.categorytree) && product.categorytree.length
+    ? product.categorytree.filter(Boolean)
+    : String(product?.categorypath || "")
+        .split(/\s*>\s*/)
+        .map((node) => node.trim())
+        .filter(Boolean);
+  const positiveSellerRating = Math.max(80, Math.min(99, Math.round((Number(product?.star || 4.2) / 5) * 100)));
 
   const formatText = (text) => {
     if (!text) return "";
@@ -367,12 +375,27 @@ const ProductView = () => {
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-emerald-100">
       
       {/* Navbar / Breadcrumbs */}
-      <nav className="w-full max-w-7xl mx-auto px-4 py-4 text-sm text-gray-500 flex items-center gap-2">
-        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/')}>{t("breadcrumbs.home")}</span>
-        <ChevronRight size={14} />
-        <span className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/products')}>{t("breadcrumbs.products")}</span>
-        <ChevronRight size={14} />
-        <span className="text-gray-900 font-medium truncate">{product.name}</span>
+      <nav className="w-full max-w-7xl mx-auto px-4 py-4 text-sm text-gray-500">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2">
+          <button type="button" className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900" onClick={() => router.push('/')}>
+            <Home size={14} /> {t("breadcrumbs.home")}
+          </button>
+          <ChevronRight size={14} />
+          {categoryTrail.length > 0 ? (
+            categoryTrail.map((entry, idx) => (
+              <React.Fragment key={`${entry}-${idx}`}>
+                <span className={`${idx === categoryTrail.length - 1 ? "font-semibold text-gray-900" : "text-emerald-700"}`}>{entry}</span>
+                {idx < categoryTrail.length - 1 ? <ChevronRight size={14} /> : null}
+              </React.Fragment>
+            ))
+          ) : (
+            <>
+              <button type="button" className="cursor-pointer hover:text-emerald-600" onClick={() => router.push('/products')}>{t("breadcrumbs.products")}</button>
+              <ChevronRight size={14} />
+              <span className="text-gray-900 font-medium truncate">{product.name}</span>
+            </>
+          )}
+        </div>
       </nav>
 
       {/* Main Grid */}
@@ -442,21 +465,50 @@ const ProductView = () => {
               {originalPrice > currentPrice && <span className="text-lg text-gray-400 line-through">৳{originalPrice.toLocaleString()}</span>}
             </div>
             {shopProfile?.slug ? (
-              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Sold By</p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/shop/${shopProfile.slug}`)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
-                  >
-                    Visit {shopProfile.shopname || "Shop"}
-                  </button>
-                  <SellerChatDrawer
-                    shop={shopProfile}
-                    product={{ _id: product?._id, name: product?.name, slug: product?.slug }}
-                    buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
-                  />
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="rounded-xl border border-emerald-100 bg-white p-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Sold By</p>
+                    <p className="mt-2 text-lg font-semibold text-emerald-950">{shopProfile.shopname || "Shop"}</p>
+                    <div className="mt-3 flex items-center gap-2 text-emerald-700">
+                      <Star className="h-4 w-4 fill-emerald-600 text-emerald-600" />
+                      <span className="text-sm font-semibold">Positive Seller Ratings {positiveSellerRating}%</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/shop/${shopProfile.slug}`)}
+                        className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
+                      >
+                        View Seller Profile
+                      </button>
+                      <SellerChatDrawer
+                        shop={shopProfile}
+                        product={{ _id: product?._id, name: product?.name, slug: product?.slug }}
+                        buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-100 bg-white p-3">
+                    <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Seller Showcase</p>
+                    <p className="mt-2 text-sm text-emerald-900">
+                      Main Store Type: <span className="font-semibold">{sellerProfile?.storetype || "General Beauty Store"}</span>
+                    </p>
+                    <p className="mt-2 text-sm text-emerald-900">
+                      Preferred Category:{" "}
+                      <span className="font-semibold">
+                        {Array.isArray(sellerProfile?.preferredcategories) && sellerProfile.preferredcategories.length
+                          ? sellerProfile.preferredcategories.join(", ")
+                          : categoryTrail[categoryTrail.length - 1] || "Beauty Essentials"}
+                      </span>
+                    </p>
+                    {sellerProfile?.businessmodel ? (
+                      <p className="mt-2 text-sm text-emerald-900">
+                        Business Model: <span className="font-semibold">{sellerProfile.businessmodel}</span>
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ) : null}
