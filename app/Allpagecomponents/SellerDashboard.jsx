@@ -4,18 +4,26 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
+import { Package, Image as ImageIcon, Truck, Sparkles, Calculator, Trash2, X } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import SellerCategorySelector from "./SellerCategorySelector";
+import KhanChatHub from "./KhanChatHub";
 
-const TABS = ["Overview", "Shop", "Add Items", "My Items", "Orders", "Sponsorship", "Commission", "Notifications"];
+const TABS = ["Overview", "Shop", "Add Items", "My Items", "Orders", "Chats", "Sponsorship", "Commission", "Notifications"];
 const ORDER_STATUSES = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
 const tabButton = (active) => `rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800 hover:border-emerald-500"}`;
 const card = "rounded-2xl border border-emerald-200 bg-white p-4 md:p-5";
 const input = "mt-1 h-11 w-full rounded-xl border border-emerald-200 px-3 text-sm outline-none focus:border-emerald-500";
 const textarea = "mt-1 min-h-[84px] w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm outline-none focus:border-emerald-500";
 const badge = (ok) => `inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${ok ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`;
+const itemVars = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50 } },
+};
 
 const defaultItemForm = {
   name: "",
@@ -23,15 +31,22 @@ const defaultItemForm = {
   highlight: "",
   aboutitems: "",
   brand: "",
-  categorypath: "Beauty > General",
-  categoryids: "[]",
-  categorytree: "[]",
+  categorypath: "",
+  categoryids: [],
+  categorytree: [],
   type: "fashion",
-  deliveryname: "Standard Delivery",
-  deliverytime: "3-5 Days",
-  deliverycharge: 60,
-  isfreeshipping: false,
-  variants: '[{"name":"Default","varianttype":"Type","images":[],"options":[{"name":"Standard","baseprice":0,"discountpercentage":0,"stock":50,"skucode":""}]}]',
+  flashsale: false,
+  eidsale: false,
+  coustomsale: false,
+  isreturnable: true,
+  warrantynotavalible: false,
+  isperishable: false,
+  isactive: true,
+  expirydate: "",
+  warranty: "",
+  warrantyperiod: "",
+  deliveryschema: { name: "Standard Delivery", deliverytime: "3-5 Days", deliverycharge: 60, isfreeshipping: false },
+  variants: [],
 };
 
 const SellerDashboard = () => {
@@ -56,6 +71,8 @@ const SellerDashboard = () => {
   const [shopForm, setShopForm] = useState({ shopname: "", description: "", contactemail: "", contactphone: "", address: "", profileimage: null, bannerimage: null });
   const [itemForm, setItemForm] = useState(defaultItemForm);
   const [itemFiles, setItemFiles] = useState({ whiteimage: null, hoverimage: null, gallery: [] });
+  const [variantPreviews, setVariantPreviews] = useState({});
+  const [groupCount, setGroupCount] = useState(1);
   const [editItemId, setEditItemId] = useState("");
 
   const [sponsorForm, setSponsorForm] = useState({ itemid: "", amount: 100, senderbkashnumber: "", transactionid: "", paymentss: null });
@@ -110,6 +127,84 @@ const SellerDashboard = () => {
   }, [user, role]);
 
   const sortedItems = useMemo(() => [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), [items]);
+  const calculateFinalPrice = (base, discount) => {
+    const p = Number(base) || 0;
+    const d = Number(discount) || 0;
+    if (p <= 0) return "0.00";
+    return (p - (p * d) / 100).toFixed(2);
+  };
+
+  const createVariantGroups = (count) => {
+    const n = Number(count) || 0;
+    if (n < 1) return;
+    const created = Array(n)
+      .fill(null)
+      .map(() => ({
+        name: "",
+        varianttype: "Color",
+        colorHex: "#10b981",
+        images: [],
+        imageSlots: 4,
+        options: [],
+      }));
+    setItemForm((prev) => ({ ...prev, variants: [...prev.variants, ...created] }));
+  };
+
+  const setVariantImageSlots = (vIndex, count) => {
+    setItemForm((prev) => {
+      const variants = [...prev.variants];
+      variants[vIndex].imageSlots = Number(count) || 1;
+      return { ...prev, variants };
+    });
+  };
+
+  const handleVariantImageUpload = (e, vIndex, slotIndex) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setItemForm((prev) => {
+      const variants = [...prev.variants];
+      if (!variants[vIndex].images) variants[vIndex].images = [];
+      variants[vIndex].images[slotIndex] = file;
+      return { ...prev, variants };
+    });
+    setVariantPreviews((prev) => {
+      const next = { ...prev };
+      if (!next[vIndex]) next[vIndex] = [];
+      next[vIndex][slotIndex] = URL.createObjectURL(file);
+      return next;
+    });
+  };
+
+  const addOption = (vIndex) => {
+    setItemForm((prev) => {
+      const variants = [...prev.variants];
+      variants[vIndex].options.push({
+        name: "",
+        baseprice: "",
+        discountpercentage: "",
+        stock: 100,
+        skucode: "",
+        weight: "",
+        expirydate: "",
+        discountstartdate: "",
+        discountenddate: "",
+      });
+      return { ...prev, variants };
+    });
+  };
+
+  const removeVariant = (index) => {
+    setItemForm((prev) => {
+      const variants = [...prev.variants];
+      variants.splice(index, 1);
+      return { ...prev, variants };
+    });
+    setVariantPreviews((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
 
   const handleCreateShop = async (e) => {
     e.preventDefault();
@@ -142,10 +237,31 @@ const SellerDashboard = () => {
     }
     try {
       const fd = new FormData();
-      Object.entries(itemForm).forEach(([k, v]) => fd.append(k, typeof v === "boolean" ? String(v) : String(v || "")));
+      Object.entries(itemForm).forEach(([k, v]) => {
+        if (["variants", "deliveryschema", "categoryids", "categorytree", "categorypath"].includes(k)) return;
+        fd.append(k, typeof v === "boolean" ? String(v) : String(v || ""));
+      });
+      fd.append("categoryids", JSON.stringify(itemForm.categoryids || []));
+      fd.append("categorytree", JSON.stringify(itemForm.categorytree || []));
+      fd.append("categorypath", itemForm.categorypath || (itemForm.categorytree || []).join(" > "));
+      fd.append("deliveryname", itemForm.deliveryschema?.name || "Standard Delivery");
+      fd.append("deliverytime", itemForm.deliveryschema?.deliverytime || "3-5 Days");
+      fd.append("deliverycharge", String(itemForm.deliveryschema?.deliverycharge ?? 60));
+      fd.append("isfreeshipping", String(Boolean(itemForm.deliveryschema?.isfreeshipping)));
+      fd.append("deliveryschema", JSON.stringify(itemForm.deliveryschema || {}));
       if (itemFiles.whiteimage) fd.append("whiteimage", itemFiles.whiteimage);
       if (itemFiles.hoverimage) fd.append("hoverimage", itemFiles.hoverimage);
       (itemFiles.gallery || []).forEach((file) => fd.append("gallery", file));
+      const variantsJSON = itemForm.variants.map((variant) => ({
+        ...variant,
+        images: (variant.images || []).map((img) => (typeof img === "string" ? img : "")),
+      }));
+      fd.append("variants", JSON.stringify(variantsJSON));
+      itemForm.variants.forEach((variant, vIndex) => {
+        (variant.images || []).forEach((img, slotIndex) => {
+          if (img instanceof File) fd.append(`variantmedia_${vIndex}_${slotIndex}`, img);
+        });
+      });
       const endpoint = editItemId ? `${serverurl}/seller/panel/items/${editItemId}` : `${serverurl}/seller/panel/items`;
       const method = editItemId ? "patch" : "post";
       const { data } = await axios[method](endpoint, fd, getRequestConfig({ headers: { "Content-Type": "multipart/form-data" }, timeout: 30000 }));
@@ -153,6 +269,7 @@ const SellerDashboard = () => {
       setNotice(editItemId ? "Item updated." : "Item created.");
       setItemForm(defaultItemForm);
       setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] });
+      setVariantPreviews({});
       setEditItemId("");
       await loadAll();
       setActiveTab("My Items");
@@ -162,23 +279,44 @@ const SellerDashboard = () => {
   };
   const handleEditPick = (item) => {
     setEditItemId(item._id);
-    setItemForm((prev) => ({
-      ...prev,
+    setItemForm({
+      ...defaultItemForm,
       name: item.name || "",
       description: item.description || "",
       highlight: item.highlight || "",
       aboutitems: item.aboutitems || "",
       brand: item.brand || "",
       categorypath: item.categorypath || "",
-      categoryids: JSON.stringify(item.categoryids || []),
-      categorytree: JSON.stringify(item.categorytree || []),
+      categoryids: item.categoryids || [],
+      categorytree: item.categorytree || [],
       type: item.type || "fashion",
-      deliveryname: item.deliveryschema?.name || "Standard Delivery",
-      deliverytime: item.deliveryschema?.deliverytime || "3-5 Days",
-      deliverycharge: item.deliveryschema?.deliverycharge || 60,
-      isfreeshipping: Boolean(item.deliveryschema?.isfreeshipping),
-      variants: JSON.stringify(item.variants || []),
-    }));
+      flashsale: Boolean(item.flashsale),
+      eidsale: Boolean(item.eidsale),
+      coustomsale: Boolean(item.coustomsale),
+      isreturnable: Boolean(item.isreturnable),
+      warrantynotavalible: Boolean(item.warrantynotavalible),
+      isperishable: Boolean(item.isperishable),
+      isactive: item.isactive !== false,
+      expirydate: item.expirydate ? new Date(item.expirydate).toISOString().slice(0, 10) : "",
+      warranty: item.warranty || "",
+      warrantyperiod: item.warrantyperiod || "",
+      deliveryschema: {
+        name: item.deliveryschema?.name || "Standard Delivery",
+        deliverytime: item.deliveryschema?.deliverytime || "3-5 Days",
+        deliverycharge: item.deliveryschema?.deliverycharge || 60,
+        isfreeshipping: Boolean(item.deliveryschema?.isfreeshipping),
+      },
+      variants: (item.variants || []).map((variant) => ({
+        ...variant,
+        colorHex: "#10b981",
+        imageSlots: Math.max(1, (variant.images || []).length || 1),
+      })),
+    });
+    const previews = {};
+    (item.variants || []).forEach((variant, idx) => {
+      previews[idx] = variant.images || [];
+    });
+    setVariantPreviews(previews);
     setActiveTab("Add Items");
   };
 
@@ -343,36 +481,177 @@ const SellerDashboard = () => {
         ) : null}
 
         {!loading && activeTab === "Add Items" ? (
-          <form className="mt-6 grid gap-4" onSubmit={handleCreateItem}>
-            <div className={card}>
-              <h2 className="text-xl font-semibold text-emerald-900">{editItemId ? "Edit Item" : "Add New Item"}</h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <label className="text-sm">Item Name<input className={input} value={itemForm.name} onChange={(e) => setItemForm((p) => ({ ...p, name: e.target.value }))} required /></label>
+          <form className="mt-6 grid gap-5" onSubmit={handleCreateItem}>
+            <motion.div variants={itemVars} initial="hidden" animate="visible" className="rounded-3xl border border-emerald-200 bg-[linear-gradient(160deg,#ffffff_0%,#f2fff7_45%,#ebfff4_100%)] p-5 md:p-7">
+              <div className="mb-6 flex items-center gap-3 border-b border-dashed border-emerald-200 pb-4">
+                <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Package size={18} /></div>
+                <div>
+                  <h2 className="text-xl font-bold text-emerald-900">{editItemId ? "Edit Seller Item" : "Seller Item Studio"}</h2>
+                  <p className="text-sm text-emerald-700">Same powerful flow as admin, customized for seller operations.</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className="text-sm">Product Name<input className={input} value={itemForm.name} onChange={(e) => setItemForm((p) => ({ ...p, name: e.target.value }))} required /></label>
                 <label className="text-sm">Brand<input className={input} value={itemForm.brand} onChange={(e) => setItemForm((p) => ({ ...p, brand: e.target.value }))} /></label>
+                <label className="text-sm">Type<input className={input} value={itemForm.type} onChange={(e) => setItemForm((p) => ({ ...p, type: e.target.value }))} /></label>
                 <label className="text-sm">Category Path<input className={input} value={itemForm.categorypath} onChange={(e) => setItemForm((p) => ({ ...p, categorypath: e.target.value }))} /></label>
-                <label className="text-sm">Category IDs JSON<input className={input} value={itemForm.categoryids} readOnly /></label>
-                <label className="text-sm">Category Tree JSON<input className={input} value={itemForm.categorytree} readOnly /></label>
-                <label className="text-sm">Variants JSON<textarea className={textarea} value={itemForm.variants} onChange={(e) => setItemForm((p) => ({ ...p, variants: e.target.value }))} /></label>
                 <label className="text-sm md:col-span-2">Description<textarea className={textarea} value={itemForm.description} onChange={(e) => setItemForm((p) => ({ ...p, description: e.target.value }))} /></label>
-                <label className="text-sm">Main Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, whiteimage: e.target.files?.[0] || null }))} /></label>
-                <label className="text-sm">Hover Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, hoverimage: e.target.files?.[0] || null }))} /></label>
-                <label className="text-sm md:col-span-2">Gallery<input type="file" multiple className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, gallery: Array.from(e.target.files || []) }))} /></label>
+                <label className="text-sm md:col-span-2">Highlights<textarea className={textarea} value={itemForm.highlight} onChange={(e) => setItemForm((p) => ({ ...p, highlight: e.target.value }))} /></label>
+                <label className="text-sm md:col-span-2">Product Story<textarea className={textarea} value={itemForm.aboutitems} onChange={(e) => setItemForm((p) => ({ ...p, aboutitems: e.target.value }))} /></label>
+
                 <div className="md:col-span-2">
                   <SellerCategorySelector
                     onSelect={(cat) =>
                       setItemForm((p) => ({
                         ...p,
-                        categoryids: JSON.stringify(Array.isArray(cat?.ids) ? cat.ids : []),
-                        categorytree: JSON.stringify(Array.isArray(cat?.names) ? cat.names : []),
+                        categoryids: Array.isArray(cat?.ids) ? cat.ids : [],
+                        categorytree: Array.isArray(cat?.names) ? cat.names : [],
                         categorypath: cat?.path || "",
                       }))
                     }
                   />
                 </div>
               </div>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <button disabled={!hasShop || isFrozen} className="rounded-xl bg-emerald-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-60">{editItemId ? "Update Item" : "Publish Item"}</button>
-                {editItemId ? <button type="button" onClick={() => { setEditItemId(""); setItemForm(defaultItemForm); }} className="rounded-xl border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Cancel Edit</button> : null}
+
+              <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.flashsale} onChange={(e) => setItemForm((p) => ({ ...p, flashsale: e.target.checked }))} />Flash Sale</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.eidsale} onChange={(e) => setItemForm((p) => ({ ...p, eidsale: e.target.checked }))} />Eid Sale</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.coustomsale} onChange={(e) => setItemForm((p) => ({ ...p, coustomsale: e.target.checked }))} />Custom Sale</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.isreturnable} onChange={(e) => setItemForm((p) => ({ ...p, isreturnable: e.target.checked }))} />Returnable</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.warrantynotavalible} onChange={(e) => setItemForm((p) => ({ ...p, warrantynotavalible: e.target.checked }))} />No Warranty</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.isperishable} onChange={(e) => setItemForm((p) => ({ ...p, isperishable: e.target.checked }))} />Perishable</label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.isactive} onChange={(e) => setItemForm((p) => ({ ...p, isactive: e.target.checked }))} />Active</label>
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVars} initial="hidden" animate="visible" className="rounded-3xl border border-emerald-200 bg-white p-5 md:p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><ImageIcon size={18} /></div>
+                <h3 className="text-lg font-semibold text-emerald-900">Media</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <label className="text-sm">Main Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, whiteimage: e.target.files?.[0] || null }))} /></label>
+                <label className="text-sm">Hover Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, hoverimage: e.target.files?.[0] || null }))} /></label>
+                <label className="text-sm md:col-span-2">Gallery<input type="file" multiple className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, gallery: Array.from(e.target.files || []) }))} /></label>
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVars} initial="hidden" animate="visible" className="rounded-3xl border border-emerald-200 bg-white p-5 md:p-7">
+              <div className="mb-5 flex items-center gap-3">
+                <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Truck size={18} /></div>
+                <h3 className="text-lg font-semibold text-emerald-900">Logistics</h3>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="text-sm">Delivery Name<input className={input} value={itemForm.deliveryschema.name} onChange={(e) => setItemForm((p) => ({ ...p, deliveryschema: { ...p.deliveryschema, name: e.target.value } }))} /></label>
+                <label className="text-sm">Delivery Time<input className={input} value={itemForm.deliveryschema.deliverytime} onChange={(e) => setItemForm((p) => ({ ...p, deliveryschema: { ...p.deliveryschema, deliverytime: e.target.value } }))} /></label>
+                <label className="text-sm">Delivery Charge<input type="number" className={input} value={itemForm.deliveryschema.deliverycharge} onChange={(e) => setItemForm((p) => ({ ...p, deliveryschema: { ...p.deliveryschema, deliverycharge: e.target.value } }))} /></label>
+                <label className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"><input type="checkbox" checked={itemForm.deliveryschema.isfreeshipping} onChange={(e) => setItemForm((p) => ({ ...p, deliveryschema: { ...p.deliveryschema, isfreeshipping: e.target.checked } }))} />Free Shipping</label>
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVars} initial="hidden" animate="visible" className="rounded-3xl border border-emerald-200 bg-white p-5 md:p-7">
+              <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Sparkles size={18} /></div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-emerald-900">Variant Engine</h3>
+                    <p className="text-sm text-emerald-700">Advanced price/stock options with image slots.</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input type="number" className="h-10 w-20 rounded-lg border border-emerald-200 px-2 text-center text-sm" value={groupCount} onChange={(e) => setGroupCount(e.target.value)} />
+                  <button type="button" onClick={() => createVariantGroups(groupCount)} className="rounded-lg bg-emerald-700 px-5 py-2 text-sm font-bold text-white">Generate</button>
+                </div>
+              </div>
+
+              <div className="space-y-5">
+                <AnimatePresence>
+                  {itemForm.variants.map((variant, vIndex) => (
+                    <motion.div key={vIndex} initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
+                      <div className="mb-4 flex flex-col gap-3 lg:flex-row">
+                        <div className="grid flex-1 grid-cols-2 gap-3 md:grid-cols-4">
+                          <label className="text-xs">Variant Name<input className={input} value={variant.name} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].name = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                          <label className="text-xs">Type<input className={input} value={variant.varianttype} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].varianttype = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                          <label className="text-xs">Color<input type="color" className="mt-1 h-11 w-full rounded-xl border border-emerald-200 bg-white p-2" value={variant.colorHex || "#10b981"} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].colorHex = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                          <label className="text-xs">Image Slots<input type="number" className={input} value={variant.imageSlots} onChange={(e) => setVariantImageSlots(vIndex, e.target.value)} /></label>
+                        </div>
+                        <button type="button" onClick={() => removeVariant(vIndex)} className="self-end rounded-xl bg-red-500/10 p-3 text-red-600 hover:bg-red-500 hover:text-white"><Trash2 size={16} /></button>
+                      </div>
+
+                      <div className="mb-5 flex gap-2 overflow-x-auto pb-2">
+                        {Array.from({ length: variant.imageSlots || 4 }).map((_, slotIdx) => (
+                          <label key={slotIdx} className="relative flex h-16 w-16 flex-shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border-2 border-dashed border-emerald-300 bg-white md:h-20 md:w-20">
+                            {variantPreviews[vIndex]?.[slotIdx] ? (
+                              <Image
+                                src={variantPreviews[vIndex][slotIdx]}
+                                alt={`Variant ${vIndex + 1} image ${slotIdx + 1}`}
+                                fill
+                                unoptimized
+                                className="object-cover"
+                              />
+                            ) : <span className="text-[10px] text-emerald-600">{slotIdx + 1}</span>}
+                            <input type="file" className="absolute inset-0 opacity-0" onChange={(e) => handleVariantImageUpload(e, vIndex, slotIdx)} />
+                          </label>
+                        ))}
+                      </div>
+
+                      <div className="hidden overflow-x-auto rounded-xl border border-emerald-200 md:block">
+                        <table className="w-full text-left">
+                          <thead className="bg-emerald-50 text-xs uppercase text-emerald-700">
+                            <tr>
+                              <th className="p-3">Option</th>
+                              <th className="p-3">Base</th>
+                              <th className="p-3">Discount%</th>
+                              <th className="p-3">Final</th>
+                              <th className="p-3">Stock</th>
+                              <th className="p-3">SKU</th>
+                              <th className="p-3"></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variant.options.map((opt, oIndex) => (
+                              <tr key={oIndex} className="border-t border-emerald-100">
+                                <td className="p-2"><input className={input} value={opt.name} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].name = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></td>
+                                <td className="p-2"><input type="number" className={input} value={opt.baseprice} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].baseprice = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></td>
+                                <td className="p-2"><input type="number" className={input} value={opt.discountpercentage} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].discountpercentage = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></td>
+                                <td className="p-2"><div className="rounded-lg border border-emerald-300 bg-emerald-50 px-3 py-2 text-center text-sm font-bold text-emerald-800">Tk {calculateFinalPrice(opt.baseprice, opt.discountpercentage)}</div></td>
+                                <td className="p-2"><input type="number" className={input} value={opt.stock} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].stock = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></td>
+                                <td className="p-2"><input className={input} value={opt.skucode} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].skucode = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></td>
+                                <td className="p-2"><button type="button" className="p-2 text-red-500" onClick={() => { const arr = [...itemForm.variants]; arr[vIndex].options.splice(oIndex, 1); setItemForm({ ...itemForm, variants: arr }); }}><X size={15} /></button></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="mt-3 space-y-3 md:hidden">
+                        {variant.options.map((opt, oIndex) => (
+                          <div key={oIndex} className="rounded-xl border border-emerald-200 bg-white p-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <label className="col-span-2 text-xs">Option Name<input className={input} value={opt.name} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].name = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                              <label className="text-xs">Base<input type="number" className={input} value={opt.baseprice} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].baseprice = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                              <label className="text-xs">Discount<input type="number" className={input} value={opt.discountpercentage} onChange={(e) => { const arr = [...itemForm.variants]; arr[vIndex].options[oIndex].discountpercentage = e.target.value; setItemForm({ ...itemForm, variants: arr }); }} /></label>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-300 bg-emerald-100/70 p-2 text-xs font-bold text-emerald-800">
+                              <span className="inline-flex items-center gap-1"><Calculator size={13} /> Final Price</span>
+                              <span>Tk {calculateFinalPrice(opt.baseprice, opt.discountpercentage)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <button type="button" onClick={() => addOption(vIndex)} className="mt-4 w-full rounded-xl border border-dashed border-emerald-400 py-3 text-xs font-bold text-emerald-700 hover:bg-emerald-100/70">+ Add Option</button>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            <div className="sticky bottom-0 z-30 rounded-2xl border border-emerald-300 bg-white/90 p-4 backdrop-blur">
+              <div className="flex flex-wrap justify-end gap-3">
+                <button disabled={!hasShop || isFrozen} className="rounded-xl bg-emerald-700 px-6 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-60">{editItemId ? "Update Item" : "Publish Item"}</button>
+                {editItemId ? <button type="button" onClick={() => { setEditItemId(""); setItemForm(defaultItemForm); setVariantPreviews({}); setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] }); }} className="rounded-xl border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Cancel Edit</button> : null}
               </div>
             </div>
           </form>
@@ -409,6 +688,12 @@ const SellerDashboard = () => {
                 </div>
               </div>
             ))}
+          </div>
+        ) : null}
+
+        {!loading && activeTab === "Chats" ? (
+          <div className="mt-6">
+            <KhanChatHub embedded />
           </div>
         ) : null}
 

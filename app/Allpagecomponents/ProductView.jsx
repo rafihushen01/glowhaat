@@ -15,6 +15,7 @@ import { serverurl } from '../utils/constants/serverurl'
 import { addToCart } from '../reduxcomponents/CartSlice'
 import ProductReviewQnaPanel from './ProductReviewQnaPanel'
 import ProductDetailRecommendations from "./ProductDetailRecommendations";
+import SellerChatDrawer from "./SellerChatDrawer";
 import { getRequestConfig } from "../utils/requestConfig";
 import { trackRecommendationEvent } from '../utils/recommendation'
 
@@ -195,6 +196,7 @@ const ProductView = () => {
   const originalPrice = currentOption?.baseprice || 0;
   const discount = currentOption?.discountpercentage || 0;
   const isVideoAvailable = product.gallery && product.gallery.length > 0;
+  const shopProfile = product?.shopid && typeof product.shopid === "object" ? product.shopid : null;
 
   const formatText = (text) => {
     if (!text) return "";
@@ -439,6 +441,25 @@ const ProductView = () => {
               <span className="text-3xl font-medium text-gray-900">৳{currentPrice.toLocaleString()}</span>
               {originalPrice > currentPrice && <span className="text-lg text-gray-400 line-through">৳{originalPrice.toLocaleString()}</span>}
             </div>
+            {shopProfile?.slug ? (
+              <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Sold By</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/shop/${shopProfile.slug}`)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
+                  >
+                    Visit {shopProfile.shopname || "Shop"}
+                  </button>
+                  <SellerChatDrawer
+                    shop={shopProfile}
+                    product={{ _id: product?._id, name: product?.name, slug: product?.slug }}
+                    buttonClassName="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800 hover:bg-emerald-100"
+                  />
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="mb-6 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-4">
@@ -727,3 +748,4 @@ const ProductView = () => {
 }
 
 export default ProductView
+

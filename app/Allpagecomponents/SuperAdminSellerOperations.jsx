@@ -7,7 +7,7 @@ import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 
-const TABS = ["Sponsorships", "Commissions", "Shops", "Subscriptions"];
+const TABS = ["Sponsorships", "Commissions", "Shops", "Subscriptions", "Chat Reports"];
 
 const tabBtn = (active) =>
   `rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] ${
@@ -33,6 +33,7 @@ const SuperAdminSellerOperations = () => {
   const [khanSummary, setKhanSummary] = useState(null);
   const [shops, setShops] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [chatReports, setChatReports] = useState([]);
   const [preview, setPreview] = useState({ open: false, src: "", title: "" });
 
   const [globalPercent, setGlobalPercent] = useState(5);
@@ -43,13 +44,14 @@ const SuperAdminSellerOperations = () => {
     setLoading(true);
     setError("");
     try {
-      const [sponsorRes, configRes, paymentRes, khanSummaryRes, shopRes, subRes] = await Promise.all([
+      const [sponsorRes, configRes, paymentRes, khanSummaryRes, shopRes, subRes, reportRes] = await Promise.all([
         axios.get(`${serverurl}/seller/admin/panel/sponsorships`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/commission-config`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/commission-payments`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/commission/khan-summary`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/shops`, getRequestConfig({ timeout: 20000 })),
         axios.get(`${serverurl}/seller/admin/panel/subscriptions`, getRequestConfig({ timeout: 20000 })),
+        axios.get(`${serverurl}/seller/admin/panel/chat-reports`, getRequestConfig({ timeout: 20000 })),
       ]);
 
       setSponsorships(sponsorRes.data?.requests || []);
@@ -58,6 +60,7 @@ const SuperAdminSellerOperations = () => {
       setKhanSummary(khanSummaryRes.data?.summary || null);
       setShops(shopRes.data?.shops || []);
       setSubscriptions(subRes.data?.subscriptions || []);
+      setChatReports(reportRes.data?.reports || []);
       setGlobalPercent(Number(configRes.data?.config?.globalpercentage || 5));
       setKhanPercent(Number(configRes.data?.config?.khancommissionpercentage || 10));
     } catch (err) {
@@ -164,6 +167,27 @@ const SuperAdminSellerOperations = () => {
       await loadAll();
     } catch (err) {
       setError(err?.response?.data?.message || err?.message || "Failed to update subscription.");
+    }
+  };
+
+  const decideChatReport = async (id, decision) => {
+    const adminnote = prompt("Admin note", decision === "ActionTaken" ? "Seller warned after investigation" : "Reviewed by admin") || "";
+    const healthdeduction =
+      decision === "ActionTaken"
+        ? Number(prompt("Health deduction (0-50)", "10") || 10)
+        : 0;
+
+    try {
+      const { data } = await axios.patch(
+        `${serverurl}/seller/admin/panel/chat-reports/${id}/decision`,
+        { decision, adminnote, healthdeduction },
+        getRequestConfig({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Action failed");
+      setNotice(`Chat report marked as ${decision}.`);
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to update report.");
     }
   };
 
@@ -331,6 +355,72 @@ const SuperAdminSellerOperations = () => {
             ))}
           </div>
         ) : null}
+
+        {!loading && activeTab === "Chat Reports" ? (
+          <div className="mt-6 grid gap-3">
+            {chatReports.length === 0 ? (
+              <div className={card}>No customer abuse reports yet.</div>
+            ) : (
+              chatReports.map((report) => (
+                <div key={report._id} className={card}>
+                  <p className="text-sm font-semibold text-[#1f5c49]">
+                    {report.reason} - {report.status}
+                  </p>
+                  <p className="mt-1 text-xs text-[#4b6b61]">
+                    Seller: {report.sellerid?.fullname || "Seller"} ({report.sellerid?.email || "N/A"})
+                  </p>
+                  <p className="mt-1 text-xs text-[#4b6b61]">
+                    Shop: {report.shopid?.shopname || "N/A"} | Reporter: {report.reporterid?.fullname || report.reportername || "Guest"}
+                  </p>
+                  <p className="mt-1 text-xs text-[#4b6b61]">{report.details || "No details"}</p>
+                  {Array.isArray(report.evidence) && report.evidence.length ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {report.evidence.map((ev, idx) => (
+                        <button
+                          key={`${report._id}-ev-${idx}`}
+                          type="button"
+                          onClick={() => openPreview(ev.url, `Report Evidence ${idx + 1}`)}
+                          className="rounded-xl border border-[#dce8e2] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#1f5c49]"
+                        >
+                          View {ev.type}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <p className="mt-2 text-xs text-[#4b6b61]">
+                    Health deduction: {Number(report.healthdeduction || 0)} | Admin Note: {report.adminnote || "N/A"}
+                  </p>
+
+                  {report.status === "Pending" || report.status === "Investigating" ? (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => decideChatReport(report._id, "Investigating")}
+                        className="rounded-xl border border-[#dce8e2] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-[#1f5c49]"
+                      >
+                        Investigating
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => decideChatReport(report._id, "ActionTaken")}
+                        className="rounded-xl bg-[#1f5c49] px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-white"
+                      >
+                        Action + Deduct Health
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => decideChatReport(report._id, "Rejected")}
+                        className="rounded-xl border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-red-700"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              ))
+            )}
+          </div>
+        ) : null}
       </div>
 
       {preview.open ? (
@@ -347,7 +437,11 @@ const SuperAdminSellerOperations = () => {
               </button>
             </div>
             <div className="max-h-[75vh] overflow-auto rounded-xl border border-[#e6efea] bg-[#f5fbf8] p-2">
-              <img src={preview.src} alt={preview.title} className="mx-auto h-auto max-w-full rounded-lg object-contain" />
+              {/\.(mp4|webm|ogg|mov)(\?|$)/i.test(preview.src) ? (
+                <video src={preview.src} controls className="mx-auto h-auto max-w-full rounded-lg object-contain" />
+              ) : (
+                <img src={preview.src} alt={preview.title} className="mx-auto h-auto max-w-full rounded-lg object-contain" />
+              )}
             </div>
           </div>
         </div>
