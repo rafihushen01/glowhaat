@@ -14,7 +14,7 @@ const UserDashboard = () => {
     <div className="min-h-screen bg-white">
       <UserNav />
       <main className="pt-[140px] lg:pt-[196px]">
-        <section className="mx-auto w-full max-w-[1920px] px-2 sm:px-4 lg:px-6">
+        <section className="mx-auto mt-100 w-full max-w-[1920px] px-2 sm:px-4 lg:px-6">
           <UserHomebanner />
         </section>
         <section id="new-arrivals">
