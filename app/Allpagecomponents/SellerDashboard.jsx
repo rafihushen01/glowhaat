@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, Image as ImageIcon, Truck, Sparkles, Calculator, Trash2, X } from "lucide-react";
+import { Package, Image as ImageIcon, Truck, Sparkles, Calculator, Trash2, X, Flame, Copy, Pencil } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import SellerCategorySelector from "./SellerCategorySelector";
@@ -72,6 +72,7 @@ const SellerDashboard = () => {
   const [shopForm, setShopForm] = useState({ shopname: "", description: "", contactemail: "", contactphone: "", address: "", profileimage: null, bannerimage: null });
   const [itemForm, setItemForm] = useState(defaultItemForm);
   const [itemFiles, setItemFiles] = useState({ whiteimage: null, hoverimage: null, gallery: [] });
+  const [mediaPreview, setMediaPreview] = useState({ whiteimage: "", hoverimage: "", gallery: [] });
   const [variantPreviews, setVariantPreviews] = useState({});
   const [groupCount, setGroupCount] = useState(1);
   const [editItemId, setEditItemId] = useState("");
@@ -133,6 +134,85 @@ const SellerDashboard = () => {
     const d = Number(discount) || 0;
     if (p <= 0) return "0.00";
     return (p - (p * d) / 100).toFixed(2);
+  };
+  const formatMoney = (value) => `Tk ${Number(value || 0).toFixed(2)}`;
+  const formatDateTime = (value) => {
+    if (!value) return "N/A";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "N/A";
+    return date.toLocaleString();
+  };
+  const getItemStockStats = (item) => {
+    const variants = Array.isArray(item?.variants) ? item.variants : [];
+    const options = variants.flatMap((variant) => (Array.isArray(variant?.options) ? variant.options : []));
+    const totalstock = options.reduce((sum, option) => sum + Math.max(0, Number(option?.stock || 0)), 0);
+    const lowestpositivestock = options
+      .map((option) => Number(option?.stock || 0))
+      .filter((stock) => Number.isFinite(stock) && stock > 0)
+      .sort((a, b) => a - b)[0];
+    const instock = totalstock > 0;
+    return {
+      totalstock,
+      optioncount: options.length,
+      instock,
+      outofstock: !instock,
+      lowstock: Number.isFinite(lowestpositivestock) ? lowestpositivestock <= 5 : false,
+    };
+  };
+  const getOrderContext = (order) => ({
+    customer: order?.mainorder?.customer || order?.customer || {},
+    shipping: order?.mainorder?.shippingaddress || order?.shippingaddress || {},
+    payment: order?.mainorder?.payment || order?.payment || {},
+    note: order?.mainorder?.notes || "",
+    createdAt: order?.mainorder?.createdAt || order?.createdAt || null,
+  });
+  const formatShippingAddress = (shipping = {}) =>
+    [shipping?.addressline, shipping?.area, shipping?.upzilla, shipping?.city, shipping?.district, shipping?.landmark]
+      .map((part) => String(part || "").trim())
+      .filter(Boolean)
+      .join(", ");
+  const copySteadfastDetails = async (order) => {
+    const context = getOrderContext(order);
+    const address = formatShippingAddress(context.shipping);
+    const text = [
+      `Order: ${order?.ordernumber || "N/A"}`,
+      `Receiver: ${context.customer?.fullname || "N/A"}`,
+      `Phone: ${context.customer?.mobile || "N/A"}`,
+      `Email: ${context.customer?.email || "N/A"}`,
+      `Address: ${address || "N/A"}`,
+      `Product: ${order?.item?.name || "N/A"}`,
+      `Variant: ${order?.item?.variantname || "-"}`,
+      `Option: ${order?.item?.optionname || "-"}`,
+      `Quantity: ${Number(order?.item?.quantity || 0)}`,
+      `Collect Amount: ${formatMoney(order?.item?.totalprice || 0)}`,
+      `Payment Method: ${(context.payment?.method || "cod").toUpperCase()}`,
+      context.note ? `Customer Note: ${context.note}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setNotice("Order details copied for delivery booking.");
+    } catch (_error) {
+      setError("Could not copy order details. Please copy manually.");
+    }
+  };
+  const handleWhiteImageChange = (file) => {
+    setItemFiles((prev) => ({ ...prev, whiteimage: file || null }));
+    if (file) setMediaPreview((prev) => ({ ...prev, whiteimage: URL.createObjectURL(file) }));
+  };
+  const handleHoverImageChange = (file) => {
+    setItemFiles((prev) => ({ ...prev, hoverimage: file || null }));
+    if (file) setMediaPreview((prev) => ({ ...prev, hoverimage: URL.createObjectURL(file) }));
+  };
+  const handleGalleryChange = (fileList) => {
+    const files = Array.from(fileList || []);
+    setItemFiles((prev) => ({ ...prev, gallery: files }));
+    setMediaPreview((prev) => ({
+      ...prev,
+      gallery: files.map((file) => URL.createObjectURL(file)),
+    }));
   };
 
   const createVariantGroups = (count) => {
@@ -270,6 +350,7 @@ const SellerDashboard = () => {
       setNotice(editItemId ? "Item updated." : "Item created.");
       setItemForm(defaultItemForm);
       setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] });
+      setMediaPreview({ whiteimage: "", hoverimage: "", gallery: [] });
       setVariantPreviews({});
       setEditItemId("");
       await loadAll();
@@ -318,6 +399,12 @@ const SellerDashboard = () => {
       previews[idx] = variant.images || [];
     });
     setVariantPreviews(previews);
+    setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] });
+    setMediaPreview({
+      whiteimage: item.whiteimage || "",
+      hoverimage: item.hoverimage || "",
+      gallery: Array.isArray(item.gallery) ? item.gallery : [],
+    });
     setActiveTab("Add Items");
   };
 
@@ -328,10 +415,84 @@ const SellerDashboard = () => {
     try {
       const { data } = await axios.delete(`${serverurl}/seller/panel/items/${itemid}`, getRequestConfig({ timeout: 20000 }));
       if (!data?.success) throw new Error(data?.message || "Delete failed");
-      setNotice("Item deleted.");
+      setNotice(data?.message || "Item deleted.");
       await loadAll();
     } catch (err) {
-      setError(err?.response?.data?.message || err?.message || "Failed to delete item.");
+      const status = Number(err?.response?.status || 0);
+      const payload = err?.response?.data || {};
+      if (status === 409 && payload?.requiresforce) {
+        const pendingcount = Number(payload?.pendingordercount || 0);
+        const force = confirm(
+          `This product has ${pendingcount} order(s) in pending/processing status. If you continue, those orders will be canceled automatically. Continue force delete?`
+        );
+        if (!force) return;
+
+        try {
+          const forced = await axios.delete(
+            `${serverurl}/seller/panel/items/${itemid}`,
+            getRequestConfig({ timeout: 20000, params: { forcecancel: true } })
+          );
+          if (!forced?.data?.success) throw new Error(forced?.data?.message || "Force delete failed");
+          setNotice(forced?.data?.message || "Item deleted with automatic order cancellation.");
+          await loadAll();
+          return;
+        } catch (forcedErr) {
+          setError(forcedErr?.response?.data?.message || forcedErr?.message || "Failed to force delete item.");
+          return;
+        }
+      }
+      setError(payload?.message || err?.message || "Failed to delete item.");
+    }
+  };
+
+  const handleQuickStockStatus = async (item, nextstatus) => {
+    const variants = Array.isArray(item?.variants)
+      ? item.variants.map((variant) => ({
+          ...variant,
+          options: Array.isArray(variant?.options)
+            ? variant.options.map((option) => ({ ...option }))
+            : [],
+        }))
+      : [];
+    if (!variants.length) {
+      setError("This item has no variant options. Please edit item variants first.");
+      return;
+    }
+
+    if (nextstatus === "out_of_stock") {
+      variants.forEach((variant) => {
+        variant.options.forEach((option) => {
+          option.stock = 0;
+        });
+      });
+    } else {
+      let haspositive = false;
+      variants.forEach((variant) => {
+        variant.options.forEach((option) => {
+          if (Number(option?.stock || 0) > 0) haspositive = true;
+        });
+      });
+      if (!haspositive) {
+        const firstvariant = variants.find((variant) => Array.isArray(variant.options) && variant.options.length > 0);
+        if (firstvariant) {
+          firstvariant.options[0].stock = 10;
+        }
+      }
+    }
+
+    try {
+      setError("");
+      setNotice("");
+      const { data } = await axios.patch(
+        `${serverurl}/seller/panel/items/${item._id}`,
+        { variants: JSON.stringify(variants), isactive: true },
+        getRequestConfig({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Stock update failed");
+      setNotice(nextstatus === "out_of_stock" ? "Item marked as out of stock." : "Item marked as in stock.");
+      await loadAll();
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || "Failed to update stock state.");
     }
   };
 
@@ -532,9 +693,22 @@ const SellerDashboard = () => {
                 <h3 className="text-lg font-semibold text-emerald-900">Media</h3>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <label className="text-sm">Main Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, whiteimage: e.target.files?.[0] || null }))} /></label>
-                <label className="text-sm">Hover Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, hoverimage: e.target.files?.[0] || null }))} /></label>
-                <label className="text-sm md:col-span-2">Gallery<input type="file" multiple className="mt-2 block w-full text-xs" onChange={(e) => setItemFiles((p) => ({ ...p, gallery: Array.from(e.target.files || []) }))} /></label>
+                <label className="text-sm">Main Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => handleWhiteImageChange(e.target.files?.[0] || null)} /></label>
+                <label className="text-sm">Hover Image<input type="file" className="mt-2 block w-full text-xs" onChange={(e) => handleHoverImageChange(e.target.files?.[0] || null)} /></label>
+                <label className="text-sm md:col-span-2">Gallery<input type="file" multiple className="mt-2 block w-full text-xs" onChange={(e) => handleGalleryChange(e.target.files)} /></label>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <div className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50">
+                  {mediaPreview.whiteimage ? <img src={mediaPreview.whiteimage} alt="Main preview" className="h-28 w-full object-cover" /> : <div className="flex h-28 items-center justify-center text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-600">Main Preview</div>}
+                </div>
+                <div className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50">
+                  {mediaPreview.hoverimage ? <img src={mediaPreview.hoverimage} alt="Hover preview" className="h-28 w-full object-cover" /> : <div className="flex h-28 items-center justify-center text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-600">Hover Preview</div>}
+                </div>
+                {(mediaPreview.gallery || []).slice(0, 2).map((image, idx) => (
+                  <div key={`${image}-${idx}`} className="overflow-hidden rounded-xl border border-emerald-200 bg-emerald-50">
+                    <img src={image} alt={`Gallery preview ${idx + 1}`} className="h-28 w-full object-cover" />
+                  </div>
+                ))}
               </div>
             </motion.div>
 
@@ -652,43 +826,131 @@ const SellerDashboard = () => {
             <div className="sticky bottom-0 z-30 rounded-2xl border border-emerald-300 bg-white/90 p-4 backdrop-blur">
               <div className="flex flex-wrap justify-end gap-3">
                 <button disabled={!hasShop || isFrozen} className="rounded-xl bg-emerald-700 px-6 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-white disabled:opacity-60">{editItemId ? "Update Item" : "Publish Item"}</button>
-                {editItemId ? <button type="button" onClick={() => { setEditItemId(""); setItemForm(defaultItemForm); setVariantPreviews({}); setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] }); }} className="rounded-xl border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Cancel Edit</button> : null}
+                {editItemId ? <button type="button" onClick={() => { setEditItemId(""); setItemForm(defaultItemForm); setVariantPreviews({}); setItemFiles({ whiteimage: null, hoverimage: null, gallery: [] }); setMediaPreview({ whiteimage: "", hoverimage: "", gallery: [] }); }} className="rounded-xl border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">Cancel Edit</button> : null}
               </div>
             </div>
           </form>
         ) : null}
 
         {!loading && activeTab === "My Items" ? (
-          <div className="mt-6 grid gap-3">
-            {sortedItems.length === 0 ? <div className={card}>No items found.</div> : sortedItems.map((item) => (
-              <div key={item._id} className={card}>
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <p className="text-lg font-semibold text-emerald-900">{item.name}</p>
-                    <p className="text-xs text-emerald-700">{item.categorypath || "No category"}</p>
-                    <p className="mt-1 text-xs text-emerald-700">Status: {item.isactive ? "Active" : "Hidden"}</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {sortedItems.length === 0 ? <div className={`${card} sm:col-span-2 xl:col-span-3`}>No items found.</div> : sortedItems.map((item) => {
+              const stock = getItemStockStats(item);
+              const primaryImage = item?.whiteimage || item?.hoverimage || "";
+              const hoverImage = item?.hoverimage || item?.whiteimage || "";
+
+              return (
+                <div key={item._id} className="group overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm transition hover:shadow-lg">
+                  <div className="relative aspect-[4/5] overflow-hidden bg-emerald-50">
+                    {primaryImage ? (
+                      <img src={primaryImage} alt={item?.name || "Item"} className={`absolute inset-0 h-full w-full object-cover transition duration-300 ${hoverImage ? "group-hover:opacity-0" : ""}`} />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">No Image</div>
+                    )}
+                    {hoverImage ? (
+                      <img src={hoverImage} alt={`${item?.name || "Item"} hover`} className="absolute inset-0 h-full w-full object-cover opacity-0 transition duration-300 group-hover:opacity-100" />
+                    ) : null}
+
+                    <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${stock.instock ? "bg-emerald-500 text-white" : "bg-red-500 text-white"}`}>
+                        {stock.instock ? "In Stock" : "Out of Stock"}
+                      </span>
+                      {stock.lowstock ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-white">
+                          <Flame size={12} /> Low
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="absolute inset-x-3 bottom-3 z-10 grid grid-cols-2 gap-2 rounded-xl bg-white/95 p-2 shadow-lg backdrop-blur transition md:translate-y-8 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickStockStatus(item, stock.instock ? "out_of_stock" : "in_stock")}
+                        className="rounded-lg border border-emerald-300 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
+                      >
+                        {stock.instock ? "Set Out" : "Set In"}
+                      </button>
+                      <button type="button" onClick={() => handleEditPick(item)} className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-300 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800"><Pencil size={12} /> Edit</button>
+                      <button type="button" onClick={() => handleDeleteItem(item._id)} className="col-span-2 rounded-lg border border-red-300 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-red-700">Delete Item</button>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => handleEditPick(item)} className="rounded-xl border border-emerald-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-emerald-800">Edit</button>
-                    <button type="button" onClick={() => handleDeleteItem(item._id)} className="rounded-xl border border-red-300 px-3 py-2 text-xs font-semibold uppercase tracking-[0.1em] text-red-700">Delete</button>
+
+                  <div className="space-y-1 p-4">
+                    <p className="line-clamp-1 text-base font-semibold text-emerald-900">{item?.name}</p>
+                    <p className="line-clamp-1 text-xs text-emerald-700">{item?.categorypath || "No category"}</p>
+                    <div className="flex items-center justify-between pt-1 text-xs text-emerald-800">
+                      <span>Stock: {stock.totalstock}</span>
+                      <span>{item?.isactive ? "Visible" : "Hidden"}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
 
         {!loading && activeTab === "Orders" ? (
-          <div className="mt-6 grid gap-3">
-            {orders.length === 0 ? <div className={card}>No seller orders yet.</div> : orders.map((order) => (
-              <div key={order._id} className={card}>
-                <p className="text-sm font-semibold text-emerald-900">{order.ordernumber} - {order.item?.name}</p>
-                <p className="mt-1 text-xs text-emerald-700">Customer: {order.customer?.fullname || "N/A"} | Qty: {order.item?.quantity || 0} | Total: Tk {Number(order.item?.totalprice || 0).toFixed(2)}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {ORDER_STATUSES.map((status) => <button key={status} type="button" disabled={isFrozen || order.status === status} onClick={() => handleOrderStatus(order._id, status)} className={tabButton(order.status === status)}>{status}</button>)}
+          <div className="mt-6 grid gap-4">
+            {orders.length === 0 ? <div className={card}>No seller orders yet.</div> : orders.map((order) => {
+              const context = getOrderContext(order);
+              const shippingAddress = formatShippingAddress(context.shipping);
+              return (
+                <div key={order._id} className={card}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-semibold text-emerald-900">{order.ordernumber} - {order.item?.name}</p>
+                      <p className="mt-1 text-xs text-emerald-700">Created: {formatDateTime(context.createdAt)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] ${order.status === "canceled" ? "bg-red-100 text-red-700" : order.status === "delivered" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>
+                        {order.status}
+                      </span>
+                      <button type="button" onClick={() => copySteadfastDetails(order)} className="inline-flex items-center gap-1 rounded-lg border border-emerald-300 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800">
+                        <Copy size={13} /> Copy Steadfast
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 lg:grid-cols-[1.15fr_1fr]">
+                    <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                      <div className="flex gap-3">
+                        {order?.item?.image ? <img src={order.item.image} alt={order?.item?.name || "Ordered item"} className="h-20 w-20 rounded-lg border border-emerald-200 object-cover" /> : null}
+                        <div className="space-y-1 text-xs text-emerald-800">
+                          <p><b>Product:</b> {order?.item?.name || "N/A"}</p>
+                          <p><b>Variant:</b> {order?.item?.variantname || "-"}</p>
+                          <p><b>Option:</b> {order?.item?.optionname || "-"}</p>
+                          <p><b>Quantity:</b> {Number(order?.item?.quantity || 0)}</p>
+                          <p><b>Total:</b> {formatMoney(order?.item?.totalprice || 0)}</p>
+                          <p><b>Delivery Charge:</b> {formatMoney(order?.item?.deliverycharge || 0)}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-xl border border-emerald-100 bg-white p-3 text-xs text-emerald-800">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-700">Delivery Details (Steadfast Ready)</p>
+                      <div className="mt-2 space-y-1">
+                        <p><b>Name:</b> {context.customer?.fullname || "N/A"}</p>
+                        <p><b>Mobile:</b> {context.customer?.mobile || "N/A"}</p>
+                        <p><b>Email:</b> {context.customer?.email || "N/A"}</p>
+                        <p><b>District:</b> {context.shipping?.district || "N/A"}</p>
+                        <p><b>City:</b> {context.shipping?.city || "N/A"}</p>
+                        <p><b>Upzilla:</b> {context.shipping?.upzilla || "N/A"}</p>
+                        <p><b>Area:</b> {context.shipping?.area || "N/A"}</p>
+                        <p><b>Landmark:</b> {context.shipping?.landmark || "N/A"}</p>
+                        <p><b>Address:</b> {shippingAddress || "N/A"}</p>
+                        <p><b>Payment:</b> {(context.payment?.method || "cod").toUpperCase()}</p>
+                        <p><b>Payment Ref:</b> {context.payment?.reference || "-"}</p>
+                        <p><b>Customer Note:</b> {context.note || "-"}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {ORDER_STATUSES.map((status) => <button key={status} type="button" disabled={isFrozen || order.status === status} onClick={() => handleOrderStatus(order._id, status)} className={tabButton(order.status === status)}>{status}</button>)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : null}
 

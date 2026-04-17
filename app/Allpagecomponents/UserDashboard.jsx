@@ -7,32 +7,27 @@ import NewItem from "../Allpagecomponents/NewItem"
 import CategoryShowcase from './UsersCategorySlider'
 import BehaviorRecommendations from './BehaviorRecommendations'
 import BrandFooter from './BrandFooter'
-import KhanNotificationInbox from './KhanNotificationInbox'
 
 
 const UserDashboard = () => {
   return (
-    <div>
-
+    <div className="min-h-screen bg-white">
       <UserNav />
-      <div  className="mt-34"> 
-
-   <UserHomebanner  />
-      </div>
-      <section id="new-arrivals">
-        <NewItem/>
-      </section>
-      <section id="shop-by-category" className="mt-10">
-        <CategoryShowcase />
-      </section>
-      <section id="deals-you-cant-miss">
-        <BehaviorRecommendations />
-      </section>
-      <section className="mx-auto mt-10 max-w-7xl px-4">
-        <KhanNotificationInbox role="User" compact />
-      </section>
+      <main className="pt-[122px] lg:pt-[162px]">
+        <section className="mx-auto w-full max-w-[1920px] px-2 sm:px-4 lg:px-6">
+          <UserHomebanner />
+        </section>
+        <section id="new-arrivals">
+          <NewItem/>
+        </section>
+        <section id="shop-by-category" className="mt-10">
+          <CategoryShowcase />
+        </section>
+        <section id="deals-you-cant-miss">
+          <BehaviorRecommendations />
+        </section>
+      </main>
       <BrandFooter />
-
     </div>
   )
 }
