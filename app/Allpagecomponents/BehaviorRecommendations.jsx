@@ -2,13 +2,14 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Bolt, ShoppingBag, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
 import {
   getRecommendationSessionKey,
   trackRecommendationEvent,
 } from "../utils/recommendation";
+import { getRequestConfig } from "../utils/requestConfig";
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-BD", {
@@ -59,6 +60,27 @@ const getChunkSize = (width) => {
   return 24;
 };
 
+const getSoldText = (value) => {
+  const sold = Math.max(0, Number(value || 0));
+  if (sold >= 1000000) return `${(sold / 1000000).toFixed(1).replace(/\.0$/, "")}M+`;
+  if (sold >= 1000) return `${(sold / 1000).toFixed(sold < 10000 ? 1 : 0).replace(/\.0$/, "")}K+`;
+  if (sold >= 100) return `${(sold / 1000).toFixed(1)}K+`;
+  return `${Math.floor(sold)}+`;
+};
+
+const buildFallbackCardBadges = (product) => {
+  const tags = Array.isArray(product?.tags) ? product.tags.map((entry) => String(entry).toLowerCase()) : [];
+  const badges = [];
+
+  if (product?.deliveryschema?.isfreeshipping) badges.push({ key: "free", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
+  if (tags.some((tag) => tag.includes("official") || tag.includes("verified"))) badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+  if (tags.some((tag) => tag.includes("star"))) badges.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
+  if (tags.some((tag) => tag.includes("fast"))) badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  if (Number(product?.totalsold || 0) >= 120) badges.push({ key: "best", label: "Best Seller" });
+
+  return badges.slice(0, 4);
+};
+
 const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't Miss" }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -66,6 +88,7 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
   const [error, setError] = useState("");
   const [chunkSize, setChunkSize] = useState(24);
   const [visibleCount, setVisibleCount] = useState(24);
+  const [busyProductId, setBusyProductId] = useState("");
 
   useEffect(() => {
     const update = () => {
@@ -129,6 +152,23 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
     [items, visibleCount]
   );
 
+  const handleQuickCartAction = async (product, toCheckout = false) => {
+    try {
+      setBusyProductId(String(product?._id || ""));
+      const { data } = await axios.post(
+        `${serverurl}/cart/add`,
+        { slug: product.slug, variantindex: 0, optionindex: 0, quantity: 1 },
+        getRequestConfig({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      if (toCheckout) router.push("/checkout");
+    } catch (_error) {
+      // silent by design to keep flow smooth
+    } finally {
+      setBusyProductId("");
+    }
+  };
+
   if (loading) {
     return (
       <section className="mx-auto mt-12 w-full max-w-[1320px] px-4 md:px-8">
@@ -166,17 +206,29 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
           const rating = Math.max(0, Math.min(5, Number(product?.star || 0)));
           const rounded = Math.round(rating);
           const reviewCount = Number(product?.reviewcount || 0);
+          const soldText = getSoldText(product?.totalsold || 0);
+          const badges = Array.isArray(product?.cardmeta?.badges) && product.cardmeta.badges.length
+            ? product.cardmeta.badges
+            : buildFallbackCardBadges(product);
+          const achievement = String(product?.cardmeta?.achievement || "").trim();
 
           return (
-            <button
+            <div
               key={product._id}
-              type="button"
+              role="button"
+              tabIndex={0}
               onClick={() => {
                 trackRecommendationEvent({
                   eventtype: "product_click",
                   slug: product.slug,
                 });
                 router.push(`/product/${product.slug}`);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  router.push(`/product/${product.slug}`);
+                }
               }}
               className="group relative overflow-hidden rounded-[26px] border border-[#d7e9e2] bg-white text-left transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:border-[#bedfd2] hover:shadow-[0_30px_60px_-24px_rgba(16,92,72,0.35)]"
             >
@@ -213,6 +265,27 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
               </div>
 
               <div className="p-3">
+                {badges.length > 0 ? (
+                  <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                    {badges.map((badge) =>
+                      badge?.image ? (
+                        <img
+                          key={`${product._id}-${badge.key || badge.label}`}
+                          src={badge.image}
+                          alt={badge.label || "Badge"}
+                          className="h-5 w-5 rounded object-contain"
+                        />
+                      ) : (
+                        <span
+                          key={`${product._id}-${badge.key || badge.label}`}
+                          className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700"
+                        >
+                          {badge.label}
+                        </span>
+                      )
+                    )}
+                  </div>
+                ) : null}
                 <p className="line-clamp-2 min-h-[38px] text-sm font-semibold leading-[1.35] text-[#164b3c]">
                   {product.name}
                 </p>
@@ -220,6 +293,12 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
                   {product.brand || "Khan Cosmetics"}
                 </p>
                 <p className="mt-2 text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
+                <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                  Sold {product?.cardmeta?.soldtext || soldText}
+                </p>
+                {achievement ? (
+                  <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-emerald-800">{achievement}</p>
+                ) : null}
                 {rating > 0 ? (
                   <div className="mt-1 flex items-center gap-1">
                     {Array.from({ length: 5 }).map((_, idx) => (
@@ -235,8 +314,34 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
                     </span>
                   </div>
                 ) : null}
+                <div className="mt-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleQuickCartAction(product, false);
+                    }}
+                    disabled={busyProductId === String(product._id)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700"
+                    aria-label="Add to cart"
+                  >
+                    <ShoppingBag className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleQuickCartAction(product, true);
+                    }}
+                    disabled={busyProductId === String(product._id)}
+                    className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
+                  >
+                    <Bolt className="h-3.5 w-3.5" />
+                    Buy Now
+                  </button>
+                </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

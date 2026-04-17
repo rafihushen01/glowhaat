@@ -211,6 +211,13 @@ const ProductView = () => {
     return text.split('\r\n').map((str, index) => <p key={index} className="mb-2">{str}</p>);
   };
 
+  const toCategoryPath = (value = "") =>
+    `/${String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")}`;
+
   const handleAddToCart = async () => {
     try {
       setIsAdding(true);
@@ -384,7 +391,13 @@ const ProductView = () => {
           {categoryTrail.length > 0 ? (
             categoryTrail.map((entry, idx) => (
               <React.Fragment key={`${entry}-${idx}`}>
-                <span className={`${idx === categoryTrail.length - 1 ? "font-semibold text-gray-900" : "text-emerald-700"}`}>{entry}</span>
+                <button
+                  type="button"
+                  onClick={() => router.push(toCategoryPath(entry))}
+                  className={`${idx === categoryTrail.length - 1 ? "font-semibold text-gray-900 hover:text-emerald-900" : "text-emerald-700 hover:text-emerald-900"} transition-colors`}
+                >
+                  {entry}
+                </button>
                 {idx < categoryTrail.length - 1 ? <ChevronRight size={14} /> : null}
               </React.Fragment>
             ))

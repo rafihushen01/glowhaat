@@ -13,7 +13,7 @@ const UserDashboard = () => {
   return (
     <div className="min-h-screen bg-white">
       <UserNav />
-      <main className="pt-[122px] lg:pt-[162px]">
+      <main className="pt-[140px] lg:pt-[196px]">
         <section className="mx-auto w-full max-w-[1920px] px-2 sm:px-4 lg:px-6">
           <UserHomebanner />
         </section>

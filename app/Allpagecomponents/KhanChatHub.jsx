@@ -2,11 +2,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 import { AlertTriangle, Archive, ArchiveRestore, Ban, BellOff, Flag, Forward, ImagePlus, MessageCircle, Pin, PinOff, Reply, Search, Send, Smile, Trash2, Video } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
+import { getSharedSocket } from "../utils/socketClient";
 
 const EMOJIS = [
   "😀", "😁", "😂", "🤣", "😅", "😊", "😍", "😘", "😎", "🤩", "🤔", "😴",
@@ -16,14 +16,6 @@ const EMOJIS = [
 
 const DEFAULT_AVATAR = "/khancoslogo.png";
 const createGuestSessionId = () => `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-
-const getSocketOrigin = () => {
-  try {
-    return new URL(serverurl).origin;
-  } catch {
-    return serverurl || "";
-  }
-};
 
 const normalizeAvatar = (value = "") => {
   const raw = String(value || "").trim();
@@ -73,8 +65,8 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
   const [forwardingFrom, setForwardingFrom] = useState(null);
   const [counterpartTyping, setCounterpartTyping] = useState(false);
 
-  const actorType = isSeller || user?._id ? "user" : "guest";
-  const actorId = actorType === "guest" ? guestSessionId : String(user?._id || "");
+  const actorType = isSeller || user?._id || user?.id ? "user" : "guest";
+  const actorId = actorType === "guest" ? guestSessionId : String(user?._id || user?.id || "");
   const roomId = activeThreadId ? `chat:${activeThreadId}` : "";
   const activeMessages = useMemo(() => activeThread?.messages || [], [activeThread]);
   const threadBlocked = Boolean(activeThread?.blockedbybuyer || activeThread?.blockedbyseller);
@@ -112,7 +104,7 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
   const resolveIsOwnMessage = (message) => {
     if (!message) return false;
     if (actorType === "guest") return message.senderkind === "guest" && message.senderguestsessionid === guestSessionId;
-    return String(message.senderid || "") === String(user?._id || "");
+    return String(message.senderid || "") === String(user?._id || user?.id || "");
   };
 
   const loadThreads = async () => {
@@ -175,11 +167,10 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
   };
 
   const connectSocket = () => {
-    const origin = getSocketOrigin();
-    if (!origin) return;
-    if (!socketRef.current) socketRef.current = io(origin, { transports: ["websocket", "polling"], withCredentials: true });
+    if (!socketRef.current) socketRef.current = getSharedSocket();
 
     const socket = socketRef.current;
+    if (!socket) return;
     socket.off("chat_message");
     socket.off("chat_message_deleted");
     socket.off("chat_block_update");

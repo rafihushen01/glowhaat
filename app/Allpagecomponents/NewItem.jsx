@@ -2,10 +2,11 @@
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingBag, Eye, Star, Zap, ArrowRight, MousePointer2 } from 'lucide-react'
+import { Bolt, ShoppingBag, Star, Zap, ArrowRight, MousePointer2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { serverurl } from '../utils/constants/serverurl'
 import { trackRecommendationEvent } from '../utils/recommendation'
+import { getRequestConfig } from '../utils/requestConfig'
 
 
 // --- Utility: Currency Formatter ---
@@ -21,6 +22,7 @@ const formatCurrency = (amount) => {
 const NewItem = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [busyProductId, setBusyProductId] = useState("");
   const router = useRouter();
   const carouselRef = useRef(null);
   const [width, setWidth] = useState(0);
@@ -47,12 +49,29 @@ const NewItem = () => {
     }
   }, [items]);
 
+  const handleQuickCartAction = async (item, toCheckout = false) => {
+    try {
+      setBusyProductId(String(item?._id || ""));
+      const { data } = await axios.post(
+        `${serverurl}/cart/add`,
+        { slug: item.slug, variantindex: 0, optionindex: 0, quantity: 1 },
+        getRequestConfig({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      if (toCheckout) router.push("/checkout");
+    } catch (_error) {
+      // silent keep carousel smooth
+    } finally {
+      setBusyProductId("");
+    }
+  };
+
   return (
     <section className="w-full py-24 bg-[#f8fafc] relative overflow-hidden select-none">
       {/* --- Merkova Style Ambient Background --- */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-400/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-400/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px]" />
       </div>
 
       <div className="max-w-[1920px] mx-auto px-6 md:px-12 relative z-10">
@@ -65,8 +84,8 @@ const NewItem = () => {
               whileInView={{ opacity: 1, x: 0 }}
               className="flex items-center gap-3"
             >
-              <span className="h-[2px] w-12 bg-blue-600"></span>
-              <span className="text-blue-600 font-black uppercase tracking-[0.3em] text-[10px]">Khan Cosmetics New Collection</span>
+              <span className="h-[2px] w-12 bg-emerald-700"></span>
+              <span className="text-emerald-700 font-black uppercase tracking-[0.3em] text-[10px]">Khan Cosmetics New Collection</span>
             </motion.div>
             
             <motion.h2 
@@ -74,7 +93,7 @@ const NewItem = () => {
               whileInView={{ opacity: 1, y: 0 }}
               className="text-5xl md:text-7xl font-[1000] text-slate-900 tracking-tighter"
             >
-              New <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Arrivals</span>
+              New <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-700 to-emerald-500">Arrivals</span>
             </motion.h2>
           </div>
 
@@ -83,8 +102,8 @@ const NewItem = () => {
             className="flex items-center gap-2 text-slate-400 font-semibold text-sm group"
           >
             <span>DRAG TO EXPLORE</span>
-            <MousePointer2 size={16} className="group-hover:text-blue-600 transition-colors" />
-          </motion.button>
+                <MousePointer2 size={16} className="group-hover:text-emerald-700 transition-colors" />
+              </motion.button>
         </div>
 
         {/* --- Carousel --- */}
@@ -98,7 +117,7 @@ const NewItem = () => {
               className="flex gap-8 pb-10 px-2"
             >
               {items.map((item, index) => (
-                <ProductCard key={item._id} item={item} index={index} router={router} />
+                <ProductCard key={item._id} item={item} index={index} router={router} onQuickCart={handleQuickCartAction} busyProductId={busyProductId} />
               ))}
             </motion.div>
           </motion.div>
@@ -108,7 +127,7 @@ const NewItem = () => {
   )
 }
 
-const ProductCard = ({ item, index, router }) => {
+const ProductCard = ({ item, index, router, onQuickCart, busyProductId }) => {
   const [isHovered, setIsHovered] = useState(false);
   
   // --- Updated Logic for MongoDB Deep Nesting ---
@@ -137,17 +156,17 @@ const ProductCard = ({ item, index, router }) => {
     }}
 
     >
-      <div className="relative rounded-[2.5rem] bg-white p-3 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-20px_rgba(59,130,246,0.2)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] border border-slate-100 group-hover:border-blue-100 group-hover:-translate-y-2">
+      <div className="relative rounded-[2.5rem] bg-white p-3 shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_-20px_rgba(4,120,87,0.25)] transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] border border-slate-100 group-hover:border-emerald-100 group-hover:-translate-y-2">
         
         {/* Image Container */}
         <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-[#f1f5f9]">
           
-          {/* Super Cool Purple Discount Badge */}
+          {/* Discount Badge */}
           {hasDiscount && (
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="absolute top-5 right-5 z-30 bg-[#8B5CF6] text-white font-black text-[11px] px-4 py-1.5 rounded-full shadow-[0_8px_20px_-4px_rgba(139,92,246,0.5)] flex items-center gap-1"
+              className="absolute top-5 right-5 z-30 bg-emerald-700 text-white font-black text-[11px] px-4 py-1.5 rounded-full shadow-[0_8px_20px_-4px_rgba(4,120,87,0.45)] flex items-center gap-1"
             >
               <Zap size={12} fill="currentColor" /> {discountPercentage}% OFF
             </motion.div>
@@ -181,21 +200,31 @@ const ProductCard = ({ item, index, router }) => {
           </AnimatePresence>
 
           {/* Action Overlay */}
-          <div className="absolute inset-0 z-20 bg-gradient-to-t from-blue-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
+          <div className="absolute inset-0 z-20 bg-gradient-to-t from-emerald-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500">
             <div className="absolute bottom-8 left-0 w-full flex justify-center gap-4 px-6">
               <motion.button 
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 className="flex-1 h-14 bg-white text-slate-900 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-2xl"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onQuickCart(item, false);
+                }}
+                disabled={busyProductId === String(item?._id || "")}
               >
                 <ShoppingBag size={18} /> ADD TO BAG
               </motion.button>
               <motion.button 
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-2xl"
+                className="w-14 h-14 bg-emerald-700 text-white rounded-2xl flex items-center justify-center shadow-2xl"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onQuickCart(item, true);
+                }}
+                disabled={busyProductId === String(item?._id || "")}
               >
-                <Eye size={20} />
+                <Bolt size={20} />
               </motion.button>
             </div>
           </div>
@@ -204,7 +233,7 @@ const ProductCard = ({ item, index, router }) => {
         {/* Content Section */}
         <div className="p-5">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{item.brand || "DAMASK LUXE"}</span>
+            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{item.brand || "KHANCOSMETICS"}</span>
             <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md">
               <Star size={10} className="text-amber-500 fill-amber-500" />
 <span className="text-[10px] font-bold text-amber-600">
@@ -214,7 +243,7 @@ const ProductCard = ({ item, index, router }) => {
             </div>
           </div>
 
-          <h3 className="text-xl font-bold text-slate-900 mb-4 line-clamp-1 group-hover:text-blue-600 transition-colors">
+          <h3 className="text-xl font-bold text-slate-900 mb-4 line-clamp-1 group-hover:text-emerald-700 transition-colors">
             {item.name}
           </h3>
 
@@ -239,7 +268,7 @@ const ProductCard = ({ item, index, router }) => {
                   </div>
                 ))
               ) : (
-                <div className="w-9 h-9 rounded-full border-[3px] border-white shadow-sm bg-blue-600" />
+                <div className="w-9 h-9 rounded-full border-[3px] border-white shadow-sm bg-emerald-700" />
               )}
               {item.variants?.length > 3 && (
                 <div className="w-9 h-9 rounded-full border-[3px] border-white shadow-sm bg-slate-900 flex items-center justify-center text-[10px] text-white font-bold">

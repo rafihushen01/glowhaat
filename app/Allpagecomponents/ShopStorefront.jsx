@@ -3,9 +3,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
-import { Search, SlidersHorizontal, Star } from "lucide-react";
+import { Search, SlidersHorizontal, Star, Heart, Flag, ShoppingBag, Bolt } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import SellerChatDrawer from "./SellerChatDrawer";
+import { getRequestConfig } from "../utils/requestConfig";
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-BD", {
@@ -81,6 +82,15 @@ const ShopStorefront = () => {
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
+  const [following, setFollowing] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [actionMessage, setActionMessage] = useState("");
+  const [ratingValue, setRatingValue] = useState(5);
+  const [ratingReview, setRatingReview] = useState("");
+  const [reportReason, setReportReason] = useState("Fake product");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportProof, setReportProof] = useState(null);
+  const [submittingAction, setSubmittingAction] = useState(false);
 
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("newest");
@@ -128,6 +138,8 @@ const ShopStorefront = () => {
         if (ignore) return;
 
         setShop(data.shop || null);
+        setFollowing(Boolean(data?.shop?.social?.following));
+        setFollowers(Number(data?.shop?.social?.followers || 0));
         setStats(data.stats || { totalproducts: 0, totalsales: 0, averageRating: 0 });
         setFilters(data.filters || {});
         setProducts(data.products || []);
@@ -156,6 +168,110 @@ const ShopStorefront = () => {
       ignore = true;
     };
   }, [slug]);
+
+  const getGuestSessionId = () => {
+    if (typeof window === "undefined") return "";
+    const existing = window.localStorage.getItem("khc_guest_chat_session");
+    if (existing) return existing;
+    const next = `guest-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    window.localStorage.setItem("khc_guest_chat_session", next);
+    return next;
+  };
+
+  const withOptionalGuest = (extra = {}) => {
+    const config = { ...(extra || {}), withCredentials: true };
+    const guestSession = getGuestSessionId();
+    if (!guestSession) return config;
+    config.headers = {
+      ...(extra?.headers || {}),
+      "x-guest-session": guestSession,
+    };
+    return config;
+  };
+
+  const handleToggleFollow = async () => {
+    try {
+      setSubmittingAction(true);
+      const { data } = await axios.post(
+        `${serverurl}/seller/public/shop/${slug}/follow`,
+        {},
+        withOptionalGuest({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Could not update follow state.");
+      setFollowing(Boolean(data.following));
+      setFollowers(Number(data.followers || 0));
+      setActionMessage(data.following ? "You are now following this store." : "Unfollowed this store.");
+    } catch (error) {
+      setActionMessage(error?.response?.data?.message || error?.message || "Could not update follow state.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  const handleRateStore = async () => {
+    try {
+      setSubmittingAction(true);
+      const { data } = await axios.post(
+        `${serverurl}/seller/public/shop/${slug}/rate`,
+        { rating: ratingValue, review: ratingReview },
+        getRequestConfig({ timeout: 22000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Could not submit rating.");
+      const avg = Number(data?.summary?.average || 0);
+      setStats((prev) => ({ ...prev, averageRating: avg }));
+      setActionMessage("Store rating submitted successfully.");
+    } catch (error) {
+      setActionMessage(error?.response?.data?.message || error?.message || "Could not submit rating.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  const handleReportStore = async () => {
+    try {
+      setSubmittingAction(true);
+      const fd = new FormData();
+      fd.append("reason", reportReason);
+      fd.append("details", reportDetails);
+      if (reportProof) fd.append("proof", reportProof);
+
+      const { data } = await axios.post(
+        `${serverurl}/seller/public/shop/${slug}/report`,
+        fd,
+        getRequestConfig({
+          headers: { "Content-Type": "multipart/form-data" },
+          timeout: 25000,
+        })
+      );
+
+      if (!data?.success) throw new Error(data?.message || "Could not submit report.");
+      setActionMessage("Store report submitted. SuperAdmin will review this report.");
+      setReportDetails("");
+      setReportProof(null);
+    } catch (error) {
+      setActionMessage(error?.response?.data?.message || error?.message || "Could not submit report.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
+
+  const handleQuickCartAction = async (product, toCheckout = false) => {
+    try {
+      setSubmittingAction(true);
+      const { data } = await axios.post(
+        `${serverurl}/cart/add`,
+        { slug: product.slug, variantindex: 0, optionindex: 0, quantity: 1 },
+        getRequestConfig({ timeout: 20000 })
+      );
+      if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      setActionMessage(toCheckout ? "Added to cart. Redirecting to checkout..." : "Added to cart.");
+      if (toCheckout) router.push("/checkout");
+    } catch (error) {
+      setActionMessage(error?.response?.data?.message || error?.message || "Could not add this item.");
+    } finally {
+      setSubmittingAction(false);
+    }
+  };
 
   useEffect(() => {
     if (!slug || !shop?._id) return;
@@ -227,6 +343,19 @@ const ShopStorefront = () => {
             <p className="text-xs uppercase tracking-[0.22em] text-emerald-100">KhanCosmetics Seller Profile</p>
             <h1 className="mt-1 text-2xl font-bold md:text-4xl">{shop.shopname}</h1>
             <p className="mt-1 line-clamp-2 text-sm text-emerald-100 md:text-base">{shop.description || "Trusted seller on KhanCosmetics."}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-emerald-100">
+              <span>Joined KhanCosmetics {Number(shop?.joineddays || 0)} days ago</span>
+              <span>|</span>
+              <span>{followers} Followers</span>
+              <span>|</span>
+              <span>{Number(shop?.social?.ratingaverage || 0).toFixed(2)} Rating</span>
+            </div>
+            {shop?.starseller?.isstarseller ? (
+              <div className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-white">
+                <img src="/badges/starsellerbadge.png" alt="Star Seller" className="h-4 w-4 rounded-full object-contain" />
+                Star Seller
+              </div>
+            ) : null}
           </div>
 
           <div className="hidden pb-2 md:block">
@@ -239,6 +368,96 @@ const ShopStorefront = () => {
       </section>
 
       <div className="mx-auto max-w-7xl px-4 py-6">
+        {actionMessage ? (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm text-emerald-800">
+            {actionMessage}
+          </div>
+        ) : null}
+
+        <div className="mb-5 grid gap-3 rounded-2xl border border-emerald-200 bg-white p-4 lg:grid-cols-3">
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Follow Store</p>
+            <button
+              type="button"
+              disabled={submittingAction}
+              onClick={handleToggleFollow}
+              className="mt-2 inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800"
+            >
+              <Heart className={`h-4 w-4 ${following ? "fill-emerald-600 text-emerald-600" : ""}`} />
+              {following ? "Following" : "Follow"}
+            </button>
+          </div>
+
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Rate Store (buyers only)</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <select
+                value={ratingValue}
+                onChange={(e) => setRatingValue(Number(e.target.value))}
+                className="h-9 rounded-lg border border-emerald-200 bg-white px-2 text-sm text-emerald-900"
+              >
+                {[5, 4, 3, 2, 1].map((value) => (
+                  <option key={value} value={value}>
+                    {value} Star
+                  </option>
+                ))}
+              </select>
+              <input
+                value={ratingReview}
+                onChange={(e) => setRatingReview(e.target.value)}
+                placeholder="Write review"
+                className="h-9 min-w-[180px] flex-1 rounded-lg border border-emerald-200 bg-white px-3 text-sm text-emerald-900"
+              />
+              <button
+                type="button"
+                disabled={submittingAction}
+                onClick={handleRateStore}
+                className="h-9 rounded-lg bg-emerald-700 px-3 text-xs font-semibold uppercase tracking-[0.12em] text-white"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">Report Store (buyers only)</p>
+            <div className="mt-2 flex flex-col gap-2">
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="h-9 rounded-lg border border-emerald-200 bg-white px-2 text-sm text-emerald-900"
+              >
+                {["Fake product", "Wrong item", "Fraud seller", "Policy violation", "Custom reason"].map((reason) => (
+                  <option key={reason} value={reason}>
+                    {reason}
+                  </option>
+                ))}
+              </select>
+              <input
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+                placeholder="Details"
+                className="h-9 rounded-lg border border-emerald-200 bg-white px-3 text-sm text-emerald-900"
+              />
+              <div className="flex items-center gap-2">
+                <label className="inline-flex cursor-pointer items-center gap-1 rounded-lg border border-emerald-300 bg-white px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-800">
+                  <Flag className="h-3.5 w-3.5" />
+                  Upload Proof
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => setReportProof(e.target.files?.[0] || null)} />
+                </label>
+                <button
+                  type="button"
+                  disabled={submittingAction}
+                  onClick={handleReportStore}
+                  className="h-8 rounded-lg bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-white"
+                >
+                  Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-5 grid gap-3 rounded-2xl border border-emerald-200 bg-white p-4 md:grid-cols-4">
           <div>
             <p className="text-[11px] uppercase tracking-[0.16em] text-emerald-700">All Products</p>
@@ -461,12 +680,22 @@ const ShopStorefront = () => {
                   const pricing = getPricingMeta(product);
                   const rating = Number(product?.star || 0);
                   const roundedRating = Math.round(Math.max(0, Math.min(5, rating)));
+                  const badgeRows = Array.isArray(product?.cardmeta?.badges) ? product.cardmeta.badges : [];
+                  const soldText = String(product?.cardmeta?.soldtext || "").trim();
+                  const achievement = String(product?.cardmeta?.achievement || "").trim();
 
                   return (
-                    <button
+                    <div
                       key={product._id}
-                      type="button"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => router.push(`/product/${product.slug}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          router.push(`/product/${product.slug}`);
+                        }
+                      }}
                       className="group overflow-hidden rounded-2xl border border-emerald-200 bg-white text-left transition hover:-translate-y-0.5 hover:shadow-[0_14px_34px_-22px_rgba(16,92,72,.85)]"
                     >
                       <div className="relative aspect-[4/5] overflow-hidden bg-emerald-50">
@@ -483,6 +712,27 @@ const ShopStorefront = () => {
                       </div>
 
                       <div className="p-3">
+                        {badgeRows.length > 0 ? (
+                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                            {badgeRows.slice(0, 4).map((badge) =>
+                              badge?.image ? (
+                                <img
+                                  key={`${product._id}-${badge.key || badge.label}`}
+                                  src={badge.image}
+                                  alt={badge.label || "Badge"}
+                                  className="h-5 w-5 rounded object-contain"
+                                />
+                              ) : (
+                                <span
+                                  key={`${product._id}-${badge.key || badge.label}`}
+                                  className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700"
+                                >
+                                  {badge.label}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        ) : null}
                         <p className="line-clamp-2 min-h-[40px] text-sm font-semibold text-emerald-950">{product.name}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.08em] text-emerald-700">{product.brand || shop.shopname}</p>
 
@@ -502,8 +752,40 @@ const ShopStorefront = () => {
                             {rating > 0 ? rating.toFixed(1) : "New"}
                           </span>
                         </div>
+
+                        <div className="mt-2 min-h-[18px] text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                          {soldText ? `Sold ${soldText}` : "Fresh arrival"}
+                        </div>
+                        {achievement ? (
+                          <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-emerald-800">{achievement}</p>
+                        ) : null}
+
+                        <div className="mt-3 flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleQuickCartAction(product, false);
+                            }}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
+                            aria-label="Add to cart"
+                          >
+                            <ShoppingBag className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleQuickCartAction(product, true);
+                            }}
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white"
+                          >
+                            <Bolt className="h-3.5 w-3.5" />
+                            Buy Now
+                          </button>
+                        </div>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>

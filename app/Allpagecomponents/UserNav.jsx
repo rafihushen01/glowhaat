@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart, Crown, Award, Sparkles } from "lucide-react";
+import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart, Crown, Award, Sparkles, Bell, LayoutDashboard } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import {useLocale, useTranslations} from "next-intl";
@@ -132,6 +132,8 @@ const UserNav = () => {
   const userdisplayname = user?.fullname?.trim() || t("defaultUserName");
   const userinitial = (userdisplayname[0] || "U").toUpperCase();
   const cartCount = Array.isArray(cartItems) ? cartItems.length : 0;
+  const isSellerRole = String(user?.role || "").toLowerCase() === "seller";
+  const profileDashboardPath = "/profile-dashboard";
   const [wishlistCount, setWishlistCount] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -317,11 +319,11 @@ const UserNav = () => {
           isScrolled ? "bg-white/92 backdrop-blur-md shadow-sm" : "bg-white"
         }`}
       >
-        {/* Utility Row (Desktop) */}
+        {/* Top Nav (Desktop) */}
         <div className="relative z-[130] hidden lg:block border-b border-[#edf2ef]">
-          <div className="container mx-auto flex h-11 items-center justify-between px-6 xl:px-8 text-sm">
-            <div className="flex items-center gap-6 text-[#25372f]">
-              <div className="flex items-center gap-3">
+          <div className="container mx-auto flex min-h-11 flex-wrap items-center justify-between gap-2 px-6 py-2 xl:px-8 text-sm">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[#25372f]">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => switchLocale("en")}
@@ -344,12 +346,18 @@ const UserNav = () => {
               <Link href="/contact" className="hover:text-[#1f5c49] transition-colors">
                 {t("contact")}
               </Link>
-              <Link href="/become-seller" className="hover:text-[#1f5c49] transition-colors">
-                Become Seller
-              </Link>
+              {isSellerRole ? (
+                <Link href="/seller-dashboard" className="hover:text-[#1f5c49] transition-colors font-semibold">
+                  Seller Dashboard
+                </Link>
+              ) : (
+                <Link href="/become-seller" className="hover:text-[#1f5c49] transition-colors">
+                  Become Seller
+                </Link>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 text-gray-900" ref={searchRef}>
+            <div className="flex flex-wrap items-center gap-2 text-gray-900" ref={searchRef}>
               <button
                 type="button"
                 onClick={() => setSearchOpen((prev) => !prev)}
@@ -381,6 +389,14 @@ const UserNav = () => {
                     {wishlistCount}
                   </span>
                 )}
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(profileDashboardPath)}
+                className="relative inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#d7e3dc] text-[#1f5c49] transition hover:border-[#1f5c49]"
+                aria-label="Open Profile Dashboard"
+              >
+                <Bell className="h-4 w-4" />
               </button>
 
               {isAuthenticated ? (
@@ -434,6 +450,17 @@ const UserNav = () => {
                           type="button"
                           onClick={() => {
                             setIsProfileOpen(false);
+                            router.push(profileDashboardPath);
+                          }}
+                          className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#dce8e2] bg-white px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                        >
+                          <LayoutDashboard className="h-4 w-4" />
+                          Profile Dashboard
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsProfileOpen(false);
                             router.push("/wishlist");
                           }}
                           className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-[#dce8e2] bg-[#f7fbf9] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
@@ -441,16 +468,29 @@ const UserNav = () => {
                           <Heart className="h-4 w-4" />
                           {t("myWishlist")}
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsProfileOpen(false);
-                            router.push("/become-seller");
-                          }}
-                          className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#cfe0d7] bg-[#f3faf6] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
-                        >
-                          Become Seller
-                        </button>
+                        {isSellerRole ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              router.push("/seller-dashboard");
+                            }}
+                            className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#cfe0d7] bg-[#f3faf6] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                          >
+                            Seller Dashboard
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              router.push("/become-seller");
+                            }}
+                            className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#cfe0d7] bg-[#f3faf6] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                          >
+                            Become Seller
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={handleLogout}
@@ -483,7 +523,7 @@ const UserNav = () => {
           </div>
         </div>
 
-        {/* Primary Row */}
+        {/* Main Nav */}
         <div className="relative z-[120] container mx-auto flex items-center justify-between gap-3 px-4 py-3 md:px-8 lg:py-0">
           <div className="flex items-center gap-2 lg:w-[170px] lg:shrink-0">
             <button
@@ -526,6 +566,14 @@ const UserNav = () => {
           <div className="flex shrink-0 items-center gap-3 text-gray-900 lg:hidden">
             <button
               type="button"
+              onClick={() => router.push(profileDashboardPath)}
+              className="relative cursor-pointer group"
+              aria-label="Open Profile Dashboard"
+            >
+              <Bell className="w-5 h-5 group-hover:text-[#1f5c49] transition-colors" />
+            </button>
+            <button
+              type="button"
               onClick={() => router.push("/wishlist")}
               className="relative cursor-pointer group"
             >
@@ -551,9 +599,10 @@ const UserNav = () => {
           </div>
         </div>
 
+        {/* Sub Nav */}
         <div className="border-t border-[#edf2ef] bg-white/95">
           <div className="container mx-auto px-4 py-2 md:px-8">
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-3">
               {discoveryQuickLinks.map((entry) => (
                 <Link
                   key={entry.id}
@@ -675,6 +724,8 @@ const UserNav = () => {
             avatarUrl={avatarUrl}
             wishlistCount={wishlistCount}
             onLogout={handleLogout}
+            isSellerRole={isSellerRole}
+            profileDashboardPath={profileDashboardPath}
             locale={locale}
             onLocaleChange={switchLocale}
             t={t}
@@ -900,6 +951,8 @@ const MobileMenu = ({
   avatarUrl,
   wishlistCount,
   onLogout,
+  isSellerRole,
+  profileDashboardPath,
   locale,
   onLocaleChange,
   t,
@@ -1157,6 +1210,14 @@ const MobileMenu = ({
                       </div>
                     </div>
                     <Link
+                      href={profileDashboardPath}
+                      onClick={onClose}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#dce8e2] bg-[#f7fbf9] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                    >
+                      <LayoutDashboard className="h-4 w-4" />
+                      Profile Dashboard
+                    </Link>
+                    <Link
                       href="/wishlist"
                       onClick={onClose}
                       className="flex w-full items-center justify-center gap-2 rounded-lg border border-[#dce8e2] bg-[#f7fbf9] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
@@ -1164,13 +1225,23 @@ const MobileMenu = ({
                       <Heart className="h-4 w-4" />
                       {t("wishlistWithCount", {count: wishlistCount || 0})}
                     </Link>
-                    <Link
-                      href="/become-seller"
-                      onClick={onClose}
-                      className="flex w-full items-center justify-center rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
-                    >
-                      Become Seller
-                    </Link>
+                    {isSellerRole ? (
+                      <Link
+                        href="/seller-dashboard"
+                        onClick={onClose}
+                        className="flex w-full items-center justify-center rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                      >
+                        Seller Dashboard
+                      </Link>
+                    ) : (
+                      <Link
+                        href="/become-seller"
+                        onClick={onClose}
+                        className="flex w-full items-center justify-center rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                      >
+                        Become Seller
+                      </Link>
+                    )}
                     <button
                       type="button"
                       onClick={onLogout}
@@ -1182,13 +1253,22 @@ const MobileMenu = ({
                   </>
                  ) : (
                   <>
-                    <Link
-                      href="/become-seller"
+                  <Link
+                      href={profileDashboardPath}
                       onClick={onClose}
                       className="block w-full rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-center text-sm font-semibold tracking-wide text-[#1f5c49]"
                     >
-                      Become Seller
+                      Profile Dashboard
                     </Link>
+                    {!isSellerRole ? (
+                      <Link
+                        href="/become-seller"
+                        onClick={onClose}
+                        className="block w-full rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-center text-sm font-semibold tracking-wide text-[#1f5c49]"
+                      >
+                        Become Seller
+                      </Link>
+                    ) : null}
                     <Link
                       href="/signin"
                       onClick={onClose}

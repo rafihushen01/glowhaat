@@ -2,24 +2,16 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { io } from "socket.io-client";
 import { Bell, CheckCheck, Search } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
+import { getSharedSocket } from "../utils/socketClient";
 
 const resolveKindFromRole = (role = "") => {
   const normalized = String(role || "").toLowerCase();
   if (normalized === "seller") return "seller";
   if (normalized === "superadmin") return "superadmin";
   return "user";
-};
-
-const getSocketOrigin = () => {
-  try {
-    return new URL(serverurl).origin;
-  } catch {
-    return serverurl || "";
-  }
 };
 
 const styleByType = (type = "") => {
@@ -54,28 +46,34 @@ const KhanNotificationInbox = ({ role = "User", compact = false }) => {
   }, [q, compact]);
 
   useEffect(() => {
-    const origin = getSocketOrigin();
-    if (!origin) return;
-    if (!socketRef.current) socketRef.current = io(origin, { transports: ["websocket", "polling"], withCredentials: true });
+    if (!socketRef.current) socketRef.current = getSharedSocket();
     const socket = socketRef.current;
+    if (!socket) return;
 
     const join = async () => {
       try {
-        const { data } = await axios.get(`${serverurl}/auth/currentuser`, getRequestConfig({ timeout: 15000 }));
+        const { data } = await axios.get(`${serverurl}/auth/me`, getRequestConfig({ timeout: 15000 }));
         const user = data?.user || data?.data || null;
-        if (!user?._id) return;
-        socket.emit("notification_room_join", { kind, id: String(user._id) });
+        const userid = user?._id || user?.id || "";
+        if (!userid) return;
+        socket.emit("notification_room_join", { kind, id: String(userid) });
       } catch {
         // silent
       }
     };
 
-    join();
-    socket.off("khan_notification");
-    socket.on("khan_notification", (payload) => {
+    const onKhanNotification = (payload) => {
       setRows((prev) => [payload, ...(prev || [])].slice(0, compact ? 20 : 200));
       setUnread((prev) => prev + 1);
-    });
+    };
+
+    join();
+    socket.off("khan_notification", onKhanNotification);
+    socket.on("khan_notification", onKhanNotification);
+
+    return () => {
+      socket.off("khan_notification", onKhanNotification);
+    };
   }, [kind, compact]);
 
   const markRead = async (id) => {

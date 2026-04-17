@@ -2,7 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
-import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarChart3, Sparkles, Store } from "lucide-react";
+import { ShieldCheck, Package, Image as ImageIcon, Layout, Layers, Truck, BarChart3, Sparkles, Store, MessageSquare } from "lucide-react";
 import { Users } from "lucide-react";
 import SuperAdminNav from "../AllAdminpagecomponents/adminutils/SuperAdminNav";
 import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
@@ -91,6 +91,12 @@ const SuperAdminDashboard = () => {
             title="Seller Operations"
             description="Control sponsorship, commission, shop health/freeze, and subscriptions."
             icon={<Store className="h-5 w-5" />}
+          />
+          <DashboardCard
+            href="/SuperAdminChatControl"
+            title="Conversation Control"
+            description="Search all seller-user chats, edit messages, and send notices."
+            icon={<MessageSquare className="h-5 w-5" />}
           />
         </div>
         <div className="mt-8">
