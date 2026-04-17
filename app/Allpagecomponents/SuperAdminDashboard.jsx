@@ -12,7 +12,7 @@ const SuperAdminDashboard = () => {
   const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
 
   if (isCheckingAuth) {
-    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin session...</div>;
+    return <div className="min-h-screen bg-white px-4 py-10 text-sm text-[#1f5c49]">Checking SuperAdmin Session...</div>;
   }
 
   if (!isSuperAdmin) return null;
