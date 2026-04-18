@@ -56,7 +56,7 @@ const SuperAdminNav = () => {
       { href: "/AdminItemManagments", label: "Item Management", icon: <Package className="h-4 w-4" /> },
       { href: "/AdminHomebanner", label: "Home Banners", icon: <ImageIcon className="h-4 w-4" /> },
       { href: "/AdminNavCoustomization", label: "Nav Customization", icon: <Layout className="h-4 w-4" /> },
-      { href: "/AdminCategoryBuilder", label: "Category Builder", icon: <Layers className="h-4 w-4" /> },
+      { href: "/AdminCategoryBuilder", label: "Category & Campaign", icon: <Layers className="h-4 w-4" /> },
     ],
     []
   );

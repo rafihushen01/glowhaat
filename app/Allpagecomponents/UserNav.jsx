@@ -321,7 +321,7 @@ const UserNav = () => {
       >
         {/* Top Nav (Desktop) */}
         <div className="relative z-[130] hidden lg:block border-b border-[#edf2ef]">
-          <div className="container mx-auto flex min-h-11 flex-wrap items-center justify-between gap-2 px-6 py-2 xl:px-8 text-sm">
+          <div className="mx-auto flex min-h-11 w-full max-w-[1320px] flex-wrap items-center justify-between gap-2 px-6 py-2 text-sm">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[#25372f]">
               <div className="flex items-center gap-2">
                 <button
@@ -524,7 +524,7 @@ const UserNav = () => {
         </div>
 
         {/* Main Nav */}
-        <div className="relative z-[120] container mx-auto flex items-center justify-between gap-3 px-4 py-3 md:px-8 lg:py-0">
+        <div className="relative z-[120] mx-auto flex w-full max-w-[1320px] items-center justify-between gap-3 px-4 py-3 md:px-6 lg:py-0">
           <div className="flex items-center gap-2 lg:w-[170px] lg:shrink-0">
             <button
               onClick={() => setMobileOpen(true)}
@@ -601,7 +601,7 @@ const UserNav = () => {
 
         {/* Sub Nav */}
         <div className="border-t border-[#edf2ef] bg-white/95">
-          <div className="container mx-auto px-4 py-2 md:px-8">
+          <div className="mx-auto w-full max-w-[1320px] px-4 py-2 md:px-6">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-3">
               {discoveryQuickLinks.map((entry) => (
                 <Link

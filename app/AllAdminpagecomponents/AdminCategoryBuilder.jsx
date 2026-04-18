@@ -1,593 +1,772 @@
-"use client"
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { toast, Toaster } from 'react-hot-toast'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  FaCloudUploadAlt, FaNetworkWired, FaTrash, 
-  FaEdit, FaEye, FaEyeSlash, FaPlus, FaTimes, FaSave,
-} from 'react-icons/fa'
-import { 
-  LayoutDashboard, ImagePlus, Settings, 
-  CheckCircle, XCircle, Loader2, ListTree, Tags
-} from 'lucide-react'
-import { FaSitemap } from 'react-icons/fa'
-import { serverurl } from '../utils/constants/serverurl'
+"use client";
 
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { toast, Toaster } from "react-hot-toast";
+import {
+  Download,
+  Edit3,
+  Eye,
+  EyeOff,
+  FolderArchive,
+  Plus,
+  RefreshCw,
+  Save,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import { serverurl, frontendurl } from "../utils/constants/serverurl";
 
+const CATEGORY_API = `${serverurl}/category`;
 
+const typeOptions = [
+  { value: "campaign", label: "Campaign Builder" },
+  { value: "deals", label: "Deals Builder" },
+  { value: "topbrands", label: "Top Brands & Offers" },
+  { value: "extradiscount", label: "Extra Discount Offer" },
+  { value: "shopbeautyproductbycategory", label: "ShopBeautyProductByCategory" },
+  { value: "shopbeautyproductbyconcern", label: "ShopBeautyProductByConcern" },
+];
 
-// Replace this with your actual config import
+const statusOptions = [
+  { value: "inactive", label: "Inactive (Default)" },
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+];
 
+const sortOptions = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+];
 
-// ==========================================
-// 🎨 THEME CONFIG (Damask Purple Style)
-// ==========================================
-const THEME = {
-  bg: "bg-[#0f0c15]", // Deep dark purple-black
-  card: "bg-[#1a1625]/80", // Glassy card
-  accent: "from-violet-600 to-fuchsia-600",
-  accentHover: "from-violet-500 to-fuchsia-500",
-  textMain: "text-violet-50",
-  textMuted: "text-violet-200/50",
-  border: "border-violet-500/10"
-}
+const slugify = (value) =>
+  String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
 
-// ==========================================
-// 🧩 COMPONENT: AdminCategoryBuilder
-// ==========================================
+const requiresNavRoot = (type) => {
+  return ["shopbeautyproductbycategory", "shopbeautyproductbyconcern"].includes(type);
+};
+
+const buildNavigationLink = (type, title) => {
+  const base = String(frontendurl || "").replace(/\/+$/, "");
+  if (!base) return "";
+
+  const cleanSlug = slugify(title);
+
+  if (type === "campaign") return `${base}/mega/mega-${cleanSlug}`;
+  if (type === "deals") return `${base}/deals/${cleanSlug}`;
+  if (type === "topbrands") return `${base}/top-brands/${cleanSlug}`;
+  if (type === "extradiscount") return `${base}/discounts/offer/${cleanSlug}`;
+
+  return `${base}/s/${cleanSlug}`;
+};
+
+const buildNavigationPlaceholder = (type) => {
+  const base = String(frontendurl || "").replace(/\/+$/, "");
+  if (!base) return "";
+
+  if (type === "campaign") return `${base}/mega/mega-`;
+  if (type === "deals") return `${base}/deals/`;
+  if (type === "topbrands") return `${base}/top-brands/`;
+  if (type === "extradiscount") return `${base}/discounts/offer/`;
+
+  return `${base}/s/`;
+};
+
+const formatDate = (value) => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleString();
+};
+
+const mediaIsVideo = (media = {}) => {
+  if (String(media?.type || "").toLowerCase() === "video") return true;
+  const url = String(media?.url || "").toLowerCase();
+  return url.includes(".mp4") || url.includes(".mov") || url.includes(".mkv") || url.includes(".webm");
+};
+
+const downloadFromUrl = async (url, filename) => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(objectUrl);
+};
+
 const AdminCategoryBuilder = () => {
-  // --- State ---
-  const [categories, setCategories] = useState([]);
+  const [items, setItems] = useState([]);
   const [navTree, setNavTree] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [view, setView] = useState('list'); // 'list' | 'create' | 'edit'
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
-  
-  // --- Form State ---
-  const [formData, setFormData] = useState({
-    id: '', // For editing
-    name: '',
-    navrootid: '',
-    type: 'slider',
-    order: 0,
-    mediaCount: 1,
-    segments: [] 
-  });
-  
-  const [files, setFiles] = useState({}); // Actual File objects
-  const [previews, setPreviews] = useState({}); // URL previews for UI
-  const [generatedSlots, setGeneratedSlots] = useState([{ id: 0 }]); // Slots UI
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // --- Fetch Data ---
-  const fetchData = async () => {
+  const [filters, setFilters] = useState({
+    status: "all",
+    type: "",
+    sort: "newest",
+    q: "",
+    from: "",
+    to: "",
+  });
+
+  const [editId, setEditId] = useState("");
+  const [linkLocked, setLinkLocked] = useState(true);
+
+  const [form, setForm] = useState({
+    name: "",
+    type: "campaign",
+    status: "inactive",
+    order: 0,
+    navrootid: "",
+    navlink: buildNavigationPlaceholder("campaign"),
+    segments: [],
+  });
+
+  const [newFiles, setNewFiles] = useState([]);
+
+  const fetchAll = async () => {
     try {
       setLoading(true);
-      const [catRes, treeRes] = await Promise.all([
-        (async () => {
-          try {
-            return await axios.get(`${serverurl}/category/all`);
-          } catch (_err) {
-            return axios.get(`${serverurl}/category/active`);
-          }
-        })(),
-        axios.get(`${serverurl}/category/fulltree`),
+      const [categoryRes, navRes] = await Promise.all([
+        axios.get(`${CATEGORY_API}/all`, {
+          params: {
+            status: filters.status,
+            type: filters.type || undefined,
+            sort: filters.sort,
+            q: filters.q || undefined,
+            from: filters.from || undefined,
+            to: filters.to || undefined,
+          },
+        }),
+        axios.get(`${CATEGORY_API}/fulltree`),
       ]);
 
-      const loadedCategories = Array.isArray(catRes?.data?.data) ? catRes.data.data : [];
-      setCategories(loadedCategories);
-      setNavTree(treeRes.data.data || []);
-    } catch (err) {
-      console.error(err);
-      toast.error("Could not load data. Check backend connection.");
+      setItems(Array.isArray(categoryRes?.data?.data) ? categoryRes.data.data : []);
+      setNavTree(Array.isArray(navRes?.data?.data) ? navRes.data.data : []);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to load category & campaign data");
+      setItems([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchAll();
+  }, [filters.status, filters.type, filters.sort, filters.q, filters.from, filters.to]);
 
-  const totalCount = categories.length;
-  const activeCount = categories.filter((cat) => cat?.isactive).length;
-  const inactiveCount = totalCount - activeCount;
+  useEffect(() => {
+    if (!linkLocked) return;
 
-  const visibleCategories = categories.filter((cat) => {
-    if (statusFilter === 'active') return Boolean(cat?.isactive);
-    if (statusFilter === 'inactive') return !cat?.isactive;
-    return true;
-  });
-
-  // --- Form Handlers ---
-  const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleMediaCountChange = (e) => {
-    let count = parseInt(e.target.value) || 1;
-    if (count > 50) count = 50; // Cap it for safety
-    if (count < 1) count = 1;
-    
-    setFormData(prev => ({ ...prev, mediaCount: count }));
-    
-    // Generate simple ID array for slots
-    const newSlots = Array.from({ length: count }, (_, i) => ({ id: i }));
-    setGeneratedSlots(newSlots);
-  };
-
-  const handleFileChange = (e, index) => {
-    const file = e.target.files[0];
-    if (file) {
-      // 1. Save file for upload
-      setFiles(prev => ({ ...prev, [index]: file }));
-      
-      // 2. Create instant preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setPreviews(prev => ({ ...prev, [index]: previewUrl }));
-      
-      toast.success(`Media #${index + 1} selected`);
-    }
-  };
-
-  const toggleSegmentSelection = (navId) => {
-    setFormData(prev => {
-      const exists = prev.segments.includes(navId);
-      return {
-        ...prev,
-        segments: exists 
-          ? prev.segments.filter(id => id !== navId)
-          : [...prev.segments, navId]
-      };
-    });
-  };
-
-  const handleEditClick = (cat) => {
-    setFormData({
-      id: cat._id,
-      name: cat.name,
-      navrootid: cat.navrootid?._id || cat.navrootid, // Handle if populated or not
-      type: cat.type || 'slider',
-      order: cat.order || 0,
-      mediaCount: cat.media ? cat.media.length : 1,
-      segments: cat.segments ? cat.segments.map(s => s._id || s) : []
-    });
-    
-    // Setup slots based on existing media
-    const count = cat.media ? cat.media.length : 1;
-    setGeneratedSlots(Array.from({ length: count }, (_, i) => ({ id: i })));
-    
-    // Note: We can't easily preview existing server images in this specific local preview logic 
-    // without more complex logic, so we start fresh for uploads or would need to map server URLs to previews.
-    // For simplicity in this fix, we reset file inputs.
-    setFiles({});
-    setPreviews({}); 
-    
-    setView('edit');
-  };
-
-  const handleToggleStatus = async (id) => {
-    try {
-      await axios.patch(`${serverurl}/category/toggle-status/${id}`);
-      toast.success("Status updated!");
-      fetchData(); // Refresh list
-    } catch (err) {
-      toast.error("Toggle failed");
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if(!window.confirm("Are you sure you want to delete this category?")) return;
-    try {
-      await axios.delete(`${serverurl}/category/delete/${id}`);
-      toast.success("Category deleted");
-      fetchData();
-    } catch(err) {
-      toast.error("Delete failed");
-    }
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const cleanedName = String(formData.name || "").trim();
-    const cleanedNavRootId = String(formData.navrootid || "").trim();
-
-    if (!cleanedName || !cleanedNavRootId) {
-      return toast.error("Name and Menu Location are required!");
-    }
-
-    const normalizedSegments = Array.isArray(formData.segments)
-      ? formData.segments.map((seg) => String(seg).trim()).filter(Boolean)
-      : [];
-
-    const hasMedia = Object.keys(files).length > 0;
-    let payload = null;
-
-    if (hasMedia) {
-      const formPayload = new FormData();
-      formPayload.append("name", cleanedName);
-      formPayload.append("navrootid", cleanedNavRootId);
-      formPayload.append("type", formData.type || "slider");
-      formPayload.append("order", String(Number(formData.order) || 0));
-
-      Object.keys(files).forEach((key) => {
-        formPayload.append("media", files[key]);
-      });
-
-      normalizedSegments.forEach((seg) => {
-        formPayload.append("segments", seg);
-      });
-
-      payload = formPayload;
-    } else {
-      payload = {
-        name: cleanedName,
-        navrootid: cleanedNavRootId,
-        type: formData.type || "slider",
-        order: Number(formData.order) || 0,
-        segments: normalizedSegments,
-      };
-    }
-
-    try {
-      setSubmitting(true);
-      const apibase = serverurl.replace(/\/+$/, "");
-      const url = view === 'edit' 
-        ? `${apibase}/category/update/${formData.id}`
-        : `${apibase}/category/create`;
-        
-      const method = view === 'edit' ? axios.put : axios.post;
-      
-      await method(url, payload);
-
-      toast.success(view === 'edit' ? "Category Updated!" : "New Category Created!");
-      resetForm();
-      fetchData();
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Operation Failed");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const title = String(form.name || "");
+    const link = buildNavigationLink(form.type, title);
+    const placeholder = buildNavigationPlaceholder(form.type);
+    setForm((prev) => ({
+      ...prev,
+      navlink: title.trim() ? link : placeholder,
+    }));
+  }, [form.name, form.type, linkLocked]);
 
   const resetForm = () => {
-    setView('list');
-    setFiles({});
-    setPreviews({});
-    setFormData({ name: '', navrootid: '', type: 'slider', order: 0, mediaCount: 1, segments: [] });
+    setEditId("");
+    setLinkLocked(true);
+    setForm({
+      name: "",
+      type: "campaign",
+      status: "inactive",
+      order: 0,
+      navrootid: "",
+      navlink: buildNavigationPlaceholder("campaign"),
+      segments: [],
+    });
+    setNewFiles([]);
   };
 
-  // --- Render Helpers ---
-  // Recursive function to render dropdown options with indentation
+  const statusCount = useMemo(() => {
+    const count = { all: items.length, active: 0, inactive: 0, draft: 0 };
+    items.forEach((item) => {
+      const status = String(item?.status || "inactive").toLowerCase();
+      if (count[status] !== undefined) count[status] += 1;
+    });
+    return count;
+  }, [items]);
+
+  const onEdit = (entry) => {
+    const segments = Array.isArray(entry?.segments)
+      ? entry.segments
+          .map((segment) => String(segment?.navrootid || segment?._id || "").trim())
+          .filter(Boolean)
+      : [];
+
+    setEditId(String(entry._id));
+    setLinkLocked(false);
+    setForm({
+      name: String(entry?.name || ""),
+      type: String(entry?.type || "campaign"),
+      status: String(entry?.status || "inactive"),
+      order: Number(entry?.order || 0),
+      navrootid: String(entry?.navrootid?._id || entry?.navrootid || ""),
+      navlink: String(entry?.navlink || ""),
+      segments,
+    });
+    setNewFiles([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const toggleSegment = (id) => {
+    setForm((prev) => ({
+      ...prev,
+      segments: prev.segments.includes(id)
+        ? prev.segments.filter((entry) => entry !== id)
+        : [...prev.segments, id],
+    }));
+  };
+
+  const onSubmit = async (event) => {
+    event.preventDefault();
+
+    const title = String(form.name || "").trim();
+    if (!title) {
+      toast.error("Title is required");
+      return;
+    }
+
+    if (requiresNavRoot(form.type) && !String(form.navrootid || "").trim()) {
+      toast.error("Menu location is required for this type");
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("name", title);
+    payload.append("type", form.type);
+    payload.append("status", form.status || "inactive");
+    payload.append("order", String(Number(form.order || 0)));
+    payload.append("navlink", String(form.navlink || "").trim());
+    if (form.navrootid) payload.append("navrootid", form.navrootid);
+    form.segments.forEach((id) => payload.append("segments", id));
+
+    newFiles.forEach((file) => payload.append("media", file));
+
+    try {
+      setSaving(true);
+      if (editId) {
+        await axios.put(`${CATEGORY_API}/update/${editId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Updated successfully");
+      } else {
+        await axios.post(`${CATEGORY_API}/create`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Created successfully");
+      }
+
+      resetForm();
+      fetchAll();
+    } catch (error) {
+      console.error(error);
+      toast.error(error?.response?.data?.message || "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleStatus = async (id) => {
+    try {
+      await axios.patch(`${CATEGORY_API}/toggle-status/${id}`);
+      toast.success("Status updated");
+      fetchAll();
+    } catch (error) {
+      toast.error("Failed to update status");
+    }
+  };
+
+  const moveToDraft = async (id) => {
+    try {
+      await axios.delete(`${CATEGORY_API}/delete/${id}`);
+      toast.success("Moved to draft");
+      fetchAll();
+    } catch (error) {
+      toast.error("Failed to move to draft");
+    }
+  };
+
+  const recover = async (id) => {
+    try {
+      await axios.patch(`${CATEGORY_API}/restore/${id}`, { status: "inactive" });
+      toast.success("Recovered as inactive");
+      fetchAll();
+    } catch (error) {
+      toast.error("Failed to recover item");
+    }
+  };
+
+  const permanentlyDelete = async (id) => {
+    const confirmed = window.confirm("Permanently delete this item? This cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      await axios.delete(`${CATEGORY_API}/permanent/${id}`);
+      toast.success("Permanently deleted");
+      fetchAll();
+    } catch (error) {
+      toast.error("Failed to permanently delete");
+    }
+  };
+
+  const downloadMedia = async (entry, media, index) => {
+    try {
+      const ext = mediaIsVideo(media) ? "mp4" : "jpg";
+      const filename = `${entry.type || "section"}-${slugify(entry.name || "media")}-${index + 1}.${ext}`;
+      await downloadFromUrl(media.url, filename);
+      toast.success("Download started");
+    } catch (error) {
+      toast.error("Failed to download media");
+    }
+  };
+
   const renderNavOptions = (nodes, depth = 0) => {
-    return nodes.map(node => (
-      <React.Fragment key={node._id}>
-        <option value={node._id}>
-          {'\u00A0'.repeat(depth * 4)} {depth > 0 ? '└─ ' : ''} {node.name}
-        </option>
-        {node.children && node.children.length > 0 && renderNavOptions(node.children, depth + 1)}
-      </React.Fragment>
-    ));
+    return nodes.flatMap((node) => [
+      <option key={node._id} value={node._id}>
+        {`${"  ".repeat(depth)}${depth ? "- " : ""}${node.name}`}
+      </option>,
+      ...(Array.isArray(node.children) && node.children.length ? renderNavOptions(node.children, depth + 1) : []),
+    ]);
   };
 
-  // Recursive segment selector
-  const renderSegmentSelector = (nodes, depth = 0) => {
-    return nodes.map(node => (
-      <div key={node._id} className="mb-1">
-        <div 
-          onClick={() => toggleSegmentSelection(node._id)}
-          className={`
-            cursor-pointer p-3 rounded-lg flex items-center justify-between transition-all duration-200 select-none
-            ${formData.segments.includes(node._id) 
-              ? 'bg-violet-600/20 border-l-4 border-violet-500' 
-              : 'bg-slate-800/30 hover:bg-slate-800/60 border-l-4 border-transparent'}
-          `}
-          style={{ marginLeft: `${depth * 16}px` }}
-        >
-          <div className="flex items-center gap-3">
-            {formData.segments.includes(node._id) 
-              ? <CheckCircle size={16} className="text-violet-400"/> 
-              : <div className="w-4 h-4 rounded-full border border-slate-600"/>
-            }
-            <span className={`text-sm ${formData.segments.includes(node._id) ? 'text-white font-medium' : 'text-slate-400'}`}>
-              {node.name}
-            </span>
-          </div>
-          <span className="text-[10px] uppercase tracking-wider text-slate-600">{node.slug}</span>
-        </div>
-        {node.children && renderSegmentSelector(node.children, depth + 1)}
+  const renderSegments = (nodes, depth = 0) => {
+    return nodes.map((node) => (
+      <div key={node._id} className="space-y-1">
+        <label className="flex cursor-pointer items-center gap-2" style={{ marginLeft: `${depth * 12}px` }}>
+          <input
+            type="checkbox"
+            checked={form.segments.includes(String(node._id))}
+            onChange={() => toggleSegment(String(node._id))}
+            className="accent-emerald-700"
+          />
+          <span className="text-xs text-emerald-900">{node.name}</span>
+          <span className="text-[10px] uppercase tracking-[0.1em] text-emerald-600">{node.slug}</span>
+        </label>
+        {Array.isArray(node.children) && node.children.length ? renderSegments(node.children, depth + 1) : null}
       </div>
     ));
   };
 
   return (
-    <div className={`min-h-screen ${THEME.bg} ${THEME.textMain} font-sans selection:bg-violet-500 selection:text-white pb-20`}>
-      <Toaster position="bottom-right" toastOptions={{ style: { background: '#1e1b2e', color: '#fff', border: '1px solid #4c1d95' } }} />
-      
-      {/* Background Ambience */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-violet-900/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-fuchsia-900/10 rounded-full blur-[120px]" />
-      </div>
+    <div className="min-h-screen bg-[#f6fbf8] px-4 py-6 md:px-8 md:py-8">
+      <Toaster position="top-center" />
 
-      <div className="relative z-10 max-w-[1600px] mx-auto p-4 md:p-8">
-        
-        {/* Header Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }} 
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-center mb-10 gap-6"
-        >
-          <div className="flex items-center gap-4">
-            <div className={`p-4 rounded-2xl bg-gradient-to-br ${THEME.accent} shadow-lg shadow-violet-900/20`}>
-              <LayoutDashboard className="text-white w-6 h-6" />
-            </div>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-white">
-                Admin <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400"> Category Builder</span>
-              </h1>
-              <p className={THEME.textMuted}>Manage your visual categories & collections</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Khancosmetics SuperAdmin</p>
+              <h1 className="mt-1 text-2xl font-bold text-emerald-900">Category & Campaign Management</h1>
+              <p className="mt-1 text-sm text-emerald-700">Build homepage sections with draft, recovery, download, and auto Next.js navigation links.</p>
             </div>
-          </div>
-
-          <div className="flex gap-3 w-full md:w-auto">
-            {view === 'list' ? (
-              <button 
-                onClick={() => setView('create')}
-                className={`w-full md:w-auto px-6 py-3 rounded-xl font-semibold bg-white text-violet-950 hover:bg-violet-50 transition-colors shadow-lg shadow-violet-900/20 flex items-center justify-center gap-2`}
-              >
-                <FaPlus /> Create New
-              </button>
-            ) : (
-              <button 
-                onClick={resetForm}
-                className="w-full md:w-auto px-6 py-3 rounded-xl font-medium bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <FaTimes /> Cancel
-              </button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* MAIN CONTENT AREA */}
-        <AnimatePresence mode='wait'>
-          
-          {/* VIEW: LIST OF CATEGORIES */}
-          {view === 'list' && (
-            <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <div className="mb-6 flex flex-wrap items-center gap-3">
-                {[
-                  { key: 'all', label: `All (${totalCount})` },
-                  { key: 'active', label: `Active (${activeCount})` },
-                  { key: 'inactive', label: `Inactive (${inactiveCount})` },
-                ].map((filter) => {
-                  const isCurrent = statusFilter === filter.key;
-                  return (
-                    <button
-                      key={filter.key}
-                      onClick={() => setStatusFilter(filter.key)}
-                      className={`px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                        isCurrent
-                          ? 'bg-violet-500 text-white'
-                          : 'bg-slate-900/70 text-slate-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      {filter.label}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {loading && <div className="col-span-full text-center py-20 text-slate-500 flex flex-col items-center"><Loader2 className="animate-spin mb-4"/> Loading System...</div>}
-                
-                {!loading && visibleCategories.map((cat, idx) => (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    key={cat._id}
-                    className={`group relative ${THEME.card} border ${THEME.border} rounded-3xl p-6 hover:border-violet-500/30 transition-all duration-300 flex flex-col h-full`}
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="bg-violet-500/10 p-2 rounded-lg text-violet-400">
-                        <ListTree size={20} />
-                      </div>
-                      <div className={`px-2 py-1 rounded text-[10px] font-bold tracking-wider ${cat.isactive ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
-                        {cat.isactive ? 'LIVE' : 'HIDDEN'}
-                      </div>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-white mb-1 group-hover:text-violet-300 transition-colors">{cat.name}</h3>
-                    <p className="text-xs text-slate-500 mb-4">{cat.slug}</p>
-
-                    <div className="space-y-2 mb-6 flex-grow">
-                      <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-900/50 p-2 rounded">
-                        <FaSitemap className="text-violet-500/70" size={12}/>
-                        <span className="truncate">{cat.navrootid?.name || 'Unassigned Root'}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                         <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
-                          <Tags size={12}/> {cat.segments?.length || 0} Filters
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-slate-400 bg-slate-900/50 p-2 rounded">
-                          <ImagePlus size={12}/> {cat.media?.length || 0} Media
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 mt-auto">
-                      <button onClick={() => handleToggleStatus(cat._id)} className="py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex justify-center">
-                        {cat.isactive ? <FaEyeSlash /> : <FaEye />}
-                      </button>
-                      <button onClick={() => handleEditClick(cat)} className="py-2 rounded-lg bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 flex justify-center">
-                        <FaEdit />
-                      </button>
-                      <button onClick={() => handleDelete(cat._id)} className="py-2 rounded-lg bg-red-600/10 hover:bg-red-600/20 text-red-400 flex justify-center">
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </motion.div>
-                ))}
-
-                {!loading && visibleCategories.length === 0 && (
-                  <div className="col-span-full rounded-2xl border border-slate-800 bg-slate-900/40 p-10 text-center text-slate-400">
-                    No categories found for this filter.
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {/* VIEW: CREATE / EDIT FORM */}
-          {(view === 'create' || view === 'edit') && (
-            <motion.div
-              key="form"
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-              className={`${THEME.card} border ${THEME.border} rounded-[2rem] p-6 md:p-10 shadow-2xl backdrop-blur-xl`}
+            <button
+              type="button"
+              onClick={fetchAll}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 hover:bg-emerald-50"
             >
-              <form onSubmit={handleSubmit} className="space-y-8">
-                
-                {/* 1. Basic Details */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-wider text-slate-500 font-bold ml-1">Category Title</label>
-                    <input 
-                      type="text" name="name" 
-                      value={formData.name} onChange={handleInputChange}
-                      placeholder="e.g. Eid Collection 2026"
-                      className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-violet-500 outline-none transition-all"
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-wider text-slate-500 font-bold ml-1">Menu Location (Parent)</label>
-                    <select 
-                      name="navrootid" 
-                      value={formData.navrootid} onChange={handleInputChange}
-                      className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-violet-500 outline-none appearance-none"
-                    >
-                      <option value="">-- Select Parent Menu --</option>
-                      {renderNavOptions(navTree)}
-                    </select>
-                  </div>
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
+          </div>
+        </div>
 
-                  <div className="space-y-2">
-                    <label className="text-xs uppercase tracking-wider text-slate-500 font-bold ml-1">Sort Order</label>
-                    <input 
-                      type="number" name="order" 
-                      value={formData.order} onChange={handleInputChange}
-                      className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 text-white focus:ring-2 focus:ring-violet-500 outline-none"
-                    />
-                  </div>
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Title</span>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                  placeholder="Ex: LipStickSale"
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Builder Type</span>
+                <select
+                  value={form.type}
+                  onChange={(e) => {
+                    const type = e.target.value;
+                    setForm((prev) => ({ ...prev, type, navlink: linkLocked ? buildNavigationPlaceholder(type) : prev.navlink }));
+                  }}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                >
+                  {typeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Status</span>
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                >
+                  {statusOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Sort Order</span>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.order}
+                  onChange={(e) => setForm((prev) => ({ ...prev, order: e.target.value }))}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Navigation Link</span>
+                <input
+                  type="text"
+                  value={form.navlink}
+                  onChange={(e) => {
+                    setLinkLocked(false);
+                    setForm((prev) => ({ ...prev, navlink: e.target.value }));
+                  }}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                  placeholder={buildNavigationPlaceholder(form.type)}
+                />
+              </label>
+
+              <label className="space-y-1">
+                <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Menu Location (required for category/concern)</span>
+                <select
+                  value={form.navrootid}
+                  onChange={(e) => setForm((prev) => ({ ...prev, navrootid: e.target.value }))}
+                  className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                >
+                  <option value="">No menu root selected</option>
+                  {renderNavOptions(navTree)}
+                </select>
+              </label>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-3">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Segment Selector (optional)</p>
+                <p className="text-xs text-emerald-700">Selected: {form.segments.length}</p>
+              </div>
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-emerald-200 bg-white p-2">
+                {renderSegments(navTree)}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-200 bg-white p-3">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                <Upload className="h-4 w-4" />
+                Upload Media (image/video/gif)
+              </div>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={(e) => setNewFiles(Array.from(e.target.files || []))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+              {newFiles.length > 0 ? (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {newFiles.map((file) => (
+                    <span key={file.name + file.size} className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                      {file.name}
+                    </span>
+                  ))}
                 </div>
+              ) : null}
+            </div>
 
-                <div className="h-px bg-slate-800 w-full" />
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                {editId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {saving ? "Saving..." : editId ? "Update" : "Create"}
+              </button>
 
-                {/* 2. Complex Builders */}
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                  
-                  {/* Filter/Segment Selector */}
-                  <div className="xl:col-span-1 flex flex-col h-[500px]">
-                     <div className="mb-4 flex items-center justify-between">
-                        <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                          <Tags className="text-fuchsia-400"/> Filter Tags
-                        </h3>
-                        <span className="text-xs bg-slate-800 px-2 py-1 rounded text-slate-400">Multi-Select</span>
-                     </div>
-                     <div className="flex-1 bg-slate-950/30 rounded-2xl border border-slate-800 p-4 overflow-y-auto scrollbar-thin scrollbar-thumb-violet-900 scrollbar-track-transparent">
-                        {renderSegmentSelector(navTree)}
-                     </div>
-                  </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setLinkLocked(true);
+                  setForm((prev) => ({
+                    ...prev,
+                    navlink: prev.name.trim() ? buildNavigationLink(prev.type, prev.name) : buildNavigationPlaceholder(prev.type),
+                  }));
+                }}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 hover:bg-emerald-50"
+              >
+                Auto Link
+              </button>
 
-                  {/* Media Uploader */}
-                  <div className="xl:col-span-2 flex flex-col h-[500px]">
-                    <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
-                        <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                          <ImagePlus className="text-cyan-400"/> Media Gallery
-                        </h3>
-                        <div className="flex items-center gap-3 bg-slate-900 px-3 py-1 rounded-lg border border-slate-700">
-                          <span className="text-xs text-slate-400 uppercase">Total Slots:</span>
-                          <input 
-                            type="number" min="1" max="50" 
-                            value={formData.mediaCount} onChange={handleMediaCountChange}
-                            className="w-12 bg-transparent text-white font-bold text-center outline-none"
-                          />
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 hover:bg-emerald-50"
+              >
+                Reset Form
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Status</span>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                <option value="all">All ({statusCount.all})</option>
+                <option value="active">Active ({statusCount.active})</option>
+                <option value="inactive">Inactive ({statusCount.inactive})</option>
+                <option value="draft">Draft ({statusCount.draft})</option>
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Type</span>
+              <select
+                value={filters.type}
+                onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                <option value="">All Types</option>
+                {typeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Sort</span>
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilters((prev) => ({ ...prev, sort: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Search by title</span>
+              <div className="flex items-center gap-2 rounded-xl border border-emerald-200 px-3 py-2">
+                <Search className="h-4 w-4 text-emerald-700" />
+                <input
+                  type="text"
+                  value={filters.q}
+                  onChange={(e) => setFilters((prev) => ({ ...prev, q: e.target.value }))}
+                  className="w-full bg-transparent text-sm text-emerald-900 outline-none"
+                  placeholder="Search..."
+                />
+              </div>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">From</span>
+              <input
+                type="date"
+                value={filters.from}
+                onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">To</span>
+              <input
+                type="date"
+                value={filters.to}
+                onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <h2 className="mb-4 text-lg font-semibold text-emerald-900">Library ({items.length})</h2>
+
+          {loading ? (
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-12 text-center text-sm text-emerald-700">Loading...</div>
+          ) : items.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-12 text-center text-sm text-emerald-700">No records found.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {items.map((entry) => {
+                const isDraft = entry.status === "draft";
+                const firstMedia = Array.isArray(entry.media) && entry.media.length ? entry.media[0] : null;
+
+                return (
+                  <div key={entry._id} className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+                    <div className="relative aspect-[16/7] overflow-hidden bg-black/80">
+                      {firstMedia ? (
+                        mediaIsVideo(firstMedia) ? (
+                          <video src={firstMedia.url} className="h-full w-full object-cover" muted playsInline />
+                        ) : (
+                          <img src={firstMedia.url} alt={entry.name} className="h-full w-full object-cover" />
+                        )
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-white/80">No Media</div>
+                      )}
+
+                      <div className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-900">
+                        {entry.type}
+                      </div>
+
+                      <div className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${entry.status === "active" ? "bg-emerald-600 text-white" : entry.status === "inactive" ? "bg-amber-500 text-white" : "bg-slate-700 text-white"}`}>
+                        {entry.status || "inactive"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-3">
+                      <div>
+                        <p className="line-clamp-1 text-sm font-semibold text-emerald-900">{entry.name}</p>
+                        <p className="line-clamp-1 text-xs text-emerald-700">{entry.navlink || "No nav link"}</p>
+                        <p className="mt-1 text-[11px] text-emerald-600">{formatDate(entry.createdAt)}</p>
+                        <p className="text-[11px] text-emerald-600">Media: {Array.isArray(entry.media) ? entry.media.length : 0}</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEdit(entry)}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!firstMedia?.url) {
+                              toast.error("No media to download");
+                              return;
+                            }
+                            downloadMedia(entry, firstMedia, 0);
+                          }}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </button>
+
+                        {isDraft ? (
+                          <button
+                            type="button"
+                            onClick={() => recover(entry._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <FolderArchive className="h-3.5 w-3.5" />
+                            Recover
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleStatus(entry._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            {entry.status === "active" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            {entry.status === "active" ? "Hide" : "Show"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {!isDraft ? (
+                          <button
+                            type="button"
+                            onClick={() => moveToDraft(entry._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Move to Draft
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => recover(entry._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Restore
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => permanentlyDelete(entry._id)}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Permanent
+                        </button>
+                      </div>
+
+                      {Array.isArray(entry.media) && entry.media.length > 1 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {entry.media.map((media, idx) => (
+                            <button
+                              key={`${entry._id}-media-${idx}`}
+                              type="button"
+                              onClick={() => downloadMedia(entry, media, idx)}
+                              className="rounded-full border border-emerald-200 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-700 hover:bg-emerald-50"
+                            >
+                              Media {idx + 1}
+                            </button>
+                          ))}
                         </div>
-                    </div>
-
-                    <div className="flex-1 bg-slate-950/30 rounded-2xl border border-slate-800 p-4 overflow-y-auto">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {generatedSlots.map((slot) => (
-                          <div key={slot.id} className="aspect-[3/4] relative group">
-                            <input 
-                              type="file" 
-                              accept="image/*,video/*"
-                              onChange={(e) => handleFileChange(e, slot.id)}
-                              className="absolute inset-0 w-full h-full opacity-0 z-20 cursor-pointer"
-                            />
-                            
-                            {/* Visual State */}
-                            <div className={`
-                              absolute inset-0 rounded-xl border-2 border-dashed transition-all duration-300 flex flex-col items-center justify-center p-2 text-center overflow-hidden
-                              ${previews[slot.id] ? 'border-violet-500 bg-slate-900' : 'border-slate-700 bg-slate-900/50 hover:bg-slate-800 hover:border-slate-500'}
-                            `}>
-                              {previews[slot.id] ? (
-                                <>
-                                  <img src={previews[slot.id]} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
-                                  <div className="relative z-10 bg-black/60 p-2 rounded-full backdrop-blur-md">
-                                    <CheckCircle className="text-green-400 w-6 h-6" />
-                                  </div>
-                                  <p className="relative z-10 text-[10px] text-white mt-2 font-mono truncate w-full px-2">
-                                    {files[slot.id]?.name}
-                                  </p>
-                                </>
-                              ) : (
-                                <>
-                                  <FaCloudUploadAlt className="text-slate-500 w-8 h-8 mb-2 group-hover:text-white transition-colors"/>
-                                  <span className="text-xs text-slate-500 font-bold group-hover:text-slate-300">Slot {slot.id + 1}</span>
-                                  <span className="text-[10px] text-slate-600">Click to upload</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      ) : null}
                     </div>
                   </div>
-
-                </div>
-
-                {/* Footer Actions */}
-                <div className="pt-6 flex justify-end">
-                   <button 
-                      type="submit" 
-                      disabled={submitting}
-                      className={`
-                        relative overflow-hidden group px-12 py-4 rounded-xl font-bold text-lg text-white shadow-2xl
-                        bg-gradient-to-r ${THEME.accent} hover:${THEME.accentHover}
-                        disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98]
-                      `}
-                   >
-                      <div className="relative z-10 flex items-center gap-3">
-                        {submitting ? <Loader2 className="animate-spin"/> : <FaSave />}
-                        {submitting ? 'Processing...' : (view === 'edit' ? 'Update Category' : 'Launch Category')}
-                      </div>
-                      {/* Shine Effect */}
-                      <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12" />
-                   </button>
-                </div>
-
-              </form>
-            </motion.div>
+                );
+              })}
+            </div>
           )}
-
-        </AnimatePresence>
+        </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AdminCategoryBuilder
+export default AdminCategoryBuilder;

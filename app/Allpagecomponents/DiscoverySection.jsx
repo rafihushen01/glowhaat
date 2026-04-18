@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Award, Crown, Flame, Gem, Sparkles, Star, TrendingUp } from "lucide-react";
+import { Award, ChevronLeft, ChevronRight, Crown, Flame, Gem, Sparkles, Star, TrendingUp } from "lucide-react";
 import UserNav from "./UserNav";
 import BrandFooter from "./BrandFooter";
 import { serverurl } from "../utils/constants/serverurl";
@@ -90,7 +90,12 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
   const ModeIcon = iconMap[mode] || TrendingUp;
   const [items, setItems] = useState([]);
   const [meta, setMeta] = useState({});
-  const [cms, setCms] = useState({ bestselling: null, fivestar: null });
+  const [cms, setCms] = useState({
+    bestselling: { primary: null, banners: [] },
+    fivestar: { primary: null, banners: [] },
+    newin: { primary: null, banners: [] },
+  });
+  const [bannerIndex, setBannerIndex] = useState(0);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -135,6 +140,10 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    setBannerIndex(0);
+  }, [mode]);
 
   const fetchData = async (nextPage, append = false) => {
     const payload = {
@@ -226,8 +235,26 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
     return Array.from(values).sort((a, b) => a.localeCompare(b));
   }, [items]);
 
-  const bannerImage =
-    (mode === "bestselling" ? cms?.bestselling?.image : mode === "fivestar" ? cms?.fivestar?.image : "") || FALLBACK_BANNER;
+  const modeCms = cms?.[mode] || {};
+  const bannerList = Array.isArray(modeCms?.banners) && modeCms.banners.length
+    ? modeCms.banners
+    : modeCms?.primary
+    ? [modeCms.primary]
+    : modeCms?.image
+    ? [modeCms]
+    : [];
+  const activeBanner = bannerList[bannerIndex] || modeCms?.primary || null;
+  const bannerImage = String(activeBanner?.image || "") || FALLBACK_BANNER;
+
+  useEffect(() => {
+    if (bannerList.length <= 1) return undefined;
+
+    const timer = setInterval(() => {
+      setBannerIndex((prev) => (prev + 1) % bannerList.length);
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [bannerList.length]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-emerald-50/40">
@@ -236,7 +263,22 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
 
       <section className="mx-auto w-full max-w-[1400px] px-4 md:px-8">
         <div className="relative overflow-hidden rounded-3xl border border-emerald-200">
-          <img src={bannerImage} alt={titleMap[mode]} className="h-[220px] w-full object-cover mt-140 md:h-[320px]" />
+          <div className="relative h-[220px] w-full md:h-[320px]">
+            {bannerList.length > 0 ? (
+              bannerList.map((banner, currentIndex) => (
+                <img
+                  key={banner?._id || `${banner?.image}-${currentIndex}`}
+                  src={banner?.image || FALLBACK_BANNER}
+                  alt={titleMap[mode]}
+                  className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
+                    currentIndex === bannerIndex ? "opacity-100" : "opacity-0"
+                  }`}
+                />
+              ))
+            ) : (
+              <img src={bannerImage} alt={titleMap[mode]} className="h-full w-full object-cover" />
+            )}
+          </div>
           <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 via-emerald-900/45 to-transparent" />
           <div className="absolute inset-0 p-5 md:p-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
@@ -246,6 +288,36 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
             <h1 className="mt-4 text-2xl font-bold text-white md:text-5xl">{titleMap[mode]}</h1>
             <p className="mt-2 max-w-2xl text-sm text-emerald-100 md:text-base">{subtitleMap[mode]}</p>
           </div>
+          {bannerList.length > 1 ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setBannerIndex((prev) => (prev - 1 + bannerList.length) % bannerList.length)}
+                className="absolute left-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/40 bg-black/30 p-2 text-white backdrop-blur transition hover:bg-white hover:text-emerald-700"
+                aria-label="Previous banner"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setBannerIndex((prev) => (prev + 1) % bannerList.length)}
+                className="absolute right-3 top-1/2 z-20 -translate-y-1/2 rounded-full border border-white/40 bg-black/30 p-2 text-white backdrop-blur transition hover:bg-white hover:text-emerald-700"
+                aria-label="Next banner"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+              <div className="absolute bottom-3 left-0 right-0 z-20 flex justify-center gap-1.5">
+                {bannerList.map((banner, dotIndex) => (
+                  <button
+                    key={`${banner?._id || dotIndex}-dot`}
+                    type="button"
+                    onClick={() => setBannerIndex(dotIndex)}
+                    className={`h-2 rounded-full transition-all ${bannerIndex === dotIndex ? "w-6 bg-emerald-500" : "w-2 bg-white/80"}`}
+                  />
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
       </section>
 
@@ -508,4 +580,3 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
 };
 
 export default DiscoverySection;
-

@@ -1,65 +1,125 @@
 "use client";
-import React, { useState, useEffect, useRef } from "react";
+
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { toast, Toaster } from "react-hot-toast";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  Upload,
-  Trash2,
+  Download,
   Edit3,
+  Eye,
+  EyeOff,
+  FileImage,
+  FileVideo,
   Plus,
+  RefreshCw,
   Save,
-  Moon,
-  Sun,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  Hash,
-  Loader2,
-  X,
-  Eye
+  Trash2,
+  Upload,
 } from "lucide-react";
-import { frontendurl} from "../page";
-import { serverurl } from "../utils/constants/serverurl";
+import { serverurl, frontendurl } from "../utils/constants/serverurl";
 
-// Import your server URL
+const API_URL = `${serverurl}/homebanner`;
 
+const sectionOptions = [
+  { value: "home", label: "Home Banner" },
+  { value: "campaign", label: "Campaign (Use Category & Campaign Manager)", disabled: true },
+  { value: "bestselling", label: "Best Selling Banner" },
+  { value: "fivestar", label: "5 Star Selling Banner" },
+  { value: "newin", label: "New In Banner" },
+];
+
+const statusOptions = [
+  { value: "inactive", label: "Inactive (Default)" },
+  { value: "active", label: "Active" },
+  { value: "draft", label: "Draft" },
+];
+
+const sortOptions = [
+  { value: "newest", label: "Newest" },
+  { value: "oldest", label: "Oldest" },
+  { value: "order", label: "Banner Order" },
+];
+
+const getDefaultLink = (section) => {
+  const base = String(frontendurl || "").replace(/\/+$/, "");
+  if (!base) return "";
+  if (section === "newin") return `${base}/new-in`;
+  if (section === "bestselling") return `${base}/best-selling`;
+  if (section === "fivestar") return `${base}/five-star`;
+  return base;
+};
+
+const formatDate = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleString();
+};
+
+const isVideoUrl = (url, mediatype) => {
+  if (String(mediatype || "").toLowerCase() === "video") return true;
+  const value = String(url || "").toLowerCase();
+  return value.includes(".mp4") || value.includes(".mov") || value.includes(".mkv") || value.includes(".webm");
+};
+
+const downloadFromUrl = async (url, filename) => {
+  const response = await fetch(url);
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(objectUrl);
+};
 
 const AdminHomeBanner = () => {
-  // ===============================
-  // STATE MANAGEMENT
-  // ===============================
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [darkMode, setDarkMode] = useState(true);
-  const [editMode, setEditMode] = useState(null); // stores the ID of banner being edited
+  const [editId, setEditId] = useState("");
 
-  // Form State
-  const [form, setForm] = useState({
-    navigationlink: `${frontendurl}/b`,
-    bannernumber: "",
-    sectionkey: "home",
-    image: null, // Stores the actual file object
+  const [filters, setFilters] = useState({
+    section: "all",
+    status: "all",
+    sort: "newest",
+    from: "",
+    to: "",
   });
-  
-  // Image Preview State (for showing the image before upload)
-  const [preview, setPreview] = useState(null);
+
+  const [form, setForm] = useState({
+    title: "",
+    sectionkey: "home",
+    navigationlink: getDefaultLink("home"),
+    bannernumber: 0,
+    status: "inactive",
+    image: null,
+  });
+
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewType, setPreviewType] = useState("image");
   const fileInputRef = useRef(null);
 
-  const API_URL = `${serverurl}/homebanner`;
-
-  // ===============================
-  // FETCH BANNERS
-  // ===============================
   const fetchBanners = async () => {
     try {
-      const { data } = await axios.get(`${API_URL}/gethomebanners?section=all`);
-      if (data.success) {
-        setBanners(data.banners || []);
-      }
+      setLoading(true);
+      const { data } = await axios.get(`${API_URL}/gethomebanners`, {
+        params: {
+          scope: "admin",
+          section: filters.section,
+          status: filters.status,
+          sort: filters.sort,
+          from: filters.from || undefined,
+          to: filters.to || undefined,
+        },
+      });
+      setBanners(Array.isArray(data?.banners) ? data.banners : []);
     } catch (error) {
       console.error(error);
-      toast.error("Failed to load banners.");
+      toast.error("Failed to load banners");
+      setBanners([]);
     } finally {
       setLoading(false);
     }
@@ -67,346 +127,484 @@ const AdminHomeBanner = () => {
 
   useEffect(() => {
     fetchBanners();
-  }, []);
+  }, [filters.section, filters.status, filters.sort, filters.from, filters.to]);
 
-  // ===============================
-  // HANDLERS
-  // ===============================
-  
-  // Handle Image Selection
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setForm({ ...form, image: file });
-      setPreview(URL.createObjectURL(file)); // Create local preview URL
-    }
-  };
-
-  // Handle Edit Click
-  const handleEditClick = (banner) => {
-    setEditMode(banner._id);
-    setForm({
-      navigationlink: banner.navigationlink,
-      bannernumber: banner.bannernumber,
-      sectionkey: banner.sectionkey || "home",
-      image: null, // Reset file input
-    });
-    setPreview(banner.image); // Show existing Cloudinary URL as preview
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  // Handle Cancel/Reset
   const resetForm = () => {
-    setEditMode(null);
-    setForm({ navigationlink: "", bannernumber: "", sectionkey: "home", image: null });
-    setPreview(null);
+    setEditId("");
+    const section = "home";
+    setForm({
+      title: "",
+      sectionkey: section,
+      navigationlink: getDefaultLink(section),
+      bannernumber: 0,
+      status: "inactive",
+      image: null,
+    });
+    setPreviewUrl("");
+    setPreviewType("image");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Handle Submit (Create or Edit)
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!editMode && !form.image) return toast.error("Please upload an image!");
-    if (!form.bannernumber) return toast.error("Banner Number is required!");
+  const statusCounts = useMemo(() => {
+    const counts = { all: banners.length, active: 0, inactive: 0, draft: 0 };
+    banners.forEach((banner) => {
+      const status = String(banner?.status || "inactive").toLowerCase();
+      if (counts[status] !== undefined) counts[status] += 1;
+    });
+    return counts;
+  }, [banners]);
 
-    setSubmitting(true);
-    const formData = new FormData();
-    formData.append("navigationlink", form.navigationlink);
-    formData.append("bannernumber", form.bannernumber);
-    formData.append("sectionkey", form.sectionkey || "home");
-    if (form.image) {
-      formData.append("image", form.image);
+  const onSelectFile = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const isVideo = String(file.type || "").toLowerCase().startsWith("video/");
+    setForm((prev) => ({ ...prev, image: file }));
+    setPreviewType(isVideo ? "video" : "image");
+    setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const onSectionChange = (section) => {
+    setForm((prev) => ({
+      ...prev,
+      sectionkey: section,
+      navigationlink: editId ? prev.navigationlink : getDefaultLink(section),
+    }));
+  };
+
+  const onEdit = (banner) => {
+    setEditId(String(banner._id));
+    setForm({
+      title: String(banner.title || ""),
+      sectionkey: String(banner.sectionkey || "home"),
+      navigationlink: String(banner.navigationlink || getDefaultLink(banner.sectionkey)),
+      bannernumber: Number(banner.bannernumber || 0),
+      status: String(banner.status || "inactive"),
+      image: null,
+    });
+    setPreviewUrl(String(banner.image || ""));
+    setPreviewType(isVideoUrl(banner.image, banner.mediatype) ? "video" : "image");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const onSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!editId && !form.image) {
+      toast.error("Please upload a banner file");
+      return;
     }
 
+    setSubmitting(true);
     try {
-      if (editMode) {
-        // EDIT MODE
-        const { data } = await axios.put(`${API_URL}/edit/${editMode}`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
+      const payload = new FormData();
+      payload.append("title", form.title);
+      payload.append("sectionkey", form.sectionkey);
+      payload.append("navigationlink", form.navigationlink || getDefaultLink(form.sectionkey));
+      payload.append("bannernumber", String(Number(form.bannernumber || 0)));
+      payload.append("status", form.status || "inactive");
+      if (form.image) payload.append("image", form.image);
+
+      if (editId) {
+        await axios.put(`${API_URL}/edit/${editId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
-        if (data.success) {
-          toast.success("Banner Updated Successfully!");
-          fetchBanners();
-          resetForm();
-        }
+        toast.success("Banner updated successfully");
       } else {
-        // CREATE MODE
-        const { data } = await axios.post(`${API_URL}/create`, formData, {
-            headers: { "Content-Type": "multipart/form-data" },
+        await axios.post(`${API_URL}/create`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
         });
-        if (data.success) {
-          toast.success("Banner Created Successfully!");
-          setBanners([...banners, data.banner]); // Optimistic update or refetch
-          fetchBanners(); // Refetch to be safe with sorting
-          resetForm();
-        }
+        toast.success("Banner uploaded successfully");
       }
+
+      resetForm();
+      fetchBanners();
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(error?.response?.data?.message || "Could not save banner");
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Handle Delete
-  const handleDelete = async (id) => {
-    if (!confirm("Are you sure you want to delete this banner?")) return;
-
+  const moveToDraft = async (id) => {
     try {
-      const { data } = await axios.delete(`${API_URL}/delete/${id}`);
-      if (data.success) {
-        toast.success("Banner Deleted");
-        setBanners(banners.filter((b) => b._id !== id));
-      }
+      await axios.delete(`${API_URL}/delete/${id}`);
+      toast.success("Moved to draft");
+      fetchBanners();
     } catch (error) {
-      toast.error("Failed to delete");
+      toast.error("Failed to move banner to draft");
     }
   };
 
-  // ===============================
-  // UI RENDER
-  // ===============================
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-blue-500">
-        <Loader2 className="w-12 h-12 animate-spin" />
-    </div>
-  );
+  const restore = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/restore/${id}`, { status: "inactive" });
+      toast.success("Banner restored as inactive");
+      fetchBanners();
+    } catch (error) {
+      toast.error("Failed to restore banner");
+    }
+  };
+
+  const toggleStatus = async (id) => {
+    try {
+      await axios.patch(`${API_URL}/status/${id}`);
+      toast.success("Banner status changed");
+      fetchBanners();
+    } catch (error) {
+      toast.error("Could not change status");
+    }
+  };
+
+  const permanentlyDelete = async (id) => {
+    const ok = window.confirm("Permanently delete this banner? This cannot be undone.");
+    if (!ok) return;
+
+    try {
+      await axios.delete(`${API_URL}/permanent/${id}`);
+      toast.success("Banner permanently deleted");
+      fetchBanners();
+    } catch (error) {
+      toast.error("Could not permanently delete banner");
+    }
+  };
+
+  const downloadBanner = async (banner) => {
+    try {
+      const response = await axios.get(`${API_URL}/download/${banner._id}`);
+      const url = response?.data?.data?.url || banner.image;
+      const suffix = isVideoUrl(url, banner.mediatype) ? "mp4" : "jpg";
+      const filename = `${banner.sectionkey || "banner"}-${banner.bannernumber || 0}-${banner._id}.${suffix}`;
+      await downloadFromUrl(url, filename);
+      toast.success("Download started");
+    } catch (error) {
+      console.error(error);
+      toast.error("Download failed");
+    }
+  };
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 font-sans ${darkMode ? "bg-slate-950 text-white" : "bg-gray-50 text-gray-900"}`}>
-      <Toaster position="top-center" reverseOrder={false} />
+    <div className="min-h-screen bg-[#f6fbf8] px-4 py-6 md:px-8 md:py-8">
+      <Toaster position="top-center" />
 
-      {/* --- HEADER --- */}
-      <header className={`sticky top-0 z-50 backdrop-blur-xl border-b px-6 py-4 flex justify-between items-center transition-colors ${darkMode ? "bg-slate-950/80 border-slate-800" : "bg-white/80 border-gray-200"}`}>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-lg shadow-lg shadow-blue-500/30">
-            <ImageIcon className="text-white w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-300">
-              Hero Banners
-            </h1>
-            <p className="text-xs text-gray-500 hidden sm:block">Manage your website homepage sliders</p>
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Khancosmetics SuperAdmin</p>
+              <h1 className="mt-1 text-2xl font-bold text-emerald-900">Home Banner Management</h1>
+              <p className="mt-1 text-sm text-emerald-700">Draft-safe upload, download, recovery, and activation workflow.</p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchBanners}
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 hover:bg-emerald-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </button>
           </div>
         </div>
-        <button
-          onClick={() => setDarkMode(!darkMode)}
-          className={`p-3 rounded-full transition-all active:scale-95 ${
-            darkMode ? "bg-slate-800 hover:bg-slate-700 text-yellow-400" : "bg-white shadow-md hover:bg-gray-100 text-slate-600"
-          }`}
-        >
-          {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-      </header>
 
-      <main className="max-w-6xl mx-auto p-6 space-y-10">
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <form className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4" onSubmit={onSubmit}>
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Banner Title</span>
+              <input
+                type="text"
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                placeholder="Optional title"
+              />
+            </label>
 
-        {/* --- SECTION 1: EDITOR CARD --- */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`rounded-3xl p-8 border shadow-2xl overflow-hidden relative ${darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"}`}
-        >
-           {/* Background Gradient Blob */}
-           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -z-10 pointer-events-none" />
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Banner Type</span>
+              <select
+                value={form.sectionkey}
+                onChange={(e) => onSectionChange(e.target.value)}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                {sectionOptions.map((option) => (
+                  <option key={option.value} value={option.value} disabled={option.disabled}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-           <div className="flex flex-col md:flex-row gap-8">
-              
-              {/* Left: Image Uploader */}
-              <div className="w-full md:w-1/2 space-y-4">
-                 <label className="block text-sm font-bold text-gray-500 uppercase tracking-wider mb-2">Banner Image</label>
-                 
-                 <div 
-                   onClick={() => fileInputRef.current.click()}
-                   className={`relative group w-full aspect-video rounded-2xl border-2 border-dashed flex flex-col items-center justify-center cursor-pointer overflow-hidden transition-all
-                     ${darkMode ? "border-slate-700 hover:border-blue-500 hover:bg-slate-800" : "border-gray-300 hover:border-blue-500 hover:bg-gray-50"}
-                   `}
-                 >
-                    {preview ? (
-                      <>
-                        <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Edit3 className="text-white w-8 h-8" />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center p-6">
-                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3 group-hover:text-blue-500 transition-colors" />
-                        <p className={`font-medium ${darkMode ? "text-gray-300" : "text-gray-700"}`}>Click to Upload</p>
-                        <p className="text-xs text-gray-500 mt-1">1920x1080 Recommended</p>
-                      </div>
-                    )}
-                 </div>
-                 <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleImageChange} />
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Status</span>
+              <select
+                value={form.status}
+                onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                {statusOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Banner Order</span>
+              <input
+                type="number"
+                min="0"
+                value={form.bannernumber}
+                onChange={(e) => setForm((prev) => ({ ...prev, bannernumber: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+            </label>
+
+            <label className="space-y-1 md:col-span-2 xl:col-span-3">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Navigation Link (default from frontendurl)</span>
+              <input
+                type="text"
+                value={form.navigationlink}
+                onChange={(e) => setForm((prev) => ({ ...prev, navigationlink: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+                placeholder={getDefaultLink(form.sectionkey)}
+              />
+            </label>
+
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Upload (Image/Video/GIF)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={onSelectFile}
+                  className="w-full rounded-xl border border-emerald-200 px-2 py-2 text-sm text-emerald-900"
+                />
               </div>
+            </div>
 
-              {/* Right: Input Fields */}
-              <div className="w-full md:w-1/2 flex flex-col justify-center space-y-6">
-                 <div>
-                    <h2 className={`text-xl font-bold mb-1 ${darkMode ? "text-white" : "text-gray-900"}`}>
-                      {editMode ? "Edit Banner Details" : "Add New Banner"}
-                    </h2>
-                    <p className="text-sm text-gray-500">Configure where this banner links to and its order.</p>
-                 </div>
+            <div className="md:col-span-2 xl:col-span-4 flex flex-wrap items-center gap-2">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-full bg-emerald-700 px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-emerald-800 disabled:opacity-60"
+              >
+                {editId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {submitting ? "Saving..." : editId ? "Update Banner" : "Create Banner"}
+              </button>
+              <button
+                type="button"
+                onClick={resetForm}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-5 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800 hover:bg-emerald-50"
+              >
+                Reset To Default Link
+              </button>
+            </div>
 
-                 <form onSubmit={handleSubmit} className="space-y-5">
-                    
-                    {/* Link Input */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 ml-1">Destination URL</label>
-                      <div className="relative">
-                        <LinkIcon className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder="/shop/category/new-arrivals"
-                          value={form.navigationlink}
-                          onChange={(e) => setForm({...form, navigationlink: e.target.value})}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl outline-none border transition-all ${
-                            darkMode ? "bg-slate-950 border-slate-700 focus:border-blue-500 text-white" : "bg-gray-50 border-gray-200 focus:border-blue-500 text-gray-900"
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Order Number Input */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 ml-1">Display Order (Number)</label>
-                      <div className="relative">
-                        <Hash className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
-                        <input
-                          type="number"
-                          placeholder="e.g. 1"
-                          value={form.bannernumber}
-                          onChange={(e) => setForm({...form, bannernumber: e.target.value})}
-                          className={`w-full pl-10 pr-4 py-3 rounded-xl outline-none border transition-all ${
-                            darkMode ? "bg-slate-950 border-slate-700 focus:border-blue-500 text-white" : "bg-gray-50 border-gray-200 focus:border-blue-500 text-gray-900"
-                          }`}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-500 ml-1">CMS Section</label>
-                      <select
-                        value={form.sectionkey}
-                        onChange={(e) => setForm({ ...form, sectionkey: e.target.value })}
-                        className={`w-full px-4 py-3 rounded-xl outline-none border transition-all ${
-                          darkMode ? "bg-slate-950 border-slate-700 focus:border-blue-500 text-white" : "bg-gray-50 border-gray-200 focus:border-blue-500 text-gray-900"
-                        }`}
-                      >
-                        <option value="home">Home Hero</option>
-                        <option value="bestselling">Best Selling Section</option>
-                        <option value="fivestar">5-Star Section</option>
-                      </select>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-3 pt-2">
-                       <button
-                         type="submit"
-                         disabled={submitting}
-                         className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-500/25 transition-all active:scale-95 flex items-center justify-center gap-2"
-                       >
-                         {submitting ? <Loader2 className="animate-spin w-5 h-5" /> : editMode ? <><Save className="w-5 h-5"/> Update Banner</> : <><Plus className="w-5 h-5"/> Create Banner</>}
-                       </button>
-                       
-                       {editMode && (
-                         <button
-                           type="button"
-                           onClick={resetForm}
-                           className={`px-5 py-3 rounded-xl font-medium transition-colors ${darkMode ? "bg-slate-800 text-gray-400 hover:text-white" : "bg-gray-100 text-gray-500 hover:text-gray-900"}`}
-                         >
-                           Cancel
-                         </button>
-                       )}
-                    </div>
-
-                 </form>
+            {(previewUrl || editId) && (
+              <div className="md:col-span-2 xl:col-span-4 overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50">
+                <div className="flex items-center gap-2 border-b border-emerald-200 px-3 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                  {previewType === "video" ? <FileVideo className="h-4 w-4" /> : <FileImage className="h-4 w-4" />}
+                  Preview
+                </div>
+                <div className="aspect-[16/6] bg-black/80">
+                  {previewType === "video" ? (
+                    <video src={previewUrl} controls className="h-full w-full object-contain" />
+                  ) : (
+                    <img src={previewUrl} alt="banner preview" className="h-full w-full object-cover" />
+                  )}
+                </div>
               </div>
-           </div>
-        </motion.div>
-
-        {/* --- SECTION 2: ACTIVE BANNERS LIST --- */}
-        <section>
-          <div className="flex items-center gap-2 mb-6">
-            <Eye className="text-blue-500" />
-            <h2 className={`text-xl font-bold ${darkMode ? "text-gray-200" : "text-gray-800"}`}>Active Banners ({banners.length})</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <AnimatePresence>
-              {banners.map((banner) => (
-                <motion.div
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  whileHover={{ y: -5 }}
-                  key={banner._id}
-                  className={`group relative rounded-2xl overflow-hidden border shadow-lg transition-all ${
-                    darkMode ? "bg-slate-900 border-slate-800" : "bg-white border-gray-100"
-                  }`}
-                >
-                  {/* Banner Image */}
-                  <div className="aspect-video relative overflow-hidden">
-                    <img src={banner.image} alt="Banner" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                    
-                    {/* Badge Number */}
-                    <div className="absolute top-3 left-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg z-10">
-                      #{banner.bannernumber}
-                    </div>
-                    <div className="absolute top-3 right-3 bg-emerald-600 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-lg z-10 uppercase tracking-[0.1em]">
-                      {banner.sectionkey || "home"}
-                    </div>
-
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-sm">
-                       <button 
-                         onClick={() => handleEditClick(banner)}
-                         className="p-3 bg-white/10 hover:bg-blue-500 text-white rounded-full backdrop-blur-md transition-all transform hover:scale-110"
-                         title="Edit"
-                       >
-                         <Edit3 className="w-5 h-5" />
-                       </button>
-                       <button 
-                         onClick={() => handleDelete(banner._id)}
-                         className="p-3 bg-white/10 hover:bg-red-500 text-white rounded-full backdrop-blur-md transition-all transform hover:scale-110"
-                         title="Delete"
-                       >
-                         <Trash2 className="w-5 h-5" />
-                       </button>
-                    </div>
-                  </div>
-
-                  {/* Info Footer */}
-                  <div className="p-4 flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${darkMode ? "bg-slate-800" : "bg-gray-100"}`}>
-                      <LinkIcon className="w-4 h-4 text-gray-500" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-gray-500 uppercase font-semibold">Redirects To</p>
-                      <p className={`text-sm truncate font-medium ${darkMode ? "text-gray-300" : "text-gray-800"}`}>
-                        {banner.navigationlink || "No Link Set"}
-                      </p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            
-            {banners.length === 0 && !loading && (
-               <div className="col-span-full py-20 text-center text-gray-500 opacity-50">
-                  <ImageIcon className="w-16 h-16 mx-auto mb-4" />
-                  <p>No banners active. Add one above!</p>
-               </div>
             )}
-          </div>
-        </section>
+          </form>
+        </div>
 
-      </main>
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Filter by type</span>
+              <select
+                value={filters.section}
+                onChange={(e) => setFilters((prev) => ({ ...prev, section: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                <option value="all">All Types</option>
+                {sectionOptions.filter((option) => !option.disabled).map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Filter by status</span>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters((prev) => ({ ...prev, status: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                <option value="all">All ({statusCounts.all})</option>
+                <option value="active">Active ({statusCounts.active})</option>
+                <option value="inactive">Inactive ({statusCounts.inactive})</option>
+                <option value="draft">Draft ({statusCounts.draft})</option>
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">Sort by time/order</span>
+              <select
+                value={filters.sort}
+                onChange={(e) => setFilters((prev) => ({ ...prev, sort: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              >
+                {sortOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">From date</span>
+              <input
+                type="date"
+                value={filters.from}
+                onChange={(e) => setFilters((prev) => ({ ...prev, from: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+            </label>
+
+            <label className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">To date</span>
+              <input
+                type="date"
+                value={filters.to}
+                onChange={(e) => setFilters((prev) => ({ ...prev, to: e.target.value }))}
+                className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm text-emerald-900"
+              />
+            </label>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
+          <h2 className="mb-4 text-lg font-semibold text-emerald-900">Banner Library ({banners.length})</h2>
+
+          {loading ? (
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-12 text-center text-sm text-emerald-700">Loading banners...</div>
+          ) : banners.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-emerald-200 bg-emerald-50 px-4 py-12 text-center text-sm text-emerald-700">No banners found for current filter.</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {banners.map((banner) => {
+                const draft = banner.status === "draft";
+                const video = isVideoUrl(banner.image, banner.mediatype);
+
+                return (
+                  <div key={banner._id} className="overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-sm">
+                    <div className="relative aspect-[16/7] bg-black/80">
+                      {video ? (
+                        <video src={banner.image} className="h-full w-full object-cover" muted playsInline />
+                      ) : (
+                        <img src={banner.image} alt={banner.title || "banner"} className="h-full w-full object-cover" />
+                      )}
+                      <div className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-900">
+                        #{Number(banner.bannernumber || 0)}
+                      </div>
+                      <div className={`absolute right-2 top-2 rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${banner.status === "active" ? "bg-emerald-600 text-white" : banner.status === "inactive" ? "bg-amber-500 text-white" : "bg-slate-700 text-white"}`}>
+                        {banner.status || "inactive"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 p-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">{banner.sectionkey}</p>
+                        <p className="line-clamp-1 text-sm font-semibold text-emerald-900">{banner.title || "Untitled Banner"}</p>
+                        <p className="line-clamp-1 text-xs text-emerald-700">{banner.navigationlink || "No navigation link"}</p>
+                        <p className="mt-1 text-[11px] text-emerald-600">{formatDate(banner.createdAt)}</p>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onEdit(banner)}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => downloadBanner(banner)}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </button>
+
+                        {draft ? (
+                          <button
+                            type="button"
+                            onClick={() => restore(banner._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => toggleStatus(banner._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50"
+                          >
+                            {banner.status === "active" ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                            {banner.status === "active" ? "Hide" : "Show"}
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        {!draft ? (
+                          <button
+                            type="button"
+                            onClick={() => moveToDraft(banner._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-amber-200 bg-amber-50 px-2 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            Move to Draft
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => restore(banner._id)}
+                            className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100"
+                          >
+                            <RefreshCw className="h-3.5 w-3.5" />
+                            Recover
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => permanentlyDelete(banner._id)}
+                          className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 bg-red-50 px-2 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                          Permanent
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

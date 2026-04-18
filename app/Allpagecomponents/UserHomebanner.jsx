@@ -17,6 +17,13 @@ const UserHomebanner = () => {
   const hasSlides = banners.length > 0;
   const canSlide = banners.length > 1;
 
+  const isVideoSlide = (banner) => {
+    const mediaType = String(banner?.mediatype || "").toLowerCase();
+    if (mediaType === "video") return true;
+    const url = String(banner?.image || "").toLowerCase();
+    return url.includes(".mp4") || url.includes(".mov") || url.includes(".mkv") || url.includes(".webm");
+  };
+
   const sortedBanners = useMemo(
     () => [...banners].sort((a, b) => Number(a?.bannernumber || 0) - Number(b?.bannernumber || 0)),
     [banners]
@@ -63,7 +70,7 @@ const UserHomebanner = () => {
 
   if (loading) {
     return (
-      <div className="w-full py-3 sm:py-4">
+      <div className="mt-[30px] w-full py-3 sm:mt-0 sm:py-4">
         <div className="relative w-full overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50 shadow-sm aspect-[16/8] sm:aspect-[16/7] lg:aspect-[16/5]">
           <div className="h-full w-full animate-pulse bg-gradient-to-r from-emerald-100 via-white to-emerald-100" />
         </div>
@@ -83,7 +90,7 @@ const UserHomebanner = () => {
   };
 
   return (
-    <section className="w-full py-3 sm:py-4">
+    <section className="mt-[30px] w-full py-3 sm:mt-0 sm:py-4">
       <div
         className="group relative w-full overflow-hidden rounded-2xl border border-emerald-200 bg-white shadow-[0_18px_60px_-30px_rgba(6,95,70,0.45)] aspect-[16/8] sm:aspect-[16/7] lg:aspect-[16/5]"
         onTouchStart={(e) => setTouchStartX(e.targetTouches?.[0]?.clientX ?? null)}
@@ -100,7 +107,18 @@ const UserHomebanner = () => {
                 currentIndex === index ? "opacity-100" : "pointer-events-none opacity-0"
               }`}
             >
-              <img src={banner?.image} alt={`KhanCosmetics Banner ${index + 1}`} className="h-full w-full object-cover" loading={index === 0 ? "eager" : "lazy"} />
+              {isVideoSlide(banner) ? (
+                <video
+                  src={banner?.image}
+                  className="h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                <img src={banner?.image} alt={`KhanCosmetics Banner ${index + 1}`} className="h-full w-full object-cover" loading={index === 0 ? "eager" : "lazy"} />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/30 via-transparent to-transparent" />
             </Link>
           );
