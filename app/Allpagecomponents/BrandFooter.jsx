@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import { Facebook, Instagram, MessageCircle } from "lucide-react";
 import { Link } from "@/i18n/navigation";

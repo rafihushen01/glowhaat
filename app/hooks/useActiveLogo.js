@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { serverurl } from "../utils/constants/serverurl";
+import glowHaatDefaultLogo from "../assets/GlowHaatlogo.png";
 import {
   ACTIVE_LOGO_EVENT,
   ACTIVE_LOGO_STORAGE_KEY,
@@ -11,7 +12,7 @@ import {
   writeCachedActiveLogo,
 } from "../utils/logoManager";
 
-const DEFAULT_FALLBACK_LOGO = "/khancosmeticslogo.png";
+const DEFAULT_FALLBACK_LOGO = glowHaatDefaultLogo?.src || "/assets/GlowHaatlogo.png";
 
 export const useActiveLogo = (fallbackLogo = DEFAULT_FALLBACK_LOGO) => {
   const [rawLogoUrl, setRawLogoUrl] = useState(() => readCachedActiveLogo());
