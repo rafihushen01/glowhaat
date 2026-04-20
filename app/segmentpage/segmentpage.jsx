@@ -169,17 +169,30 @@ const getSoldText = (value) => {
 const buildFallbackCardBadges = (product) => {
   const tags = Array.isArray(product?.tags) ? product.tags.map((entry) => String(entry).toLowerCase()) : [];
   const badges = [];
+  const deliveryCharge = Number(product?.deliveryschema?.deliverycharge);
+  const hasFreeDelivery =
+    Boolean(product?.deliveryschema?.isfreeshipping) ||
+    (Number.isFinite(deliveryCharge) && deliveryCharge <= 0);
+  const isOfficialStore = tags.some(
+    (tag) =>
+      tag.includes("official") ||
+      tag.includes("verified") ||
+      tag.includes("officialbadge") ||
+      tag.includes("officialstorebadge") ||
+      tag.includes("officiabadge")
+  );
 
-  if (product?.deliveryschema?.isfreeshipping) {
+  if (hasFreeDelivery) {
     badges.push({ key: "free-delivery", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
   }
-  if (tags.some((tag) => tag.includes("official") || tag.includes("verified"))) {
+  if (isOfficialStore) {
     badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+    badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
   }
   if (tags.some((tag) => tag.includes("star"))) {
     badges.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
   }
-  if (tags.some((tag) => tag.includes("fast"))) {
+  if (tags.some((tag) => tag.includes("fast")) && !badges.some((badge) => badge.key === "fast")) {
     badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
   }
   if (Number(product?.totalsold || 0) >= 120) {
@@ -234,7 +247,7 @@ const SegmentPage = () => {
     ...selectedBrands.map((b) => ({ key: `b-${b}`, label: b, type: "brand", value: b })),
     ...(availability !== "all" ? [{ key: `a-${availability}`, label: availability.replace("_", " "), type: "availability", value: availability }] : []),
     ...(ratingRange[0] !== filters.minRating || ratingRange[1] !== filters.maxRating
-      ? [{ key: "r-range", label: `${ratingRange[0]}★ to ${ratingRange[1]}★`, type: "rating" }]
+      ? [{ key: "r-range", label: `${ratingRange[0]}\u2605 to ${ratingRange[1]}\u2605`, type: "rating" }]
       : []),
   ];
 
@@ -256,7 +269,7 @@ const SegmentPage = () => {
         const navPath = findNodePathBySlug(navTree, slug) || [];
 
         const title =
-          segmentMeta?.title || navNode?.name || normalizeText(slug).replace(/-/g, " ") || "Khan Cosmetics";
+          segmentMeta?.title || navNode?.name || normalizeText(slug).replace(/-/g, " ") || "Glow Haat";
 
         const image =
           segmentMeta?.image || getPrimaryImage(navNode) || getPrimaryImage(navPath[navPath.length - 1]) || FALLBACK_BANNER;
@@ -456,8 +469,8 @@ const SegmentPage = () => {
           <div className="mb-3 flex flex-wrap gap-2">
             {[
               { label: "All ratings", type: "all" },
-              { label: "4★ & up", value: 4 },
-              { label: "3★ & up", value: 3 },
+              { label: "4\u2605 & up", value: 4 },
+              { label: "3\u2605 & up", value: 3 },
             ].map((preset) => {
               const isAll = preset.type === "all";
               const disabled = isAll ? false : filters.maxRating < preset.value;
@@ -487,8 +500,8 @@ const SegmentPage = () => {
             })}
           </div>
           <div className="mb-2 flex items-center justify-between text-xs text-[#1f5c49]">
-            <span>{ratingRange[0]}★</span>
-            <span>{ratingRange[1]}★</span>
+            <span>{ratingRange[0]}\u2605</span>
+            <span>{ratingRange[1]}\u2605</span>
           </div>
           <input
             type="range"
@@ -515,7 +528,7 @@ const SegmentPage = () => {
             className="w-full accent-[#1f5c49] disabled:cursor-not-allowed disabled:opacity-40"
           />
           <p className="mt-2 text-[11px] text-[#6d8b80]">
-            Category rating range: {filters.minRating}★ to {filters.maxRating}★
+            Category rating range: {filters.minRating}\u2605 to {filters.maxRating}\u2605
           </p>
         </div>
       </div>
@@ -655,9 +668,9 @@ const SegmentPage = () => {
         <img src={catalogMeta.image || FALLBACK_BANNER} alt={catalogMeta.title || "Segment"} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 mx-auto max-w-[1320px] px-4 pb-8 md:px-8 md:pb-12">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">Khan Cosmetics</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-100">Glow Haat</p>
           <h1 className="mt-2 max-w-3xl text-3xl font-semibold leading-tight text-white md:text-5xl">
-            {loadingMeta ? "Loading Khancosmetics..." : catalogMeta.title}
+            {loadingMeta ? "Loading Glow Haat..." : catalogMeta.title}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-emerald-100 md:text-sm">
             {catalogMeta.breadcrumb.map((node, idx) => (
@@ -821,10 +834,10 @@ const SegmentPage = () => {
                         >
                           {stock > 0 ? "In Stock" : "Out"}
                         </span>
-                        {stock > 0 && stock <= 10 ? (
+                        {stock > 0 && stock <= 8 ? (
                           <span className="absolute right-2 top-9 inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] text-orange-700">
                             <Flame className="h-3 w-3" />
-                            Low
+                            Only {stock} left
                           </span>
                         ) : null}
                         {discountPercentage > 0 && (
@@ -843,7 +856,7 @@ const SegmentPage = () => {
                                   key={`${product._id}-${badge.key || badge.label}`}
                                   src={badge.image}
                                   alt={badge.label || "Badge"}
-                                  className="h-5 w-5 rounded object-contain"
+                                  className="h-5 w-auto max-w-[120px] rounded object-contain"
                                 />
                               ) : (
                                 <span
@@ -857,7 +870,7 @@ const SegmentPage = () => {
                           </div>
                         ) : null}
                         <p className="line-clamp-2 min-h-[38px] text-sm font-semibold leading-[1.35] text-[#164b3c]">{product.name}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[#6d8b80]">{product.brand || "Khan Cosmetics"}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[#6d8b80]">{product.brand || "Glow Haat"}</p>
                         <div className="mt-2 flex items-center gap-2">
                           <p className="text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
                           {originalPrice ? <p className="text-xs text-[#7f9e93] line-through">{formatPrice(originalPrice)}</p> : null}
@@ -887,32 +900,45 @@ const SegmentPage = () => {
                             </span>
                           )}
                         </div>
-                        <div className="mt-3 flex items-center gap-2">
+                        {stock > 0 ? (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuickCartAction(product, false);
+                              }}
+                              disabled={busyProductId === String(product._id)}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700"
+                              aria-label="Add to cart"
+                            >
+                              <ShoppingBag className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuickCartAction(product, true);
+                              }}
+                              disabled={busyProductId === String(product._id)}
+                              className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
+                            >
+                              <Bolt className="h-3.5 w-3.5" />
+                              Buy Now
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleQuickCartAction(product, false);
+                              router.push(`/product/${product.slug}`);
                             }}
-                            disabled={busyProductId === String(product._id)}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700"
-                            aria-label="Add to cart"
+                            className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-300 bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
                           >
-                            <ShoppingBag className="h-4 w-4" />
+                            Read More
                           </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleQuickCartAction(product, true);
-                            }}
-                            disabled={busyProductId === String(product._id)}
-                            className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
-                          >
-                            <Bolt className="h-3.5 w-3.5" />
-                            Buy Now
-                          </button>
-                        </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -946,3 +972,4 @@ const SegmentPage = () => {
 };
 
 export default SegmentPage;
+

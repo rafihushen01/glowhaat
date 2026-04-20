@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -7,7 +7,7 @@ import { serverurl } from "../utils/constants/serverurl";
 import useSuperAdminGuard from "../hooks/useSuperAdminGuard";
 
 const statusList = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
-const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
+const formatMoney = (value) => `à§³${Number(value || 0).toLocaleString()}`;
 
 const SuperAdminOrders = () => {
   const { isSuperAdmin, isCheckingAuth } = useSuperAdminGuard();
@@ -84,7 +84,7 @@ const SuperAdminOrders = () => {
       <SuperAdminNav />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">KhanCosmetics SuperAdmin</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Glow Haat SuperAdmin</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-900">Order Management Panel</h1>
           <p className="mt-2 text-sm text-[#4f6f63]">
             Track all orders and control the full delivery lifecycle from one place.
@@ -201,3 +201,4 @@ const SuperAdminOrders = () => {
 };
 
 export default SuperAdminOrders;
+

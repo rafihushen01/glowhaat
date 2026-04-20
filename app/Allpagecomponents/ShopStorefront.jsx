@@ -39,6 +39,17 @@ const getProductPrice = (product) => {
   return prices.length ? Math.min(...prices) : 0;
 };
 
+const getProductStock = (product) => {
+  let stock = 0;
+  (product?.variants || []).forEach((variant) => {
+    (variant?.options || []).forEach((option) => {
+      const qty = Number(option?.stock || 0);
+      if (Number.isFinite(qty) && qty > 0) stock += qty;
+    });
+  });
+  return stock;
+};
+
 const getPricingMeta = (product) => {
   const current = getProductPrice(product);
   let original = Number(product?.baseprice || 0);
@@ -340,11 +351,11 @@ const ShopStorefront = () => {
           />
 
           <div className="flex-1 pb-1 text-white">
-            <p className="text-xs uppercase tracking-[0.22em] text-emerald-100">KhanCosmetics Seller Profile</p>
+            <p className="text-xs uppercase tracking-[0.22em] text-emerald-100">Glow Haat Seller Profile</p>
             <h1 className="mt-1 text-2xl font-bold md:text-4xl">{shop.shopname}</h1>
-            <p className="mt-1 line-clamp-2 text-sm text-emerald-100 md:text-base">{shop.description || "Trusted seller on KhanCosmetics."}</p>
+            <p className="mt-1 line-clamp-2 text-sm text-emerald-100 md:text-base">{shop.description || "Trusted seller on Glow Haat."}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-emerald-100">
-              <span>Joined KhanCosmetics {Number(shop?.joineddays || 0)} days ago</span>
+              <span>Joined Glow Haat {Number(shop?.joineddays || 0)} days ago</span>
               <span>|</span>
               <span>{followers} Followers</span>
               <span>|</span>
@@ -683,6 +694,7 @@ const ShopStorefront = () => {
                   const badgeRows = Array.isArray(product?.cardmeta?.badges) ? product.cardmeta.badges : [];
                   const soldText = String(product?.cardmeta?.soldtext || "").trim();
                   const achievement = String(product?.cardmeta?.achievement || "").trim();
+                  const stock = Number(getProductStock(product)) || 0;
 
                   return (
                     <div
@@ -720,7 +732,7 @@ const ShopStorefront = () => {
                                   key={`${product._id}-${badge.key || badge.label}`}
                                   src={badge.image}
                                   alt={badge.label || "Badge"}
-                                  className="h-5 w-5 rounded object-contain"
+                                  className="h-5 w-auto max-w-[120px] rounded object-contain"
                                 />
                               ) : (
                                 <span
@@ -760,30 +772,43 @@ const ShopStorefront = () => {
                           <p className="mt-1 line-clamp-2 text-[11px] font-semibold text-emerald-800">{achievement}</p>
                         ) : null}
 
-                        <div className="mt-3 flex items-center gap-2">
+                        {stock > 0 ? (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuickCartAction(product, false);
+                              }}
+                              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
+                              aria-label="Add to cart"
+                            >
+                              <ShoppingBag className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleQuickCartAction(product, true);
+                              }}
+                              className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white"
+                            >
+                              <Bolt className="h-3.5 w-3.5" />
+                              Buy Now
+                            </button>
+                          </div>
+                        ) : (
                           <button
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              handleQuickCartAction(product, false);
+                              router.push(`/product/${product.slug}`);
                             }}
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700 hover:bg-emerald-50"
-                            aria-label="Add to cart"
+                            className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-300 bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
                           >
-                            <ShoppingBag className="h-4 w-4" />
+                            Read More
                           </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleQuickCartAction(product, true);
-                            }}
-                            className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white"
-                          >
-                            <Bolt className="h-3.5 w-3.5" />
-                            Buy Now
-                          </button>
-                        </div>
+                        )}
                       </div>
                     </div>
                   );
@@ -817,3 +842,4 @@ const ShopStorefront = () => {
 };
 
 export default ShopStorefront;
+

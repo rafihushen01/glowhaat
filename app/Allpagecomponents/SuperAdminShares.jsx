@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -149,7 +149,7 @@ const SuperAdminShares = () => {
       const link = document.createElement("a");
       const stamp = new Date().toISOString().slice(0, 10);
       link.href = url;
-      link.setAttribute("download", `khancosmetics-share-analytics-${stamp}.csv`);
+      link.setAttribute("download", `glowhaat-share-analytics-${stamp}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -436,3 +436,4 @@ const TopCard = ({ title, list = [] }) => (
 );
 
 export default SuperAdminShares;
+

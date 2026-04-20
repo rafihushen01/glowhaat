@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import { trackRecommendationEvent } from "../utils/recommendation";
 
-const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
+const formatMoney = (value) => `à§³${Number(value || 0).toLocaleString()}`;
 
 const UserWishlist = () => {
   const [items, setItems] = useState([]);
@@ -91,7 +91,7 @@ const UserWishlist = () => {
       <UserNav />
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-40">
         <header className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-emerald-50 p-6">
-          <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-700">KhanCosmetics Wishlist</p>
+          <p className="text-[11px] uppercase tracking-[0.28em] text-emerald-700">Glow Haat Wishlist</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-900">My Wishlist</h1>
           <p className="mt-2 text-sm text-[#4f6f63]">
             Save favorite products and launch high-performing products with real customer intent data.
@@ -154,7 +154,7 @@ const UserWishlist = () => {
                 </Link>
 
                 <div className="mt-4">
-                  <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{entry.brand || "KhanCosmetics"}</p>
+                  <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{entry.brand || "Glow Haat"}</p>
                   <h3 className="mt-1 line-clamp-2 text-lg font-semibold text-emerald-900">{entry.name}</h3>
                   <div className="mt-2 flex items-center gap-2">
                     <span className="text-xl font-semibold text-emerald-900">{formatMoney(entry.currentprice)}</span>
@@ -193,3 +193,4 @@ const UserWishlist = () => {
 };
 
 export default UserWishlist;
+

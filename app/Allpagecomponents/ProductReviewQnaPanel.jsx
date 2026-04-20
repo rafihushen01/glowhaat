@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -450,13 +450,13 @@ const ProductReviewQnaPanel = ({ product }) => {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-emerald-950">{entry.question}</p>
                       <p className="mt-1 text-xs text-emerald-700/70">
-                        {entry.askedbyname || "KhanCosmetics User"} | {formatDate(entry.createdAt)}
+                        {entry.askedbyname || "Glow Haat User"} | {formatDate(entry.createdAt)}
                       </p>
                     </div>
                   </div>
                   {entry.isanswered ? (
                     <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">KhanCosmetics Reply</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">Glow Haat Reply</p>
                       <p className="mt-2 text-sm text-emerald-900/85">{entry.answertext}</p>
                       <p className="mt-2 text-xs text-emerald-700/70">
                         {entry.answeredbyname || "SuperAdmin"} | {formatDate(entry.answeredat)}
@@ -501,4 +501,5 @@ const ProductReviewQnaPanel = ({ product }) => {
 };
 
 export default ProductReviewQnaPanel;
+
 

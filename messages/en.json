@@ -7,7 +7,7 @@
     "contact": "Contact",
     "becomeSeller": "Become A Seller",
     "search": "Search",
-    "searchPlaceholder": "Search KhanCosmetics...",
+    "searchPlaceholder": "Search Glow Haat...",
     "close": "Close",
     "searching": "Searching...",
     "noResults": "No results found.",
@@ -26,18 +26,18 @@
     "menu": "MENU",
     "loggedIn": "Logged In",
     "createAccount": "Create Account",
-    "defaultUserName": "KhanCosmetics User",
-    "brandFallback": "KhanCosmetics",
+    "defaultUserName": "Glow Haat User",
+    "brandFallback": "Glow Haat",
     "featuredAlt": "Featured",
     "userAvatarAlt": "User Avatar"
   },
   "CartPage": {
-    "brand": "KhanCosmetics",
+    "brand": "Glow Haat",
     "preparing": "Preparing Your Cart",
-    "bagLabel": "KhanCosmetics Bag",
+    "bagLabel": "Glow Haat Bag",
     "title": "Add To Cart",
     "subtitle": "Polished essentials for your glow journey.",
-    "signature": "KhanCosmetics Signature",
+    "signature": "Glow Haat Signature",
     "signatureText": "Crafted for global beauty lovers",
     "continueShopping": "Continue Shopping",
     "clearCart": "Clear Cart",
@@ -69,9 +69,9 @@
     "preparing": "Preparing Checkout",
     "backToCart": "Back to Cart",
     "header": {
-      "label": "KhanCosmetics Checkout",
+      "label": "Glow Haat Checkout",
       "title": "Complete Your Order",
-      "subtitle": "Clean, secure, and fast checkout in KhanCosmetics signature white and emerald."
+      "subtitle": "Clean, secure, and fast checkout in Glow Haat signature white and emerald."
     },
     "empty": {
       "title": "Your cart is empty",
@@ -139,9 +139,9 @@
     }
   },
   "ProductView": {
-    "loading": "Loading Khan Cosmetics...",
+    "loading": "Loading Glow Haat...",
     "errorPrefix": "Error",
-    "exclusive": "KhanCosmetics Exclusive",
+    "exclusive": "Glow Haat Exclusive",
     "stars": "stars",
     "verifiedReviews": "verified reviews",
     "tapToZoom": "Tap to Zoom",
@@ -185,7 +185,7 @@
     "share": {
       "title": "Share This Product",
       "subtitle": "Send this product directly to friends. They will land on this exact product page.",
-      "shareText": "Check out {name} on KhanCosmetics",
+      "shareText": "Check out {name} on Glow Haat",
       "whatsapp": "WhatsApp",
       "facebook": "Facebook",
       "messenger": "Messenger",
@@ -209,10 +209,10 @@
     "hero": {
       "tag": "Luxury Beauty Access",
       "title": "Welcome Back",
-      "desc": "Sign in to your KhanCosmetics account with your email and password for safer checkout, personalized beauty picks, and trusted order tracking.",
+      "desc": "Sign in to your Glow Haat account with your email and password for safer checkout, personalized beauty picks, and trusted order tracking.",
       "p1": "Fast email and password sign in",
       "p2": "Simple single-step authentication flow",
-      "p3": "Backend aligned with KhanCosmetics auth router",
+      "p3": "Backend aligned with Glow Haat auth router",
       "securityTitle": "Security-first sign in",
       "securityText": "Your session is protected with secure cookies and validated credentials handled by the backend."
     },
@@ -245,7 +245,7 @@
     "resendOtp": "Resend OTP",
     "resending": "Resending...",
     "resendIn": "Resend in {seconds}s",
-    "newToBrand": "New to KhanCosmetics?",
+    "newToBrand": "New to Glow Haat?",
     "createAccount": "Create account",
     "success": {
       "otpSent": "OTP sent.",
@@ -272,11 +272,11 @@
     "createAccount": "Create account",
     "hero": {
       "tag": "Premium Beauty Club",
-      "title": "Join KhanCosmetics",
+      "title": "Join Glow Haat",
       "desc": "Build your beauty profile, unlock early product drops, and create your account instantly with email and password for trusted order tracking.",
       "p1": "Password-based signup with encrypted password storage",
       "p2": "Instant account creation with protected session cookie",
-      "p3": "Brand-first experience crafted for KhanCosmetics customers",
+      "p3": "Brand-first experience crafted for Glow Haat customers",
       "securityTitle": "Security promise",
       "securityText": "We never expose your password in plain text and secure your session with backend authentication cookies."
     },
@@ -307,7 +307,7 @@
     },
     "passwordStrength": "Password strength",
     "passwordHint": "Use at least 8 characters with letters and numbers.",
-    "agreePolicy": "I agree to KhanCosmetics privacy and account security policy.",
+    "agreePolicy": "I agree to Glow Haat privacy and account security policy.",
     "sendOtp": "Send OTP",
     "googleSignup": "Continue with Google (mobile required)",
     "otpSentTo": "OTP sent to",
@@ -343,3 +343,4 @@
     }
   }
 }
+

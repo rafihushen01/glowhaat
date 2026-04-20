@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -213,7 +213,7 @@ const ProfileDashboard = () => {
                 )}
                 <div>
                   <p className="text-sm font-semibold text-emerald-950">{profile.fullname || "Guest User"}</p>
-                  <p className="text-xs text-emerald-700">{profile.email || "guest@khancosmetics.local"}</p>
+                  <p className="text-xs text-emerald-700">{profile.email || "guest@glowhaat.local"}</p>
                   <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-700">
                     <BadgeCheck className="h-3 w-3" />
                     {badgeLabel}
@@ -221,7 +221,7 @@ const ProfileDashboard = () => {
                 </div>
               </div>
               {joinedDays > 0 ? (
-                <p className="mt-3 text-xs text-emerald-700">Joined KhanCosmetics {joinedDays} days ago</p>
+                <p className="mt-3 text-xs text-emerald-700">Joined Glow Haat {joinedDays} days ago</p>
               ) : null}
               <label className="mt-3 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-emerald-300 bg-white px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-emerald-800">
                 <UploadCloud className="h-4 w-4" />
@@ -277,9 +277,9 @@ const ProfileDashboard = () => {
             {activeTab === "vouchers" ? (
               <div className="rounded-2xl border border-emerald-200 bg-white p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">Voucher Center</p>
-                <h2 className="mt-1 text-xl font-semibold text-emerald-950">KhanCosmetics vouchers</h2>
+                <h2 className="mt-1 text-xl font-semibold text-emerald-950">Glow Haat vouchers</h2>
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  <VoucherCard title="Spend ৳5000 Get ৳300" code="KHAN300" minText="Minimum purchase ৳5000" />
+                  <VoucherCard title="Spend à§³5000 Get à§³300" code="KHAN300" minText="Minimum purchase à§³5000" />
                   <VoucherCard title="Store voucher available" code="STOREDEAL" minText="Use in selected seller stores" />
                 </div>
                 <p className="mt-4 text-xs text-emerald-700">Apply voucher during checkout. SuperAdmin and sellers can issue live coupons.</p>
@@ -331,7 +331,7 @@ const ProfileDashboard = () => {
                     {orders.map((order) => (
                       <div key={order._id} className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3">
                         <p className="text-sm font-semibold text-emerald-900">{order.ordernumber}</p>
-                        <p className="text-xs text-emerald-700">Status: {order.status} | Total: ৳{Number(order.grandtotal || 0).toLocaleString()}</p>
+                        <p className="text-xs text-emerald-700">Status: {order.status} | Total: à§³{Number(order.grandtotal || 0).toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
@@ -401,3 +401,5 @@ const VoucherCard = ({ title, code, minText }) => (
 );
 
 export default ProfileDashboard;
+
+

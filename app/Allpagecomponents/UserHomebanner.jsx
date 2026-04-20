@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
@@ -117,7 +117,7 @@ const UserHomebanner = () => {
                   playsInline
                 />
               ) : (
-                <img src={banner?.image} alt={`KhanCosmetics Banner ${index + 1}`} className="h-full w-full object-cover" loading={index === 0 ? "eager" : "lazy"} />
+                <img src={banner?.image} alt={`Glow Haat Banner ${index + 1}`} className="h-full w-full object-cover" loading={index === 0 ? "eager" : "lazy"} />
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-emerald-950/30 via-transparent to-transparent" />
             </Link>
@@ -162,3 +162,4 @@ const UserHomebanner = () => {
 };
 
 export default UserHomebanner;
+

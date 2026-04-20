@@ -17,7 +17,7 @@ const formatPrice = (price) =>
     minimumFractionDigits: 0,
   })
     .format(Number(price || 0))
-    .replace("BDT", "৳");
+    .replace("BDT", "\u09F3");
 
 const getProductPrice = (product) => {
   const prices = [];
@@ -53,7 +53,53 @@ const getTopDiscount = (product) => {
   return Math.max(0, Math.round(top));
 };
 
+const getSoldText = (value) => {
+  const sold = Math.max(0, Number(value || 0));
+  if (sold >= 1000000) return `${(sold / 1000000).toFixed(1).replace(/\.0$/, "")}M+`;
+  if (sold >= 1000) return `${(sold / 1000).toFixed(sold < 10000 ? 1 : 0).replace(/\.0$/, "")}K+`;
+  if (sold >= 100) return `${(sold / 1000).toFixed(1)}K+`;
+  return `${Math.floor(sold)}+`;
+};
+
+const buildFallbackCardBadges = (product) => {
+  const tags = Array.isArray(product?.tags) ? product.tags.map((entry) => String(entry).toLowerCase()) : [];
+  const badges = [];
+  const deliveryCharge = Number(product?.deliveryschema?.deliverycharge);
+  const hasFreeDelivery =
+    Boolean(product?.deliveryschema?.isfreeshipping) ||
+    (Number.isFinite(deliveryCharge) && deliveryCharge <= 0);
+  const isOfficialStore = tags.some(
+    (tag) =>
+      tag.includes("official") ||
+      tag.includes("verified") ||
+      tag.includes("officialbadge") ||
+      tag.includes("officialstorebadge") ||
+      tag.includes("officiabadge")
+  );
+
+  if (hasFreeDelivery) badges.push({ key: "free", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
+  if (isOfficialStore) {
+    badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+    badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  }
+  if (tags.some((tag) => tag.includes("star"))) badges.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
+  if (tags.some((tag) => tag.includes("fast")) && !badges.some((badge) => badge.key === "fast")) badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  if (Number(product?.totalsold || 0) >= 120) badges.push({ key: "best", label: "Best Seller" });
+
+  return badges.slice(0, 4);
+};
+
 const SECTION_META = [
+  {
+    key: "similaritems",
+    title: "Similar Items",
+    subtitle: "Products closely related to the one you are viewing.",
+  },
+  {
+    key: "alsoviewed",
+    title: "Customers Also Viewed",
+    subtitle: "Products explored by shoppers who viewed this item.",
+  },
   {
     key: "morefromstore",
     title: "More From This Store",
@@ -78,6 +124,11 @@ const SECTION_META = [
     key: "frequentlyboughttogether",
     title: "Frequently Bought Together",
     subtitle: "Delivered-order pairings related to this product category.",
+  },
+  {
+    key: "dealsyoucantmiss",
+    title: "Deals You Can't Miss",
+    subtitle: "High-value deals based on shopper behavior and performance.",
   },
 ];
 
@@ -180,6 +231,10 @@ const ProductDetailRecommendations = ({ product }) => {
     const rounded = Math.round(rating);
     const reviewCount = Number(item?.reviewcount || 0);
     const reason = item?.recommendationmeta?.reason || "";
+    const soldText = getSoldText(item?.totalsold || 0);
+    const badges = Array.isArray(item?.cardmeta?.badges) && item.cardmeta.badges.length
+      ? item.cardmeta.badges
+      : buildFallbackCardBadges(item);
 
     return (
       <button
@@ -227,13 +282,37 @@ const ProductDetailRecommendations = ({ product }) => {
         </div>
 
         <div className="p-3">
+          {badges.length > 0 ? (
+            <div className="mb-2 flex flex-wrap items-center gap-1.5">
+              {badges.map((badge) =>
+                badge?.image ? (
+                  <img
+                    key={`${item._id}-${badge.key || badge.label}`}
+                    src={badge.image}
+                    alt={badge.label || "Badge"}
+                    className="h-5 w-auto max-w-[120px] rounded object-contain"
+                  />
+                ) : (
+                  <span
+                    key={`${item._id}-${badge.key || badge.label}`}
+                    className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700"
+                  >
+                    {badge.label}
+                  </span>
+                )
+              )}
+            </div>
+          ) : null}
           <p className="line-clamp-2 min-h-[38px] text-sm font-semibold leading-[1.35] text-[#164b3c]">
             {item.name}
           </p>
           <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[#6d8b80]">
-            {item.brand || "Khan Cosmetics"}
+            {item.brand || "Glow Haat"}
           </p>
           <p className="mt-2 text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
+          <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+            Sold {item?.cardmeta?.soldtext || soldText}
+          </p>
           {rating > 0 ? (
             <div className="mt-1 flex items-center gap-1">
               {Array.from({ length: 5 }).map((_, idx) => (
@@ -360,3 +439,4 @@ const ProductDetailRecommendations = ({ product }) => {
 };
 
 export default ProductDetailRecommendations;
+

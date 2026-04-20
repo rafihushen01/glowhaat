@@ -1,14 +1,13 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import toast, { Toaster } from "react-hot-toast";
 import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
-import khancosmeticslogo from "../../public/khancosmeticslogo.png";
+import { useActiveLogo } from "../hooks/useActiveLogo";
 import { setUserData } from "../reduxcomponents/UserSlice";
 
 const inputClass =
@@ -20,6 +19,7 @@ const SuperAdminSigninPage = () => {
   const router = useRouter();
   const dispatch = useDispatch();
   const { userData, loading: userLoading } = useSelector((state) => state.user);
+  const { logoUrl } = useActiveLogo();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -99,7 +99,7 @@ const SuperAdminSigninPage = () => {
         <div className="rounded-3xl border border-[#d6e3dc] bg-white p-8 shadow-[0_20px_60px_rgba(36,74,63,0.12)]">
           <div className="mb-6 flex items-center gap-4">
             <div className="rounded-2xl border border-[#ead8c0] bg-white/80 p-3 shadow-sm">
-              <Image src={khancosmeticslogo} alt="KhanCosmetics" width={120} height={36} priority />
+              <img src={logoUrl} alt="Glow Haat" width={120} height={36} className="h-auto w-[120px] object-contain" loading="eager" />
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-[#56796a]">SuperAdmin Access</p>
@@ -118,7 +118,7 @@ const SuperAdminSigninPage = () => {
                 className={`${inputClass} pl-9`}
                 value={credentials.email}
                 onChange={(e) => setCredentials((prev) => ({ ...prev, email: e.target.value }))}
-                placeholder="superadmin@khancosmetics.com"
+                placeholder="superadmin@glowhaat.com"
               />
             </div>
 
@@ -159,3 +159,5 @@ const SuperAdminSigninPage = () => {
 };
 
 export default SuperAdminSigninPage;
+
+

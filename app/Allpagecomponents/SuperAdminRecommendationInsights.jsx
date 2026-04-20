@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -145,7 +145,7 @@ const SuperAdminRecommendationInsights = () => {
                     <th className="px-4 py-3 text-left font-semibold">Clicks</th>
                     <th className="px-4 py-3 text-left font-semibold">Behavior Orders</th>
                     <th className="px-4 py-3 text-left font-semibold">Delivered Orders</th>
-                    <th className="px-4 py-3 text-left font-semibold">Click→Order</th>
+                    <th className="px-4 py-3 text-left font-semibold">Clickâ†’Order</th>
                     <th className="px-4 py-3 text-left font-semibold">Opportunity</th>
                   </tr>
                 </thead>
@@ -167,7 +167,7 @@ const SuperAdminRecommendationInsights = () => {
                           <div>
                             <p className="font-semibold text-[#1f5c49]">{row.name}</p>
                             <p className="text-xs text-[#648578]">
-                              {row.brand || "KhanCosmetics"} | {Number(row.star || 0).toFixed(1)}★
+                              {row.brand || "Glow Haat"} | {Number(row.star || 0).toFixed(1)}â˜…
                             </p>
                           </div>
                         </div>
@@ -257,3 +257,4 @@ const StatCard = ({ icon, title, value }) => (
 );
 
 export default SuperAdminRecommendationInsights;
+

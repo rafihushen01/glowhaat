@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -126,7 +126,7 @@ const CategoryShowcase = () => {
     return (
       <section className="w-full bg-[#fff8f3] py-14 md:py-20">
         <div className="mx-auto w-full max-w-[1500px] px-4 md:px-8 lg:px-12">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b05b4e]">KHAN COSMETICS</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.3em] text-[#b05b4e]">Glow Haat</p>
           <h2 className="mt-3 text-3xl font-semibold text-[#351a16] md:text-5xl">Shop by Category</h2>
           <div className="mt-6 rounded-3xl border border-[#f0d5cf] bg-white px-5 py-6 text-[#5d3a34]">
             <p className="text-sm md:text-base">{error || "Categories are not available right now. Please check again shortly."}</p>
@@ -156,7 +156,7 @@ const CategoryShowcase = () => {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-[#f1cdc5] bg-white/85 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#a45142]">
               <Sparkles className="h-3.5 w-3.5" />
-              KHAN COSMETICS
+              Glow Haat
             </div>
             <h2 className="mt-3 text-3xl font-semibold leading-tight text-[#351a16] md:text-6xl" style={{ fontFamily: "'Poppins', 'Segoe UI', sans-serif" }}>
               Shop by Category
@@ -201,3 +201,4 @@ const SkeletonLoader = () => (
 );
 
 export default CategoryShowcase;
+

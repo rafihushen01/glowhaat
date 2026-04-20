@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -370,7 +370,7 @@ const AdminCategoryBuilder = () => {
         <div className="rounded-3xl border border-emerald-200 bg-white p-4 md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Khancosmetics SuperAdmin</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Glow Haat SuperAdmin</p>
               <h1 className="mt-1 text-2xl font-bold text-emerald-900">Category & Campaign Management</h1>
               <p className="mt-1 text-sm text-emerald-700">Build homepage sections with draft, recovery, download, and auto Next.js navigation links.</p>
             </div>
@@ -770,3 +770,4 @@ const AdminCategoryBuilder = () => {
 };
 
 export default AdminCategoryBuilder;
+

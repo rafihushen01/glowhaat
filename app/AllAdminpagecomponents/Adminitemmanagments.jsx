@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -228,7 +228,7 @@ const AdminItemManagements = () => {
           </div>
           <div>
             <h1 className="text-xl md:text-2xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-cyan-300 to-white bg-clip-text text-transparent leading-none">
-              Khan Cosmetics
+              Glow Haat
             </h1>
             <span className="text-[10px] font-mono text-blue-500 block tracking-widest opacity-90">ADMIN PANEL</span>
           </div>
@@ -266,7 +266,7 @@ const AdminItemManagements = () => {
               </div>
 
               <TextArea label="Description" name="description" val={formData.description} onChange={handleChange} theme={theme} rows={4} />
-              <TextArea label="Highlights" name="highlight" val={formData.highlight} onChange={handleChange} theme={theme} placeholder="• Feature 1&#10;• Feature 2" rows={4} />
+              <TextArea label="Highlights" name="highlight" val={formData.highlight} onChange={handleChange} theme={theme} placeholder="â€¢ Feature 1&#10;â€¢ Feature 2" rows={4} />
               <div className="col-span-1 md:col-span-2">
                  <TextArea label="Product Story (About)" name="aboutitems" val={formData.aboutitems} onChange={handleChange} theme={theme} rows={3} />
               </div>
@@ -551,3 +551,4 @@ const ImageUploader = ({ label, field, preview, onChange, theme, darkMode }) => 
 );
 
 export default AdminItemManagements;
+

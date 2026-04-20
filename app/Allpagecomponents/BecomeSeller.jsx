@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -332,7 +332,7 @@ const BecomeSeller = () => {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-6xl px-4 py-10">
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 md:p-8">
-          <p className="text-xs uppercase tracking-[0.25em] text-emerald-700">KhanCosmetics Partner Program</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-emerald-700">Glow Haat Partner Program</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-950">Become A Seller</h1>
           <p className="mt-2 text-sm text-emerald-800">
             Professional seller onboarding with review by authority, protected account creation, and secure email-password login.
@@ -556,4 +556,5 @@ const BecomeSeller = () => {
 };
 
 export default BecomeSeller;
+
 

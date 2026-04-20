@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -109,7 +109,7 @@ const SuperAdminWishlistInsights = () => {
                           )}
                           <div>
                             <p className="font-semibold text-[#1f5c49]">{row.name}</p>
-                            <p className="text-xs text-[#648578]">{row.brand || "KhanCosmetics"}</p>
+                            <p className="text-xs text-[#648578]">{row.brand || "Glow Haat"}</p>
                           </div>
                         </div>
                       </td>
@@ -161,3 +161,4 @@ const StatCard = ({ icon, title, value }) => (
 );
 
 export default SuperAdminWishlistInsights;
+

@@ -54,6 +54,17 @@ const getDiscountPercent = (product) => {
   return Math.max(0, Math.round(best));
 };
 
+const getProductStock = (product) => {
+  let stock = 0;
+  (product?.variants || []).forEach((variant) => {
+    (variant?.options || []).forEach((option) => {
+      const qty = Number(option?.stock || 0);
+      if (Number.isFinite(qty) && qty > 0) stock += qty;
+    });
+  });
+  return stock;
+};
+
 const getChunkSize = (width) => {
   if (width < 768) return 6;
   if (width < 1280) return 12;
@@ -71,11 +82,26 @@ const getSoldText = (value) => {
 const buildFallbackCardBadges = (product) => {
   const tags = Array.isArray(product?.tags) ? product.tags.map((entry) => String(entry).toLowerCase()) : [];
   const badges = [];
+  const deliveryCharge = Number(product?.deliveryschema?.deliverycharge);
+  const hasFreeDelivery =
+    Boolean(product?.deliveryschema?.isfreeshipping) ||
+    (Number.isFinite(deliveryCharge) && deliveryCharge <= 0);
+  const isOfficialStore = tags.some(
+    (tag) =>
+      tag.includes("official") ||
+      tag.includes("verified") ||
+      tag.includes("officialbadge") ||
+      tag.includes("officialstorebadge") ||
+      tag.includes("officiabadge")
+  );
 
-  if (product?.deliveryschema?.isfreeshipping) badges.push({ key: "free", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
-  if (tags.some((tag) => tag.includes("official") || tag.includes("verified"))) badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+  if (hasFreeDelivery) badges.push({ key: "free", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
+  if (isOfficialStore) {
+    badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+    badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  }
   if (tags.some((tag) => tag.includes("star"))) badges.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
-  if (tags.some((tag) => tag.includes("fast"))) badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  if (tags.some((tag) => tag.includes("fast")) && !badges.some((badge) => badge.key === "fast")) badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
   if (Number(product?.totalsold || 0) >= 120) badges.push({ key: "best", label: "Best Seller" });
 
   return badges.slice(0, 4);
@@ -207,6 +233,7 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
           const rounded = Math.round(rating);
           const reviewCount = Number(product?.reviewcount || 0);
           const soldText = getSoldText(product?.totalsold || 0);
+          const stock = getProductStock(product);
           const badges = Array.isArray(product?.cardmeta?.badges) && product.cardmeta.badges.length
             ? product.cardmeta.badges
             : buildFallbackCardBadges(product);
@@ -273,7 +300,7 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
                           key={`${product._id}-${badge.key || badge.label}`}
                           src={badge.image}
                           alt={badge.label || "Badge"}
-                          className="h-5 w-5 rounded object-contain"
+                          className="h-5 w-auto max-w-[120px] rounded object-contain"
                         />
                       ) : (
                         <span
@@ -290,7 +317,7 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
                   {product.name}
                 </p>
                 <p className="mt-1 text-xs uppercase tracking-[0.1em] text-[#6d8b80]">
-                  {product.brand || "Khan Cosmetics"}
+                  {product.brand || "Glow Haat"}
                 </p>
                 <p className="mt-2 text-base font-bold text-[#0f4738]">{formatPrice(price)}</p>
                 <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
@@ -314,32 +341,45 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
                     </span>
                   </div>
                 ) : null}
-                <div className="mt-3 flex items-center gap-2">
+                {stock > 0 ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleQuickCartAction(product, false);
+                      }}
+                      disabled={busyProductId === String(product._id)}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700"
+                      aria-label="Add to cart"
+                    >
+                      <ShoppingBag className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleQuickCartAction(product, true);
+                      }}
+                      disabled={busyProductId === String(product._id)}
+                      className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
+                    >
+                      <Bolt className="h-3.5 w-3.5" />
+                      Buy Now
+                    </button>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      handleQuickCartAction(product, false);
+                      router.push(`/product/${product.slug}`);
                     }}
-                    disabled={busyProductId === String(product._id)}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-300 bg-white text-emerald-700"
-                    aria-label="Add to cart"
+                    className="mt-3 inline-flex h-9 w-full items-center justify-center rounded-xl border border-emerald-300 bg-white px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800"
                   >
-                    <ShoppingBag className="h-4 w-4" />
+                    Read More
                   </button>
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleQuickCartAction(product, true);
-                    }}
-                    disabled={busyProductId === String(product._id)}
-                    className="inline-flex h-9 flex-1 items-center justify-center gap-1 rounded-xl bg-emerald-700 px-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-white disabled:opacity-60"
-                  >
-                    <Bolt className="h-3.5 w-3.5" />
-                    Buy Now
-                  </button>
-                </div>
+                )}
               </div>
             </div>
           );
@@ -366,3 +406,4 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
 };
 
 export default BehaviorRecommendations;
+

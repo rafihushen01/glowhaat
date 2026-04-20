@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -215,7 +215,7 @@ const SuperAdminUsers = () => {
             <h1 className="text-2xl font-semibold">User Management</h1>
           </div>
           <p className="mt-2 text-sm text-[#4b6b61]">
-            Search, filter, and manage every KhanCosmetics account.
+            Search, filter, and manage every Glow Haat account.
           </p>
         </div>
 
@@ -402,9 +402,9 @@ const SuperAdminUsers = () => {
                 />
                 <span className="font-semibold">{u.fullname || "Unnamed"}</span>
                 <span className="truncate">{u.email}</span>
-                <span>{u.mobile || "—"}</span>
+                <span>{u.mobile || "â€”"}</span>
                 <span>{u.role || "User"}</span>
-                <span>{u.gender || "—"}</span>
+                <span>{u.gender || "â€”"}</span>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => startEdit(u)}
@@ -526,3 +526,4 @@ const SuperAdminUsers = () => {
 };
 
 export default SuperAdminUsers;
+

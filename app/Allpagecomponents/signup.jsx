@@ -1,9 +1,8 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Link from "next/link";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import toast, { Toaster } from "react-hot-toast";
 import { BadgeCheck, Eye, EyeOff, Loader2, Lock, Mail, Phone, ShieldCheck, Sparkles, User, VenusAndMars } from "lucide-react";
@@ -12,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslations } from "next-intl";
 import { serverurl } from "../utils/constants/serverurl";
-import khancosmeticslogo from "../../public/khancosmeticslogo.png";
+import { useActiveLogo } from "../hooks/useActiveLogo";
 import { setUserData } from "../reduxcomponents/UserSlice";
 import { signInWithGoogleAndGetIdToken } from "../UserAuthenticationComponents/fireabase";
 
@@ -49,6 +48,7 @@ const Signup = () => {
   const t = useTranslations("SignupPage");
   const router = useRouter();
   const dispatch = useDispatch();
+  const { logoUrl } = useActiveLogo();
   const { userData } = useSelector((state) => state.user);
 
   const [formData, setFormData] = useState(initialForm);
@@ -219,7 +219,7 @@ const Signup = () => {
           >
             <div className="mb-8 flex items-center gap-4">
               <div className="rounded-2xl border border-[#ead8c0] bg-white/80 p-3 shadow-sm">
-                <Image src={khancosmeticslogo} alt="KhanCosmetics" width={130} height={42} priority />
+                <img src={logoUrl} alt="Glow Haat" width={130} height={42} className="h-auto w-[130px] object-contain" loading="eager" />
               </div>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-[#8a6f52]">{t("hero.tag")}</p>
@@ -424,3 +424,4 @@ const FieldLabel = ({ label, icon }) => (
 );
 
 export default Signup;
+

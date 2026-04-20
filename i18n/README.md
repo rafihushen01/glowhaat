@@ -1,4 +1,4 @@
-# KhanCosmetics Localization Rules
+﻿# Glow Haat Localization Rules
 
 This project uses `next-intl` with a global locale cookie (`KHAN_LOCALE`) and two locales:
 
@@ -34,4 +34,5 @@ export default function Example() {
   return <h1>{t("title")}</h1>;
 }
 ```
+
 

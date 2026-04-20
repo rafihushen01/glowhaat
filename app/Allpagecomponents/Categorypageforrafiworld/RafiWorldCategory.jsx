@@ -1,9 +1,9 @@
-"use client"
+﻿"use client"
 import React from 'react'
 
 const RafiWorldCategory = () => {
   return (
-    <div>khancosmetics</div>
+    <div>Glow Haat</div>
   )
 }
 

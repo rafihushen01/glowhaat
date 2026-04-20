@@ -1,7 +1,6 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight, Menu, X, ArrowLeft, Search, ShoppingBag, LogOut, Heart, Crown, Award, Sparkles, Bell, LayoutDashboard } from "lucide-react";
@@ -10,9 +9,9 @@ import { useDispatch, useSelector } from "react-redux";
 import {useLocale, useTranslations} from "next-intl";
 // import { clsx, type ClassValue } from "clsx";
  // Importing your server url
-import khancoslogo from "../../public/khancosmeticslogo.png"; // Your logo
 import {useRouter} from "next/navigation";
 import { serverurl } from "../utils/constants/serverurl";
+import { useActiveLogo } from "../hooks/useActiveLogo";
 import { clearUserData } from "../reduxcomponents/UserSlice";
 import { setCartItems } from "../reduxcomponents/CartSlice";
 import { getRequestConfig } from "../utils/requestConfig";
@@ -123,6 +122,7 @@ const UserNav = () => {
   const navRef = useRef(null);
   const router = useRouter();
   const locale = useLocale();
+  const { logoUrl } = useActiveLogo();
   const t = useTranslations("UserNav");
   const dispatch = useDispatch();
   const { userData } = useSelector((state) => state.user);
@@ -340,8 +340,8 @@ const UserNav = () => {
                   {t("language.bangla")}
                 </button>
               </div>
-              <a href="mailto:khancosmetics@gmail.com" className="hover:text-[#1f5c49] transition-colors">
-                khancosmetics@gmail.com
+              <a href="mailto:glowhaat@gmail.com" className="hover:text-[#1f5c49] transition-colors">
+                glowhaat@gmail.com
               </a>
               <Link href="/contact" className="hover:text-[#1f5c49] transition-colors">
                 {t("contact")}
@@ -535,13 +535,11 @@ const UserNav = () => {
 
             <Link href="/" className="relative z-50 flex shrink-0 items-center gap-3 group">
               <div className="relative overflow-hidden w-32 md:w-40 lg:w-36">
-                <Image
-                  src={khancoslogo}
-                  alt="KhanCosmetics"
+                <img
+                  src={logoUrl}
+                  alt="Glow Haat"
                   className="object-contain w-full h-auto"
-                  width={160}
-                  height={50}
-                  priority
+                  loading="eager"
                 />
               </div>
             </Link>
@@ -700,7 +698,7 @@ const UserNav = () => {
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[#1f5c49]">{item.name}</p>
                             <p className="text-xs text-[#6d8d80]">{item.brand || t("brandFallback")}</p>
-                            <p className="text-xs text-[#1f5c49] mt-1">৳{Number(price).toLocaleString()}</p>
+                            <p className="text-xs text-[#1f5c49] mt-1">à§³{Number(price).toLocaleString()}</p>
                           </div>
                         </button>
                       );
@@ -1292,3 +1290,5 @@ const MobileMenu = ({
 };
 
 export default UserNav;
+
+

@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -16,7 +16,7 @@ const formatCurrency = (amount) => {
     currency: 'BDT',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount).replace('BDT', '৳');
+  }).format(amount).replace('BDT', 'à§³');
 };
 
 const NewItem = () => {
@@ -85,7 +85,7 @@ const NewItem = () => {
               className="flex items-center gap-3"
             >
               <span className="h-[2px] w-12 bg-emerald-700"></span>
-              <span className="text-emerald-700 font-black uppercase tracking-[0.3em] text-[10px]">Khan Cosmetics New Collection</span>
+              <span className="text-emerald-700 font-black uppercase tracking-[0.3em] text-[10px]">Glow Haat New Collection</span>
             </motion.div>
             
             <motion.h2 
@@ -233,7 +233,7 @@ const ProductCard = ({ item, index, router, onQuickCart, busyProductId }) => {
         {/* Content Section */}
         <div className="p-5">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{item.brand || "KHANCOSMETICS"}</span>
+            <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{item.brand || "Glow Haat"}</span>
             <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-md">
               <Star size={10} className="text-amber-500 fill-amber-500" />
 <span className="text-[10px] font-bold text-amber-600">
@@ -299,3 +299,4 @@ const LoadingSkeleton = () => (
 );
 
 export default NewItem;
+

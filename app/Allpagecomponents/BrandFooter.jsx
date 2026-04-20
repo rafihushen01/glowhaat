@@ -1,8 +1,8 @@
 import Image from "next/image";
 import { Facebook, Instagram, MessageCircle } from "lucide-react";
-import khancoslogo from "../../public/khancosmeticslogo.png";
 import { Link } from "@/i18n/navigation";
 import { frontendurl } from "../utils/constants/serverurl";
+import { useActiveLogo } from "../hooks/useActiveLogo";
 
 const xIcon = (
   <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-current">
@@ -116,6 +116,7 @@ const FooterLinkColumn = ({ title, links, accentFirst = false }) => (
 
 const BrandFooter = () => {
   const year = new Date().getFullYear();
+  const { logoUrl } = useActiveLogo();
 
   return (
     <footer className="relative mt-20 overflow-hidden border-t border-[#2d8b6d] bg-[#0f3f33] text-white">
@@ -126,12 +127,11 @@ const BrandFooter = () => {
         <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="inline-flex items-center">
-              <Image
-                src={khancoslogo}
-                alt="KhanCosmetics"
-                width={190}
-                height={58}
+              <img
+                src={logoUrl}
+                alt="Glow Haat"
                 className="h-auto w-[150px] brightness-[2.1] contrast-[0.92] sm:w-[185px]"
+                loading="eager"
               />
             </Link>
             <ul className="mt-5 space-y-2 text-sm text-white/95">
@@ -139,7 +139,7 @@ const BrandFooter = () => {
                 <Link href="/ourstory" className="hover:text-[#c9ffe6]">Our Story</Link>
               </li>
               <li>
-                <Link href="/beautyjournal" className="hover:text-[#c9ffe6]">KhanCosmetics Magazine</Link>
+                <Link href="/beautyjournal" className="hover:text-[#c9ffe6]">Glow Haat Magazine</Link>
               </li>
               <li>
                 <Link href="/khancosmeticscareers" className="hover:text-[#c9ffe6]">Join Our Team</Link>
@@ -174,7 +174,7 @@ const BrandFooter = () => {
           <div>
             <FooterLinkColumn title="Help" links={helpLinks} />
             <div className="mt-6 border-t border-white/30 pt-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">Payments Accepted By KhanCosmetics</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-white">Payments Accepted By Glow Haat</p>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {paymentMethods.map((method) => (
                   <span
@@ -213,7 +213,7 @@ const BrandFooter = () => {
               FAQs
             </Link>
           </div>
-          <p className="mt-4 text-center text-sm text-white/90">Copyright {year} KhanCosmetics. All rights reserved By KhanCosmetics.</p>
+          <p className="mt-4 text-center text-sm text-white/90">Copyright {year} Glow Haat. All rights reserved By Glow Haat.</p>
         </div>
       </div>
     </footer>
@@ -221,3 +221,7 @@ const BrandFooter = () => {
 };
 
 export default BrandFooter;
+
+
+
+

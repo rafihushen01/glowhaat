@@ -7,6 +7,7 @@ import {useDispatch, useSelector} from "react-redux";
 import {useLocale, useTranslations} from "next-intl";
 import {Minus, Plus, ShoppingBag, Trash2} from "lucide-react";
 import {serverurl} from "../utils/constants/serverurl";
+import { useActiveLogo } from "../hooks/useActiveLogo";
 import {
   clearCart,
   removeFromCart,
@@ -27,6 +28,7 @@ export default function CartPage() {
   const t = useTranslations("CartPage");
   const locale = useLocale();
   const dispatch = useDispatch();
+  const { logoUrl } = useActiveLogo();
   const cartItems = useSelector((state) => state.cart.cartItems);
   const subtotalFromStore = useSelector((state) => state.cart.subtotal);
   const [loading, setLoading] = useState(true);
@@ -132,7 +134,7 @@ export default function CartPage() {
             </h1>
             <p className="mt-3 text-[#4b6b61] text-sm md:text-base">{t("subtitle")}</p>
             <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-emerald-100 bg-white/90 px-4 py-2 shadow-sm">
-              <img src="/khancosmeticslogo.png" alt={t("brand")} className="h-8 w-8 object-contain" />
+              <img src={logoUrl} alt={t("brand")} className="h-8 w-8 object-contain" loading="eager" />
               <div className="text-left">
                 <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-600">{t("signature")}</p>
                 <p className="text-sm text-emerald-900">{t("signatureText")}</p>

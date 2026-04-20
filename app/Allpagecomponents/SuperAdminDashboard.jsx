@@ -1,4 +1,4 @@
- "use client";
+﻿ "use client";
 
 import React from "react";
 import Link from "next/link";
@@ -27,7 +27,7 @@ const SuperAdminDashboard = () => {
             <h1 className="text-2xl font-semibold">SuperAdmin Control Center</h1>
           </div>
           <p className="mt-2 text-sm text-[#4b6b61]">
-            Full access to KhanCosmetics admin operations, products, banners, and navigation.
+            Full access to Glow Haat admin operations, products, banners, and navigation.
           </p>
         </div>
 
@@ -121,3 +121,4 @@ const DashboardCard = ({ href, title, description, icon }) => (
 );
 
 export default SuperAdminDashboard
+

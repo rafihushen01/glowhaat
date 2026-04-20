@@ -7,7 +7,7 @@ import { useDispatch } from 'react-redux'
 import {useTranslations} from "next-intl";
 import { 
   ChevronRight, Minus, Plus, ShoppingBag,
-  Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Globe, Heart, Home, Star
+  Maximize2, X, PlayCircle, ZoomIn, ZoomOut, Share2, MessageCircle, Instagram, Facebook, Copy, Heart, Home, Star
 } from 'lucide-react'
 // Import the advanced zoom library
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
@@ -537,10 +537,10 @@ const ProductView = () => {
             <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
               {[
                 { key: "whatsapp", label: t("share.whatsapp"), className: "border-[#b7e9ce] text-[#1a7f4c] hover:bg-[#ebfff4]", icon: <MessageCircle size={14} /> },
-                { key: "facebook", label: t("share.facebook"), className: "border-[#c7d6ff] text-[#1c4fba] hover:bg-[#eef3ff]", icon: <Globe size={14} /> },
+                { key: "facebook", label: t("share.facebook"), className: "border-[#c7d6ff] text-[#1c4fba] hover:bg-[#eef3ff]", icon: <Facebook size={14} /> },
                 { key: "messenger", label: t("share.messenger"), className: "border-[#d4d8ff] text-[#3f51d1] hover:bg-[#f1f3ff]", icon: <MessageCircle size={14} /> },
                 { key: "instagram", label: t("share.instagram"), className: "border-[#ffd1da] text-[#be185d] hover:bg-[#fff0f5]", icon: <Instagram size={14} /> },
-                { key: "browser", label: t("share.copyLink"), className: "border-[#d9e4dd] text-[#265445] hover:bg-[#f2f8f4]", icon: <Share2 size={14} /> },
+                { key: "browser", label: t("share.copyLink"), className: "border-[#d9e4dd] text-[#265445] hover:bg-[#f2f8f4]", icon: <Copy size={14} /> },
               ].map((entry) => (
                 <button
                   key={entry.key}

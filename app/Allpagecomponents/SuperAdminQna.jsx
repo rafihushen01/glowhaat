@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -103,7 +103,7 @@ const SuperAdminQna = () => {
       <SuperAdminNav />
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">KhanCosmetics SuperAdmin</p>
+          <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Glow Haat SuperAdmin</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-900">Product Q&A Control Center</h1>
           <p className="mt-2 text-sm text-[#4f6f63]">Answer customer product questions with fast and accurate responses.</p>
         </div>
@@ -169,7 +169,7 @@ const SuperAdminQna = () => {
                     <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Product</p>
                     <h2 className="text-lg font-semibold text-emerald-900">{entry?.productid?.name || "Deleted Product"}</h2>
                     <p className="mt-1 text-xs text-[#4f6f63]">
-                      By {entry?.askedbyname || "KhanCosmetics User"} | {entry?.askedbyemail || "No email"} |{" "}
+                      By {entry?.askedbyname || "Glow Haat User"} | {entry?.askedbyemail || "No email"} |{" "}
                       {formatDate(entry.createdAt)}
                     </p>
                   </div>
@@ -203,7 +203,7 @@ const SuperAdminQna = () => {
                     rows={4}
                     value={draftAnswers[entry._id] || ""}
                     onChange={(e) => setDraftAnswers((prev) => ({ ...prev, [entry._id]: e.target.value }))}
-                    placeholder={entry?.isanswered ? "Update answer (optional)" : "Write official answer from KhanCosmetics..."}
+                    placeholder={entry?.isanswered ? "Update answer (optional)" : "Write official answer from Glow Haat..."}
                     className="w-full rounded-xl border border-emerald-200 px-3 py-2 text-sm outline-none focus:border-emerald-500"
                   />
                   <button
@@ -225,3 +225,4 @@ const SuperAdminQna = () => {
 };
 
 export default SuperAdminQna;
+

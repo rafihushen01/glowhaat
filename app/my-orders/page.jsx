@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,7 +9,7 @@ import { getRequestConfig } from "../utils/requestConfig";
 
 const statusFlow = ["placed", "processing", "shipped", "delivered"];
 
-const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
+const formatMoney = (value) => `à§³${Number(value || 0).toLocaleString()}`;
 const formatDate = (value) => new Date(value).toLocaleString();
 
 const MyOrdersPage = () => {
@@ -46,7 +46,7 @@ const MyOrdersPage = () => {
       <div className="mx-auto max-w-6xl px-4 py-10">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">KhanCosmetics Orders</p>
+            <p className="text-[11px] uppercase tracking-[0.3em] text-emerald-700">Glow Haat Orders</p>
             <h1 className="mt-2 text-4xl font-semibold">My Orders & Tracking</h1>
             <p className="mt-2 text-sm text-[#4f6f63]">Track every order from placed to delivered or returned.</p>
           </div>
@@ -154,3 +154,4 @@ const OrderTracker = ({ status }) => {
 };
 
 export default MyOrdersPage;
+

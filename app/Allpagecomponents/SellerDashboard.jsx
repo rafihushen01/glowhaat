@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
@@ -595,7 +595,7 @@ const SellerDashboard = () => {
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fffb_0%,#ffffff_25%,#f4fff9_100%)]">
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 md:p-7">
-          <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">KhanCosmetics Seller Dashboard</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Glow Haat Seller Dashboard</p>
           <h1 className="mt-2 text-3xl font-semibold text-emerald-950">Welcome, {user?.fullname || "Seller"}</h1>
           <p className="mt-2 text-sm text-emerald-800">Shop-first flow enabled. Create your shop, then manage products, orders, sponsorships, and commission.</p>
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -649,7 +649,7 @@ const SellerDashboard = () => {
                 <div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><Package size={18} /></div>
                 <div>
                   <h2 className="text-xl font-bold text-emerald-900">{editItemId ? "Edit Seller Item" : "Seller Item Studio"}</h2>
-                  <p className="text-sm text-emerald-700">KhanCosmetics Seller Item Managment Panel</p>
+                  <p className="text-sm text-emerald-700">Glow Haat Seller Item Managment Panel</p>
                 </div>
               </div>
 
@@ -1025,3 +1025,4 @@ const SellerDashboard = () => {
 };
 
 export default SellerDashboard;
+

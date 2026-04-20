@@ -62,6 +62,42 @@ const getProductPrice = (product) => {
   return prices.length ? Math.min(...prices) : 0;
 };
 
+const getSoldText = (value) => {
+  const sold = Math.max(0, Number(value || 0));
+  if (sold >= 1000000) return `${(sold / 1000000).toFixed(1).replace(/\.0$/, "")}M+`;
+  if (sold >= 1000) return `${(sold / 1000).toFixed(sold < 10000 ? 1 : 0).replace(/\.0$/, "")}K+`;
+  if (sold >= 100) return `${(sold / 1000).toFixed(1)}K+`;
+  return `${Math.floor(sold)}+`;
+};
+
+const buildFallbackCardBadges = (product) => {
+  const tags = Array.isArray(product?.tags) ? product.tags.map((entry) => String(entry).toLowerCase()) : [];
+  const badges = [];
+  const deliveryCharge = Number(product?.deliveryschema?.deliverycharge);
+  const hasFreeDelivery =
+    Boolean(product?.deliveryschema?.isfreeshipping) ||
+    (Number.isFinite(deliveryCharge) && deliveryCharge <= 0);
+  const isOfficialStore = tags.some(
+    (tag) =>
+      tag.includes("official") ||
+      tag.includes("verified") ||
+      tag.includes("officialbadge") ||
+      tag.includes("officialstorebadge") ||
+      tag.includes("officiabadge")
+  );
+
+  if (hasFreeDelivery) badges.push({ key: "free", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
+  if (isOfficialStore) {
+    badges.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+    badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  }
+  if (tags.some((tag) => tag.includes("star"))) badges.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
+  if (tags.some((tag) => tag.includes("fast")) && !badges.some((badge) => badge.key === "fast")) badges.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  if (Number(product?.totalsold || 0) >= 120) badges.push({ key: "best", label: "Best Seller" });
+
+  return badges.slice(0, 4);
+};
+
 const flattenNav = (nodes = [], path = [], collector = []) => {
   nodes.forEach((node) => {
     const nextPath = [...path, node?.name].filter(Boolean);
@@ -283,7 +319,7 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
           <div className="absolute inset-0 p-5 md:p-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
               <ModeIcon className="h-4 w-4" />
-              Khan Cosmetics Discovery
+              Glow Haat Discovery
             </div>
             <h1 className="mt-4 text-2xl font-bold text-white md:text-5xl">{titleMap[mode]}</h1>
             <p className="mt-2 max-w-2xl text-sm text-emerald-100 md:text-base">{subtitleMap[mode]}</p>
@@ -515,6 +551,10 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
                   const rating = Number(product?.star || 0);
                   const image = product?.whiteimage || product?.hoverimage || product?.variants?.[0]?.images?.[0] || "";
                   const isBestSeller = Boolean(product?.isbestseller) || (product?.bestsellerrank && product.bestsellerrank <= 40);
+                  const soldText = getSoldText(product?.totalsold || 0);
+                  const badges = Array.isArray(product?.cardmeta?.badges) && product.cardmeta.badges.length
+                    ? product.cardmeta.badges
+                    : buildFallbackCardBadges(product);
 
                   return (
                     <button
@@ -544,9 +584,33 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
                         ) : null}
                       </div>
                       <div className="p-3">
+                        {badges.length > 0 ? (
+                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                            {badges.map((badge) =>
+                              badge?.image ? (
+                                <img
+                                  key={`${product._id}-${badge.key || badge.label}`}
+                                  src={badge.image}
+                                  alt={badge.label || "Badge"}
+                                  className="h-5 w-auto max-w-[120px] rounded object-contain"
+                                />
+                              ) : (
+                                <span
+                                  key={`${product._id}-${badge.key || badge.label}`}
+                                  className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-emerald-700"
+                                >
+                                  {badge.label}
+                                </span>
+                              )
+                            )}
+                          </div>
+                        ) : null}
                         <p className="line-clamp-2 min-h-[38px] text-sm font-semibold text-emerald-900">{product.name}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.1em] text-emerald-700">{product.brand || "Khan Cosmetics"}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.1em] text-emerald-700">{product.brand || "Glow Haat"}</p>
                         <p className="mt-2 text-base font-bold text-emerald-900">{formatPrice(price)}</p>
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-emerald-700">
+                          Sold {product?.cardmeta?.soldtext || soldText}
+                        </p>
                         <div className="mt-2 flex items-center gap-1 text-[12px] font-semibold text-amber-600">
                           <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500" />
                           {rating > 0 ? rating.toFixed(1) : "New"}
@@ -580,3 +644,4 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
 };
 
 export default DiscoverySection;
+

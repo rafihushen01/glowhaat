@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -20,7 +20,8 @@ import {
   Globe,
   LayoutGrid,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -29,6 +30,7 @@ import { twMerge } from "tailwind-merge";
 // Ensure this path matches your project structure exactly
 import { frontendurl } from "../page"; 
 import { serverurl } from "../utils/constants/serverurl";
+import { broadcastActiveLogoUpdate } from "../utils/logoManager";
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
@@ -71,9 +73,15 @@ const getNeonStyle = (index) => {
   };
 };
 
+const formatTimestamp = (value) => {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "N/A";
+  return date.toLocaleString();
+};
+
 // --- ATOMIC COMPONENTS ---
 
-const GlassButton = ({ children, onClick, variant = "primary", className, isLoading, type = "button" }) => {
+const GlassButton = ({ children, onClick, variant = "primary", className, isLoading, type = "button", disabled = false }) => {
   const variants = {
     primary: "bg-cyan-600/20 hover:bg-cyan-500 text-cyan-100 border border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]",
     secondary: "bg-slate-800/40 hover:bg-slate-700 text-cyan-400 border border-slate-700",
@@ -87,7 +95,7 @@ const GlassButton = ({ children, onClick, variant = "primary", className, isLoad
       whileTap={{ scale: 0.95 }}
       type={type}
       onClick={onClick}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       className={cn(
         "px-5 py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-xl disabled:opacity-50",
         variants[variant],
@@ -193,6 +201,7 @@ const NavNode = ({ node, onAddChild, onEdit, onDelete, depth = 0 }) => {
 // --- MAIN COMPONENT ---
 
 const AdminNavCustomization = () => {
+  const logoInputRef = useRef(null);
   const [navTree, setNavTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -207,6 +216,37 @@ const AdminNavCustomization = () => {
   const [assetsCount, setAssetsCount] = useState(0);
   const [assets, setAssets] = useState([]); 
   const [submitting, setSubmitting] = useState(false);
+  const [logoItems, setLogoItems] = useState([]);
+  const [selectedLogoFiles, setSelectedLogoFiles] = useState([]);
+  const [logoLoading, setLogoLoading] = useState(true);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoActionKey, setLogoActionKey] = useState("");
+  const [logoStatusMessage, setLogoStatusMessage] = useState("");
+
+  const activeLogoItem = useMemo(
+    () => logoItems.find((entry) => entry.isactive) || null,
+    [logoItems]
+  );
+
+  const fetchLogos = useCallback(async () => {
+    setLogoLoading(true);
+    try {
+      const { data } = await axios.get(`${serverurl}/nav/logos/admin`, {
+        withCredentials: true,
+        timeout: 25000,
+      });
+      if (data?.success) {
+        setLogoItems(Array.isArray(data.logos) ? data.logos : []);
+      } else {
+        setLogoItems([]);
+      }
+    } catch (error) {
+      setLogoItems([]);
+      setLogoStatusMessage(error?.response?.data?.message || "Failed to load logo vault.");
+    } finally {
+      setLogoLoading(false);
+    }
+  }, []);
 
   // --- FETCHING ---
   const fetchNav = useCallback(async () => {
@@ -222,6 +262,7 @@ const AdminNavCustomization = () => {
   }, []);
 
   useEffect(() => { fetchNav(); }, [fetchNav]);
+  useEffect(() => { fetchLogos(); }, [fetchLogos]);
 
   // --- AUTO SLUG ENGINE ---
   // When Name changes -> Auto-generate Slug
@@ -398,10 +439,103 @@ const AdminNavCustomization = () => {
       fetchNav();
       
     } catch (err) {
-      console.error("❌ SUBMISSION ERROR:", err);
+      console.error("âŒ SUBMISSION ERROR:", err);
       alert(`Failed: ${err.response?.data?.message || "Server Error"}`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleLogoSelection = (event) => {
+    const files = Array.from(event.target.files || []);
+    setSelectedLogoFiles(files);
+  };
+
+  const handleUploadDraftLogos = async () => {
+    if (!selectedLogoFiles.length) {
+      alert("Please select at least one logo file.");
+      return;
+    }
+
+    const formData = new FormData();
+    selectedLogoFiles.forEach((file) => formData.append("logos", file));
+
+    setLogoUploading(true);
+    setLogoStatusMessage("");
+    try {
+      const { data } = await axios.post(`${serverurl}/nav/logos/upload`, formData, {
+        withCredentials: true,
+        headers: { "Content-Type": "multipart/form-data" },
+        timeout: 45000,
+      });
+      setSelectedLogoFiles([]);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+      await fetchLogos();
+      setLogoStatusMessage(data?.message || "Logo drafts uploaded successfully.");
+    } catch (error) {
+      setLogoStatusMessage(error?.response?.data?.message || "Failed to upload draft logos.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleActivateLogo = async (logoId) => {
+    setLogoActionKey(`activate-${logoId}`);
+    setLogoStatusMessage("");
+    try {
+      const { data } = await axios.patch(
+        `${serverurl}/nav/logos/${logoId}/activate`,
+        {},
+        { withCredentials: true, timeout: 25000 }
+      );
+      const activeUrl = data?.logo?.logo || "";
+      broadcastActiveLogoUpdate(activeUrl);
+      await fetchLogos();
+      setLogoStatusMessage(data?.message || "Logo activated successfully.");
+    } catch (error) {
+      setLogoStatusMessage(
+        error?.response?.data?.message ||
+          "Failed to activate logo. First deactivate current active logo if needed."
+      );
+    } finally {
+      setLogoActionKey("");
+    }
+  };
+
+  const handleDeactivateLogo = async (logoId) => {
+    setLogoActionKey(`deactivate-${logoId}`);
+    setLogoStatusMessage("");
+    try {
+      const { data } = await axios.patch(
+        `${serverurl}/nav/logos/${logoId}/deactivate`,
+        {},
+        { withCredentials: true, timeout: 25000 }
+      );
+      broadcastActiveLogoUpdate("");
+      await fetchLogos();
+      setLogoStatusMessage(data?.message || "Logo deactivated successfully.");
+    } catch (error) {
+      setLogoStatusMessage(error?.response?.data?.message || "Failed to deactivate logo.");
+    } finally {
+      setLogoActionKey("");
+    }
+  };
+
+  const handleDeleteDraftLogo = async (logoId) => {
+    if (!confirm("Delete this draft logo permanently?")) return;
+    setLogoActionKey(`delete-${logoId}`);
+    setLogoStatusMessage("");
+    try {
+      const { data } = await axios.delete(`${serverurl}/nav/logos/${logoId}`, {
+        withCredentials: true,
+        timeout: 25000,
+      });
+      await fetchLogos();
+      setLogoStatusMessage(data?.message || "Draft logo deleted.");
+    } catch (error) {
+      setLogoStatusMessage(error?.response?.data?.message || "Failed to delete draft logo.");
+    } finally {
+      setLogoActionKey("");
     }
   };
 
@@ -422,7 +556,7 @@ const AdminNavCustomization = () => {
             </div>
             <div>
               <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
-                KhanCosmetics  <span className="text-cyan-500">CMS</span>
+                Glow Haat  <span className="text-cyan-500">CMS</span>
               </h1>
               <p className="text-slate-400 font-medium flex items-center gap-2">
                 <Globe className="w-4 h-4" /> 
@@ -430,7 +564,7 @@ const AdminNavCustomization = () => {
               </p>
               <p className="text-slate-400 font-medium flex items-center gap-2">
                 <Globe className="w-4 h-4" /> 
-              <span>Build For KhanCosmetics Admins</span>
+              <span>Build For Glow Haat Admins</span>
               </p>
             </div>
           </div>
@@ -438,6 +572,161 @@ const AdminNavCustomization = () => {
             <Plus className="w-5 h-5" /> Add Root Category
           </GlassButton>
         </header>
+
+        <section className="mb-12 rounded-3xl border border-cyan-500/20 bg-white/[0.03] p-6 md:p-8 backdrop-blur-md">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-cyan-400">SuperAdmin Logo Vault</p>
+              <h2 className="mt-2 text-2xl font-bold text-white">GlowHaat Global Logo Control</h2>
+              <p className="mt-2 max-w-3xl text-sm text-slate-300">
+                Upload logos as <span className="text-cyan-300">draft</span>, keep serial numbers, and activate exactly one logo at a time.
+                If one logo is active, you must deactivate it first before activating another.
+              </p>
+            </div>
+            <GlassButton
+              variant="secondary"
+              onClick={fetchLogos}
+              isLoading={logoLoading}
+              className="h-11 min-w-[170px]"
+            >
+              <RefreshCw className="h-4 w-4" /> Refresh Logos
+            </GlassButton>
+          </div>
+
+          <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Bulk Draft Upload</p>
+              <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleLogoSelection}
+                  className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border file:border-cyan-400/30 file:bg-cyan-500/10 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-[0.12em] file:text-cyan-200 hover:file:bg-cyan-500/20"
+                />
+                <GlassButton
+                  onClick={handleUploadDraftLogos}
+                  isLoading={logoUploading}
+                  className="h-11 min-w-[220px]"
+                >
+                  <UploadCloud className="h-4 w-4" />
+                  {logoUploading ? "Uploading Drafts..." : "Upload Draft Logos"}
+                </GlassButton>
+              </div>
+              <p className="mt-3 text-xs text-slate-400">
+                Selected files: <span className="font-semibold text-cyan-300">{selectedLogoFiles.length}</span>
+              </p>
+              {logoStatusMessage ? (
+                <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+                  {logoStatusMessage}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Currently Active Logo</p>
+              {activeLogoItem ? (
+                <div className="mt-4 space-y-3">
+                  <img
+                    src={activeLogoItem.logo}
+                    alt={`Active Logo ${activeLogoItem.serialnumber}`}
+                    className="h-20 w-full rounded-xl border border-cyan-500/30 bg-white/90 object-contain p-2"
+                  />
+                  <div className="flex items-center justify-between text-xs text-slate-300">
+                    <span>Serial #{activeLogoItem.serialnumber}</span>
+                    <span className="rounded-full bg-emerald-500/20 px-2 py-1 font-semibold uppercase tracking-[0.1em] text-emerald-300">
+                      Active
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-amber-300">No active logo selected yet.</p>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Logo Library</p>
+            {logoLoading ? (
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-4 text-sm text-slate-300">
+                <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+                Loading logo drafts...
+              </div>
+            ) : logoItems.length === 0 ? (
+              <div className="mt-4 rounded-2xl border border-dashed border-white/20 bg-slate-900/30 px-4 py-8 text-center text-sm text-slate-400">
+                No logo drafts found. Upload your first GlowHaat logo pack.
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {logoItems.map((entry) => {
+                  const isActivateBusy = logoActionKey === `activate-${entry._id}`;
+                  const isDeactivateBusy = logoActionKey === `deactivate-${entry._id}`;
+                  const isDeleteBusy = logoActionKey === `delete-${entry._id}`;
+                  const isBusy = isActivateBusy || isDeactivateBusy || isDeleteBusy;
+                  return (
+                    <div
+                      key={entry._id}
+                      className={cn(
+                        "rounded-2xl border p-4 transition-all",
+                        entry.isactive
+                          ? "border-emerald-400/40 bg-emerald-500/10"
+                          : "border-white/10 bg-slate-900/45"
+                      )}
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-mono text-slate-300">Serial #{entry.serialnumber}</span>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-1 font-semibold uppercase tracking-[0.1em]",
+                            entry.isactive ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-700 text-slate-300"
+                          )}
+                        >
+                          {entry.isactive ? "active" : "draft"}
+                        </span>
+                      </div>
+                      <img
+                        src={entry.logo}
+                        alt={`Logo ${entry.serialnumber}`}
+                        className="mt-3 h-20 w-full rounded-xl border border-white/10 bg-white object-contain p-2"
+                      />
+                      <p className="mt-3 text-[11px] text-slate-400">Uploaded: {formatTimestamp(entry.createdAt)}</p>
+                      <div className="mt-4 flex gap-2">
+                        {entry.isactive ? (
+                          <GlassButton
+                            variant="danger"
+                            onClick={() => handleDeactivateLogo(entry._id)}
+                            isLoading={isDeactivateBusy}
+                            className="flex-1 h-10 text-xs"
+                          >
+                            Deactivate
+                          </GlassButton>
+                        ) : (
+                          <GlassButton
+                            onClick={() => handleActivateLogo(entry._id)}
+                            isLoading={isActivateBusy}
+                            className="flex-1 h-10 text-xs"
+                          >
+                            Activate
+                          </GlassButton>
+                        )}
+                        <GlassButton
+                          variant="ghost"
+                          onClick={() => handleDeleteDraftLogo(entry._id)}
+                          isLoading={isDeleteBusy}
+                          className="h-10 min-w-[90px] text-xs border border-white/10"
+                          disabled={entry.isactive || isBusy}
+                        >
+                          Delete
+                        </GlassButton>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* Tree Container */}
         <div className="space-y-6 pb-20">
@@ -448,7 +737,7 @@ const AdminNavCustomization = () => {
             </div>
           ) : navTree.length === 0 ? (
             <div className="text-center py-40 rounded-3xl border border-dashed border-white/10 bg-white/5">
-                <p className="text-slate-500 text-lg mb-6">No hierarchy detected. Let's build something big.</p>
+                <p className="text-slate-500 text-lg mb-6">No hierarchy detected. Let&apos;s build something big.</p>
                 <GlassButton variant="secondary" onClick={() => handleOpenCreate()} className="mx-auto">
                     Initialize Root
                 </GlassButton>

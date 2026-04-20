@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
@@ -50,7 +50,7 @@ const gridTypes = ["shopbeautyproductbycategory", "shopbeautyproductbyconcern"];
 
 const titles = {
   campaign: "Campaign Picture",
-  deals: "Deals In KhanCosmetics",
+  deals: "Deals In Glow Haat",
   topbrands: "Top Brands & Offers",
   extradiscount: "Extra Discount Offer",
   shopbeautyproductbycategory: "ShopBeautyProductByCategory",
@@ -354,3 +354,4 @@ const HomepageManagedSections = () => {
 };
 
 export default HomepageManagedSections;
+
