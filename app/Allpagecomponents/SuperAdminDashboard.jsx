@@ -93,6 +93,12 @@ const SuperAdminDashboard = () => {
             icon={<Store className="h-5 w-5" />}
           />
           <DashboardCard
+            href="/SuperAdminShopManagement"
+            title="Shop + Badge Hub"
+            description="Shop management with paging/filter/search, badge draft/active flow, and creative assets."
+            icon={<Store className="h-5 w-5" />}
+          />
+          <DashboardCard
             href="/SuperAdminChatControl"
             title="Conversation Control"
             description="Search all seller-user chats, edit messages, and send notices."

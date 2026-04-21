@@ -68,6 +68,32 @@ const getPricingMeta = (product) => {
   return { current, original: original > current ? original : null, discount };
 };
 
+const buildFallbackCardBadges = (product) => {
+  const tags = Array.isArray(product?.tags)
+    ? product.tags.map((entry) => String(entry || "").toLowerCase())
+    : [];
+  const hasOfficialStore = tags.some(
+    (tag) =>
+      tag.includes("officialbadge") ||
+      tag.includes("officialstorebadge") ||
+      tag.includes("officiabadge") ||
+      tag.includes("verified")
+  );
+  const hasFreeDelivery =
+    Boolean(product?.deliveryschema?.isfreeshipping) ||
+    Number(product?.deliveryschema?.deliverycharge) <= 0 ||
+    Number(product?.deliverycharge) <= 0;
+  const rows = [];
+  if (hasFreeDelivery) rows.push({ key: "free-delivery", label: "Free Delivery", image: "/badges/freedeliverybadge.png" });
+  if (hasOfficialStore) {
+    rows.push({ key: "verified", label: "Verified", image: "/badges/verifybadge.png" });
+    rows.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  }
+  if (tags.some((tag) => tag.includes("star"))) rows.push({ key: "star", label: "Star Seller", image: "/badges/starsellerbadge.png" });
+  if (tags.some((tag) => tag.includes("fast")) && !rows.some((row) => row.key === "fast")) rows.push({ key: "fast", label: "Fast", image: "/badges/fastbadge.png" });
+  return rows.slice(0, 4);
+};
+
 const ShopStorefront = () => {
   const router = useRouter();
   const params = useParams();
@@ -691,7 +717,10 @@ const ShopStorefront = () => {
                   const pricing = getPricingMeta(product);
                   const rating = Number(product?.star || 0);
                   const roundedRating = Math.round(Math.max(0, Math.min(5, rating)));
-                  const badgeRows = Array.isArray(product?.cardmeta?.badges) ? product.cardmeta.badges : [];
+                  const badgeRows =
+                    Array.isArray(product?.cardmeta?.badges) && product.cardmeta.badges.length
+                      ? product.cardmeta.badges
+                      : buildFallbackCardBadges(product);
                   const soldText = String(product?.cardmeta?.soldtext || "").trim();
                   const achievement = String(product?.cardmeta?.achievement || "").trim();
                   const stock = Number(getProductStock(product)) || 0;

@@ -51,6 +51,8 @@ const ProductView = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [wishlistStatus, setWishlistStatus] = useState("");
+  const [canUseLens, setCanUseLens] = useState(false);
+  const [lens, setLens] = useState({ active: false, x: 0, y: 0, px: 50, py: 50 });
   const viewStartedAtRef = useRef(0);
  const handleScroll = () => {
     if (scrollRef.current) {
@@ -108,6 +110,19 @@ const ProductView = () => {
     };
     fetchProduct();
   }, [slug, t]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setCanUseLens(Boolean(media.matches));
+    sync();
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", sync);
+      return () => media.removeEventListener("change", sync);
+    }
+    media.addListener(sync);
+    return () => media.removeListener(sync);
+  }, []);
 
   useEffect(() => {
     if (!shareToken) return;
@@ -378,6 +393,19 @@ const ProductView = () => {
     }
   };
 
+  const lensSize = 180;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const handleLensMove = (event) => {
+    if (!canUseLens || !mainImage) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = clamp(event.clientX - rect.left, 0, rect.width);
+    const y = clamp(event.clientY - rect.top, 0, rect.height);
+    const px = rect.width > 0 ? (x / rect.width) * 100 : 50;
+    const py = rect.height > 0 ? (y / rect.height) * 100 : 50;
+    setLens({ active: true, x, y, px, py });
+  };
+  const handleLensLeave = () => setLens((prev) => ({ ...prev, active: false }));
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-emerald-100">
       
@@ -438,6 +466,9 @@ const ProductView = () => {
             {/* Main View Trigger */}
             <div 
               className="relative flex-1 bg-gray-50 group cursor-zoom-in h-[500px] md:h-full overflow-hidden border border-gray-100"
+              onMouseEnter={handleLensMove}
+              onMouseMove={handleLensMove}
+              onMouseLeave={handleLensLeave}
               onClick={() => setIsZoomOpen(true)}
             >
               <img 
@@ -445,6 +476,21 @@ const ProductView = () => {
                 alt={product.name} 
                 className="w-full h-full object-cover object-top"
               />
+              {canUseLens && lens.active ? (
+                <div
+                  className="pointer-events-none absolute z-20 hidden rounded-full border-2 border-white shadow-[0_12px_40px_rgba(0,0,0,0.32)] md:block"
+                  style={{
+                    width: `${lensSize}px`,
+                    height: `${lensSize}px`,
+                    left: `${clamp(lens.x - lensSize / 2, 0, 9999)}px`,
+                    top: `${clamp(lens.y - lensSize / 2, 0, 9999)}px`,
+                    backgroundImage: `url(${mainImage})`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundSize: "240%",
+                    backgroundPosition: `${lens.px}% ${lens.py}%`,
+                  }}
+                />
+              ) : null}
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-300" />
               
               {/* Click Instruction */}

@@ -7,14 +7,17 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { Package, Image as ImageIcon, Truck, Sparkles, Calculator, Trash2, X, Flame, Copy, Pencil } from "lucide-react";
+import { Package, Image as ImageIcon, Truck, Sparkles, Calculator, Trash2, X, Flame, Copy, Pencil, BadgeCheck } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
+import { getSharedSocket } from "../utils/socketClient";
 import SellerCategorySelector from "./SellerCategorySelector";
 import KhanChatHub from "./KhanChatHub";
 import KhanNotificationInbox from "./KhanNotificationInbox";
+import SellerShopDecorator from "./SellerShopDecorator";
+import SellerCreativeAssets from "./SellerCreativeAssets";
 
-const TABS = ["Overview", "Shop", "Add Items", "My Items", "Orders", "Chats", "Sponsorship", "Commission", "Notifications"];
+const TABS = ["Overview", "Shop", "Add Items", "My Items", "Orders", "Chats", "Shop Decorator", "Creative Assets", "Sponsorship", "Commission", "Notifications"];
 const ORDER_STATUSES = ["placed", "processing", "shipped", "delivered", "returned", "canceled"];
 const tabButton = (active) => `rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] transition ${active ? "border-emerald-700 bg-emerald-700 text-white" : "border-emerald-300 bg-white text-emerald-800 hover:border-emerald-500"}`;
 const card = "rounded-2xl border border-emerald-200 bg-white p-4 md:p-5";
@@ -68,6 +71,7 @@ const SellerDashboard = () => {
   const [sponsorships, setSponsorships] = useState([]);
   const [commission, setCommission] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [liveGlowToasts, setLiveGlowToasts] = useState([]);
 
   const [shopForm, setShopForm] = useState({ shopname: "", description: "", contactemail: "", contactphone: "", address: "", profileimage: null, bannerimage: null });
   const [itemForm, setItemForm] = useState(defaultItemForm);
@@ -126,6 +130,56 @@ const SellerDashboard = () => {
   useEffect(() => {
     if (!user || role !== "Seller") return;
     loadAll();
+  }, [user, role]);
+
+  useEffect(() => {
+    if (!user || role !== "Seller") return;
+    const userid = String(user?._id || user?.id || "").trim();
+    if (!userid) return;
+    const socket = getSharedSocket();
+    if (!socket) return;
+
+    socket.emit("notification_room_join", { kind: "seller", id: userid });
+
+    const onKhanNotification = (payload = {}) => {
+      const title = String(payload?.title || "").toLowerCase();
+      const source = String(payload?.metadata?.source || "").toLowerCase();
+      const isGlowHaatMessage = title.includes("glowhaat message") || source === "glowhaat_chathub";
+      if (!isGlowHaatMessage) return;
+
+      const toastId = `glowhaat-toast-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const toast = {
+        id: toastId,
+        title: String(payload?.title || "GlowHaat Message"),
+        message: String(payload?.message || ""),
+        createdAt: payload?.createdAt || new Date().toISOString(),
+      };
+
+      setLiveGlowToasts((prev) => [toast, ...prev].slice(0, 4));
+      setNotifications((prev) => [
+        {
+          _id: payload?.metadata?.sellernotificationid || toastId,
+          type: payload?.type || "Info",
+          title: toast.title,
+          message: toast.message,
+          isread: false,
+          createdAt: toast.createdAt,
+          metadata: payload?.metadata || {},
+        },
+        ...(Array.isArray(prev) ? prev : []),
+      ].slice(0, 120));
+
+      window.setTimeout(() => {
+        setLiveGlowToasts((prev) => prev.filter((entry) => entry.id !== toastId));
+      }, 9000);
+    };
+
+    socket.off("khan_notification", onKhanNotification);
+    socket.on("khan_notification", onKhanNotification);
+
+    return () => {
+      socket.off("khan_notification", onKhanNotification);
+    };
   }, [user, role]);
 
   const sortedItems = useMemo(() => [...items].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)), [items]);
@@ -593,6 +647,30 @@ const SellerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f8fffb_0%,#ffffff_25%,#f4fff9_100%)]">
+      {liveGlowToasts.length > 0 ? (
+        <div className="fixed right-4 top-4 z-[120] w-[92vw] max-w-sm space-y-2">
+          {liveGlowToasts.map((toast) => (
+            <div key={toast.id} className="rounded-xl border border-blue-200 bg-white p-3 shadow-[0_18px_45px_-28px_rgba(37,99,235,0.95)]">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-blue-700">
+                    <BadgeCheck className="h-3.5 w-3.5" /> GlowHaat Verified
+                  </p>
+                  <p className="line-clamp-1 text-sm font-semibold text-emerald-950">{toast.title}</p>
+                  <p className="mt-1 line-clamp-3 text-xs text-emerald-800">{toast.message}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLiveGlowToasts((prev) => prev.filter((entry) => entry.id !== toast.id))}
+                  className="rounded-full border border-emerald-200 p-1 text-emerald-700"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="mx-auto max-w-7xl px-4 py-8">
         <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 md:p-7">
           <p className="text-xs uppercase tracking-[0.2em] text-emerald-700">Glow Haat Seller Dashboard</p>
@@ -957,6 +1035,18 @@ const SellerDashboard = () => {
         {!loading && activeTab === "Chats" ? (
           <div className="mt-6">
             <KhanChatHub embedded />
+          </div>
+        ) : null}
+
+        {!loading && activeTab === "Shop Decorator" ? (
+          <div className="mt-6">
+            <SellerShopDecorator />
+          </div>
+        ) : null}
+
+        {!loading && activeTab === "Creative Assets" ? (
+          <div className="mt-6">
+            <SellerCreativeAssets />
           </div>
         ) : null}
 

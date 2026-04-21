@@ -103,7 +103,7 @@ const KhanNotificationInbox = ({ role = "User", compact = false }) => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex items-center gap-2 text-emerald-900">
           <Bell className="h-4 w-4" />
-          <p className="text-sm font-semibold">KhanNotification Inbox</p>
+          <p className="text-sm font-semibold">GlowHaat Notification Inbox</p>
           {unread > 0 ? <span className="rounded-full bg-emerald-700 px-2 py-0.5 text-[10px] text-white">{unread}</span> : null}
         </div>
         <button type="button" onClick={markAllRead} className="rounded-lg border border-emerald-300 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-emerald-800">

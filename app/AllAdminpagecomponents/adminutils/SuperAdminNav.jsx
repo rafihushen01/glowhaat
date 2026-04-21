@@ -52,6 +52,7 @@ const SuperAdminNav = () => {
       { href: "/SuperAdminRecommendationInsights", label: "Recommendation AI", icon: <Sparkles className="h-4 w-4" /> },
       { href: "/SuperAdminSellerRequests", label: "Seller Requests", icon: <Store className="h-4 w-4" /> },
       { href: "/SuperAdminSellerOperations", label: "Seller Ops", icon: <Store className="h-4 w-4" /> },
+      { href: "/SuperAdminShopManagement", label: "Shop + Badge Hub", icon: <Store className="h-4 w-4" /> },
       { href: "/SuperAdminChatControl", label: "Conversation Control", icon: <MessageSquareQuote className="h-4 w-4" /> },
       { href: "/AdminItemManagments", label: "Item Management", icon: <Package className="h-4 w-4" /> },
       { href: "/AdminHomebanner", label: "Home Banners", icon: <ImageIcon className="h-4 w-4" /> },

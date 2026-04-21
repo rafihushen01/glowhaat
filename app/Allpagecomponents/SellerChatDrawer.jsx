@@ -30,7 +30,7 @@ const SellerChatDrawer = ({ shop = null, product = null, buttonClassName = "" })
           <div className="absolute inset-x-0 bottom-0 top-0 m-auto h-[95vh] w-[96vw] max-w-6xl rounded-2xl border border-emerald-200 bg-white shadow-2xl">
             <div className="flex items-center justify-between border-b border-emerald-100 px-4 py-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">KhanChat</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-700">GlowHaatChatHub</p>
                 <p className="text-sm font-semibold text-emerald-950">{shop?.shopname || "Seller Chat"}</p>
               </div>
               <button type="button" onClick={() => setOpen(false)} className="rounded-full border border-emerald-300 p-2 text-emerald-700">

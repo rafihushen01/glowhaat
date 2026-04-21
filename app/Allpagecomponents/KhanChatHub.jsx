@@ -360,7 +360,7 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
   const handleToggleBlock = async (nextBlocked) => {
     if (!activeThreadId) return;
     try {
-      const payload = { block: nextBlocked, reason: nextBlocked ? "Blocked from KhanChat" : "", guestsessionid: actorType === "guest" ? guestSessionId : "" };
+      const payload = { block: nextBlocked, reason: nextBlocked ? "Blocked from GlowHaatChatHub" : "", guestsessionid: actorType === "guest" ? guestSessionId : "" };
       const { data } = await axios.patch(`${serverurl}/seller/chat/threads/${activeThreadId}/block`, payload, withGuestHeaders({ timeout: 45000 }));
       if (!data?.success) throw new Error(data?.message || "Failed to update block state.");
       await loadThread(activeThreadId);
@@ -463,8 +463,8 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
     <div className={`grid min-h-[70vh] grid-cols-1 gap-4 md:grid-cols-[340px_1fr] ${embedded ? "" : "mx-auto max-w-7xl p-4"}`}>
       <aside className="rounded-2xl border border-emerald-200 bg-white">
         <div className="border-b border-emerald-100 p-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">KhanChat</p>
-          <h2 className="mt-1 text-lg font-semibold text-emerald-950">{isSeller ? "Seller Chat Hub" : "Customer Messenger"}</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">GlowHaatChatHub</p>
+          <h2 className="mt-1 text-lg font-semibold text-emerald-950">{isSeller ? "GlowHaat Seller Chat Hub" : "GlowHaat Customer Messenger"}</h2>
           {actorType === "guest" ? (
             <input
               value={guestName}
@@ -523,7 +523,7 @@ const KhanChatHub = ({ initialShop = null, initialProduct = null, embedded = fal
                 ? "Online now"
                 : activeThread?.counterpartlastseenat
                   ? formatSeenAt(activeThread?.counterpartlastseenat)
-                  : activeThread?.productid?.name || (threadBlocked ? "This conversation is blocked" : "Real-time KhanChat")}
+                  : activeThread?.productid?.name || (threadBlocked ? "This conversation is blocked" : "Real-time GlowHaatChatHub")}
             </p>
           </div>
 
