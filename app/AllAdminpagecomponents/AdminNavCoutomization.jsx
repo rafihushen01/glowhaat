@@ -28,8 +28,7 @@ import { twMerge } from "tailwind-merge";
 
 // --- IMPORTS FROM YOUR PAGE ---
 // Ensure this path matches your project structure exactly
-import { frontendurl } from "../page"; 
-import { serverurl } from "../utils/constants/serverurl";
+import { frontendurl, serverurl } from "../utils/constants/serverurl";
 import { broadcastActiveLogoUpdate } from "../utils/logoManager";
 
 function cn(...inputs) {

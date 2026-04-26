@@ -3,7 +3,7 @@ import Home from './Allpagecomponents/Home'
 
 // export const serverurl="https://damaskbackend-production.up.railway.app"
 export const secondserverurl="http://localhost:8080"
-export const frontendurl="http://khancosmetics.vercel.app"
+export { frontendurl } from "./utils/constants/serverurl"
 export { default as rafiworldlogo } from "../public/RafiWorld.jpg"
 const page = () => {
   return (
