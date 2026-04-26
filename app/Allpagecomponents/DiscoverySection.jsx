@@ -298,8 +298,8 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
       <div className="h-32 md:h-36" />
 
       <section className="mx-auto w-full max-w-[1400px] px-4 md:px-8">
-        <div className="relative overflow-hidden rounded-3xl border border-emerald-200">
-          <div className="relative h-[220px] w-full md:h-[320px]">
+        <div className="relative mt-10 overflow-hidden rounded-3xl border border-emerald-200">
+          <div className="relative mt-20 h-[220px] w-full md:h-[320px]">
             {bannerList.length > 0 ? (
               bannerList.map((banner, currentIndex) => (
                 <img

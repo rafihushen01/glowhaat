@@ -49,7 +49,7 @@ const railTypes = ["topbrands", "extradiscount"];
 const gridTypes = ["shopbeautyproductbycategory", "shopbeautyproductbyconcern"];
 
 const titles = {
-  campaign: "Campaign Picture",
+  campaign: "New Offers From GlowHaat",
   deals: "Deals In Glow Haat",
   topbrands: "Top Brands & Offers",
   extradiscount: "Extra Discount Offer",

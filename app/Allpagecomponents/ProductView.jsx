@@ -227,7 +227,7 @@ const ProductView = () => {
   };
 
   const toCategoryPath = (value = "") =>
-    `/${String(value || "")
+    `/s/${String(value || "")
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
