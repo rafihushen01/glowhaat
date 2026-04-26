@@ -133,6 +133,7 @@ const UserNav = () => {
   const userinitial = (userdisplayname[0] || "U").toUpperCase();
   const cartCount = Array.isArray(cartItems) ? cartItems.length : 0;
   const isSellerRole = String(user?.role || "").toLowerCase() === "seller";
+  const isSuperAdminRole = String(user?.role || "").toLowerCase() === "superadmin";
   const profileDashboardPath = "/profile-dashboard";
   const [wishlistCount, setWishlistCount] = useState(0);
 
@@ -468,6 +469,18 @@ const UserNav = () => {
                           <Heart className="h-4 w-4" />
                           {t("myWishlist")}
                         </button>
+                        {isSuperAdminRole ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsProfileOpen(false);
+                              router.push("/SuperAdmin");
+                            }}
+                            className="mt-3 flex w-full items-center justify-center rounded-xl border border-[#cfe0d7] bg-[#f3faf6] px-3 py-2.5 text-sm font-semibold text-[#1f5c49] transition hover:border-[#1f5c49]"
+                          >
+                            Go to SuperAdmin Dashboard
+                          </button>
+                        ) : null}
                         {isSellerRole ? (
                           <button
                             type="button"
@@ -723,6 +736,7 @@ const UserNav = () => {
             wishlistCount={wishlistCount}
             onLogout={handleLogout}
             isSellerRole={isSellerRole}
+            isSuperAdminRole={isSuperAdminRole}
             profileDashboardPath={profileDashboardPath}
             locale={locale}
             onLocaleChange={switchLocale}
@@ -950,6 +964,7 @@ const MobileMenu = ({
   wishlistCount,
   onLogout,
   isSellerRole,
+  isSuperAdminRole,
   profileDashboardPath,
   locale,
   onLocaleChange,
@@ -1223,6 +1238,15 @@ const MobileMenu = ({
                       <Heart className="h-4 w-4" />
                       {t("wishlistWithCount", {count: wishlistCount || 0})}
                     </Link>
+                    {isSuperAdminRole ? (
+                      <Link
+                        href="/SuperAdmin"
+                        onClick={onClose}
+                        className="flex w-full items-center justify-center rounded-lg border border-[#cfe0d7] bg-[#f3faf6] py-3 text-sm font-semibold tracking-wide text-[#1f5c49]"
+                      >
+                        Go to SuperAdmin Dashboard
+                      </Link>
+                    ) : null}
                     {isSellerRole ? (
                       <Link
                         href="/seller-dashboard"
