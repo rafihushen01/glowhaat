@@ -4,12 +4,14 @@ import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { ArrowRight, Bolt, ShoppingBag, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import { serverurl } from "../utils/constants/serverurl";
 import {
   getRecommendationSessionKey,
   trackRecommendationEvent,
 } from "../utils/recommendation";
 import { getRequestConfig } from "../utils/requestConfig";
+import { addToCart } from "../reduxcomponents/CartSlice";
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-BD", {
@@ -109,6 +111,7 @@ const buildFallbackCardBadges = (product) => {
 
 const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't Miss" }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -187,6 +190,9 @@ const BehaviorRecommendations = ({ categorySlug = "", title = "Deals You Can't M
         getRequestConfig({ timeout: 20000 })
       );
       if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      if (data.item) {
+        dispatch(addToCart(data.item));
+      }
       if (toCheckout) router.push("/checkout");
     } catch (_error) {
       // silent by design to keep flow smooth

@@ -1,12 +1,14 @@
-﻿"use client"
+"use client"
 import React, { useEffect, useState, useRef } from 'react'
 import axios from 'axios'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bolt, ShoppingBag, Star, Zap, ArrowRight, MousePointer2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useDispatch } from 'react-redux'
 import { serverurl } from '../utils/constants/serverurl'
 import { trackRecommendationEvent } from '../utils/recommendation'
 import { getRequestConfig } from '../utils/requestConfig'
+import { addToCart } from '../reduxcomponents/CartSlice'
 
 
 // --- Utility: Currency Formatter ---
@@ -16,7 +18,7 @@ const formatCurrency = (amount) => {
     currency: 'BDT',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount).replace('BDT', 'à§³');
+  }).format(amount).replace('BDT', '৳');
 };
 
 const NewItem = () => {
@@ -24,6 +26,7 @@ const NewItem = () => {
   const [loading, setLoading] = useState(true);
   const [busyProductId, setBusyProductId] = useState("");
   const router = useRouter();
+  const dispatch = useDispatch();
   const carouselRef = useRef(null);
   const [width, setWidth] = useState(0);
 
@@ -58,6 +61,9 @@ const NewItem = () => {
         getRequestConfig({ timeout: 20000 })
       );
       if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      if (data.item) {
+        dispatch(addToCart(data.item));
+      }
       if (toCheckout) router.push("/checkout");
     } catch (_error) {
       // silent keep carousel smooth

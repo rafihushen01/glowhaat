@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
@@ -17,6 +17,7 @@ import {
   Upload,
 } from "lucide-react";
 import { serverurl, frontendurl } from "../utils/constants/serverurl";
+import SuperAdminNav from "./adminutils/SuperAdminNav";
 
 const CATEGORY_API = `${serverurl}/category`;
 
@@ -363,7 +364,9 @@ const AdminCategoryBuilder = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f6fbf8] px-4 py-6 md:px-8 md:py-8">
+    <div className="min-h-screen bg-[#f6fbf8]">
+      <SuperAdminNav />
+      <div className="px-4 py-6 md:px-8 md:py-8">
       <Toaster position="top-center" />
 
       <div className="mx-auto max-w-7xl space-y-6">
@@ -765,6 +768,7 @@ const AdminCategoryBuilder = () => {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 };

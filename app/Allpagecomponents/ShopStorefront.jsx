@@ -3,10 +3,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import { Search, SlidersHorizontal, Star, Heart, Flag, ShoppingBag, Bolt } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import SellerChatDrawer from "./SellerChatDrawer";
 import { getRequestConfig } from "../utils/requestConfig";
+import { addToCart } from "../reduxcomponents/CartSlice";
 
 const formatPrice = (price) =>
   new Intl.NumberFormat("en-BD", {
@@ -96,6 +98,7 @@ const buildFallbackCardBadges = (product) => {
 
 const ShopStorefront = () => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const params = useParams();
   const slug = String(params?.slug || "").trim().toLowerCase();
 
@@ -301,6 +304,9 @@ const ShopStorefront = () => {
         getRequestConfig({ timeout: 20000 })
       );
       if (!data?.success) throw new Error(data?.message || "Could not add to cart.");
+      if (data.item) {
+        dispatch(addToCart(data.item));
+      }
       setActionMessage(toCheckout ? "Added to cart. Redirecting to checkout..." : "Added to cart.");
       if (toCheckout) router.push("/checkout");
     } catch (error) {
