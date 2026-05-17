@@ -51,6 +51,7 @@ const CheckoutPage = () => {
     {id: "bkash", label: t("payment.bkash"), icon: <Smartphone className="h-4 w-4" />},
     {id: "nagad", label: t("payment.nagad"), icon: <CreditCard className="h-4 w-4" />},
     {id: "bank", label: t("payment.bank"), icon: <Building2 className="h-4 w-4" />},
+    {id: "stripe", label: "Stripe Card (Test)", icon: <CreditCard className="h-4 w-4" />},
   ];
 
   const [cartLoading, setCartLoading] = useState(true);
@@ -62,6 +63,11 @@ const CheckoutPage = () => {
   const [hasFreeDelivery, setHasFreeDelivery] = useState(false);
   const [subtotal, setSubtotal] = useState(0);
   const [cartItems, setLocalCartItems] = useState([]);
+  const [stripeForm, setStripeForm] = useState({
+    cardNumber: "4242 4242 4242 4242",
+    cardExpiry: "12/28",
+    cardCvc: "123",
+  });
 
   const [form, setForm] = useState({
     fullname: user?.fullname || "",
@@ -101,6 +107,20 @@ const CheckoutPage = () => {
   );
 
   const grandTotal = useMemo(() => subtotal + deliveryTotal, [subtotal, deliveryTotal]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !window.Stripe) {
+      const script = document.createElement("script");
+      script.src = "https://js.stripe.com/v3/";
+      script.async = true;
+      document.body.appendChild(script);
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    }
+  }, []);
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -166,8 +186,19 @@ const CheckoutPage = () => {
     setStatusMessage("");
     setSubmitting(true);
     try {
+      let finalForm = { ...form };
+      if (paymentMethod === "stripe") {
+        if (!stripeForm.cardNumber || !stripeForm.cardExpiry || !stripeForm.cardCvc) {
+          setStatusMessage("Please fill in all standard fields for the Stripe Card Payment.");
+          setSubmitting(false);
+          return;
+        }
+        finalForm.paymentreference = "tok_stripe_test_" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        finalForm.paymentnote = `Stripe Test Purchase. Card Number: **** **** **** ${stripeForm.cardNumber.slice(-4)}`;
+      }
+
       const payload = {
-        ...form,
+        ...finalForm,
         paymentmethod: paymentMethod,
         locationtext: location?.formatted || "",
         latitude: location?.lat ?? null,
@@ -381,7 +412,63 @@ const CheckoutPage = () => {
                   ))}
                 </div>
 
-                {paymentMethod !== "cod" ? (
+                 {paymentMethod === "stripe" ? (
+                  <div className="mt-4 rounded-xl border border-emerald-250 bg-emerald-50/15 p-5 space-y-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                      <CreditCard className="h-4 w-4 text-emerald-700" />
+                      Stripe Test Payment Panel
+                    </p>
+                    <p className="text-xs text-[#4f6f63]">
+                      Enter the standard Stripe test card number below. This order will be processed inside the Stripe Test Sandbox.
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <label className="block text-[10px] font-bold uppercase text-zinc-500">
+                        Card Number
+                        <input
+                          className="mt-1.5 h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold tracking-widest outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/10"
+                          value={stripeForm.cardNumber}
+                          maxLength={19}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\s?/g, '').replace(/\D/g, '');
+                            if (val.length > 0) {
+                              val = val.match(new RegExp('.{1,4}', 'g')).join(' ');
+                            }
+                            setStripeForm((prev) => ({ ...prev, cardNumber: val }));
+                          }}
+                        />
+                      </label>
+                      <label className="block text-[10px] font-bold uppercase text-zinc-500">
+                        Expiry Date
+                        <input
+                          className="mt-1.5 h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold tracking-wider outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/10"
+                          placeholder="MM/YY"
+                          maxLength={5}
+                          value={stripeForm.cardExpiry}
+                          onChange={(e) => {
+                            let val = e.target.value.replace(/\D/g, '');
+                            if (val.length > 2) {
+                              val = val.slice(0, 2) + '/' + val.slice(2, 4);
+                            }
+                            setStripeForm((prev) => ({ ...prev, cardExpiry: val }));
+                          }}
+                        />
+                      </label>
+                      <label className="block text-[10px] font-bold uppercase text-zinc-500">
+                        CVC
+                        <input
+                          className="mt-1.5 h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-sm font-semibold tracking-wider outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/10"
+                          placeholder="123"
+                          maxLength={4}
+                          value={stripeForm.cardCvc}
+                          onChange={(e) => {
+                            setStripeForm((prev) => ({ ...prev, cardCvc: e.target.value.replace(/\D/g, '') }));
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : paymentMethod !== "cod" ? (
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                       label={t("fields.paymentRef")}

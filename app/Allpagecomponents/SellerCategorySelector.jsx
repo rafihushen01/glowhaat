@@ -6,7 +6,7 @@ import { serverurl } from "../utils/constants/serverurl";
 
 const SellerCategorySelector = ({ onSelect }) => {
   const [history, setHistory] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -16,16 +16,13 @@ const SellerCategorySelector = ({ onSelect }) => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const params = { depth: currentDepth };
-      if (parentId) params.parentid = parentId;
-      const { data } = await axios.get(`${serverurl}/nav/getcategorybydepth`, {
-        params,
+      const { data } = await axios.get(`${serverurl}/productcategory/all`, {
         withCredentials: true,
         timeout: 20000,
       });
-      setCategories(Array.isArray(data?.data) ? data.data : []);
+      setAllCategories(Array.isArray(data?.data) ? data.data : []);
     } catch (_error) {
-      setCategories([]);
+      setAllCategories([]);
     } finally {
       setLoading(false);
     }
@@ -33,9 +30,13 @@ const SellerCategorySelector = ({ onSelect }) => {
 
   useEffect(() => {
     fetchCategories();
-    setSearch("");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentDepth, parentId]);
+  }, []);
+
+  const categories = allCategories.filter((c) => {
+    const matchesDepth = c.level === currentDepth;
+    const matchesParent = currentDepth === 0 ? !c.parent : c.parent?._id === parentId;
+    return matchesDepth && matchesParent;
+  });
 
   const filtered = categories.filter((c) =>
     String(c?.name || "")

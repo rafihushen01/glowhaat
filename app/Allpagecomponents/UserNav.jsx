@@ -316,13 +316,13 @@ const UserNav = () => {
     <>
       <nav
         ref={navRef}
-        className={`fixed top-0 left-0 right-0 z-[100] overflow-visible border-b border-[#e9eeeb] transition-all duration-500 ease-in-out ${
+        className={`fixed top-0 left-0 right-0 z-100 overflow-visible border-b border-[#e9eeeb] transition-all duration-500 ease-in-out ${
           isScrolled ? "bg-white/92 backdrop-blur-md shadow-sm" : "bg-white"
         }`}
       >
         {/* Top Nav (Desktop) */}
-        <div className="relative z-[130] hidden lg:block border-b border-[#edf2ef]">
-          <div className="mx-auto flex min-h-11 w-full max-w-[1320px] flex-wrap items-center justify-between gap-2 px-6 py-2 text-sm">
+        <div className="relative z-130 hidden lg:block border-b border-[#edf2ef]">
+          <div className="mx-auto flex min-h-11 w-full max-w-330 flex-wrap items-center justify-between gap-2 px-6 py-2 text-sm">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[#25372f]">
               <div className="flex items-center gap-2">
                 <button
@@ -374,7 +374,7 @@ const UserNav = () => {
               >
                 <ShoppingBag className="h-4 w-4" />
                 {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
                     {cartCount}
                   </span>
                 )}
@@ -386,7 +386,7 @@ const UserNav = () => {
               >
                 <Heart className="h-4 w-4" />
                 {wishlistCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-[#1f5c49] text-[10px] text-white">
                     {wishlistCount}
                   </span>
                 )}
@@ -401,7 +401,7 @@ const UserNav = () => {
               </button>
 
               {isAuthenticated ? (
-                <div className="relative z-[240] flex items-center gap-2" ref={profileMenuRef}>
+                <div className="relative z-240 flex items-center gap-2" ref={profileMenuRef}>
                   <button
                     type="button"
                     onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -419,7 +419,7 @@ const UserNav = () => {
                         {userinitial}
                       </span>
                     )}
-                    <span className="max-w-[130px] truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1f5c49]">
+                    <span className="max-w-32.5 truncate text-[11px] font-semibold uppercase tracking-[0.12em] text-[#1f5c49]">
                       {userdisplayname}
                     </span>
                   </button>
@@ -439,7 +439,7 @@ const UserNav = () => {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.2 }}
-                        className="fixed right-4 z-[220] w-64 rounded-2xl border border-[#dce8e2] bg-white p-3 shadow-xl md:right-8"
+                        className="fixed right-4 z-220 w-64 rounded-2xl border border-[#dce8e2] bg-white p-3 shadow-xl md:right-8"
                         style={{ top: navHeight + 8 }}
                       >
                         <div className="rounded-xl bg-[#f1f8f4] p-3">
@@ -537,8 +537,8 @@ const UserNav = () => {
         </div>
 
         {/* Main Nav */}
-        <div className="relative z-[120] mx-auto flex w-full max-w-[1320px] items-center justify-between gap-3 px-4 py-3 md:px-6 lg:py-0">
-          <div className="flex items-center gap-2 lg:w-[170px] lg:shrink-0">
+        <div className="relative z-120 mx-auto flex w-full max-w-330 items-center justify-between gap-3 px-4 py-3 md:px-6 lg:py-0">
+          <div className="flex items-center gap-2 lg:w-42.5 lg:shrink-0">
             <button
               onClick={() => setMobileOpen(true)}
               className="lg:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -612,7 +612,7 @@ const UserNav = () => {
 
         {/* Sub Nav */}
         <div className="border-t border-[#edf2ef] bg-white/95">
-          <div className="mx-auto w-full max-w-[1320px] px-4 py-2 md:px-6">
+          <div className="mx-auto w-full max-w-330 px-4 py-2 md:px-6">
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-3">
               {discoveryQuickLinks.map((entry) => (
                 <Link
@@ -650,7 +650,7 @@ const UserNav = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.2 }}
-            className="fixed left-0 right-0 z-[95] hidden md:block"
+            className="fixed left-0 right-0 z-95 hidden md:block"
             style={{ top: navHeight }}
           >
             <div className="mx-auto w-full max-w-none px-4 md:px-8">
@@ -785,11 +785,11 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave, t }) => 
       exit="exit"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="fixed left-0 right-0 z-[96] hidden lg:block"
+      className="fixed left-0 right-0 z-96 hidden lg:block"
       style={{ top: navHeight }}
     >
       <div className="border-t border-[#e9eeeb] bg-white shadow-2xl">
-        <div className="mx-auto flex h-[500px] w-full max-w-none px-6 xl:px-8">
+        <div className="mx-auto flex h-125 w-full max-w-none px-6 xl:px-8">
           {/* Left: Recursive List */}
           <div className="w-[320px] shrink-0 border-r border-gray-200 bg-[#f7f8f7] p-6 overflow-y-auto custom-scrollbar">
             <ul className="space-y-2">
@@ -886,7 +886,7 @@ const DesktopMegaMenu = ({ item, navHeight, onMouseEnter, onMouseLeave, t }) => 
                       <motion.div
                         key={sub._id}
                         layoutId={`img-${sub._id}`}
-                        className="relative aspect-[4/5] w-full cursor-pointer overflow-hidden rounded-lg border border-gray-100 bg-white group"
+                        className="relative aspect-4/5 w-full cursor-pointer overflow-hidden rounded-lg border border-gray-100 bg-white group"
                         onClick={() => {
                           if (sub?.link) router.push(sub.link);
                         }}
@@ -1024,7 +1024,7 @@ const MobileMenu = ({
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }} 
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[150]"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-150"
         />
 
         {/* Drawer */}
@@ -1033,7 +1033,7 @@ const MobileMenu = ({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 left-0 w-[85vw] max-w-sm bg-white z-[160] shadow-2xl overflow-hidden flex flex-col"
+            className="fixed inset-y-0 left-0 w-[85vw] max-w-sm bg-white z-160] shadow-2xl overflow-hidden flex flex-col"
         >
             {/* Header */}
             <div className="h-16 flex items-center px-4 border-b border-gray-100 justify-between bg-white z-10">

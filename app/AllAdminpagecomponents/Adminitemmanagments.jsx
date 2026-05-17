@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -11,6 +11,7 @@ import toast, { Toaster } from "react-hot-toast";
 import axios from "axios";
 import CategorySelector from "./adminutils/AdminItemCategory";
 import { serverurl } from "../utils/constants/serverurl";
+import SuperAdminNav from "./adminutils/SuperAdminNav";
 // ================= CONFIG =================
 const SERVER_URL = serverurl;
 
@@ -39,7 +40,7 @@ const calculateFinalPrice = (base, discount) => {
 
 // ================= MAIN COMPONENT =================
 const AdminItemManagements = () => {
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   // ===== FORM STATE =====
   const initialForm = {
@@ -221,22 +222,7 @@ const AdminItemManagements = () => {
       <Toaster position="bottom-center" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       
       {/* NAVBAR */}
-      <nav className={`fixed w-full z-50 backdrop-blur-xl border-b transition-all duration-300 ${darkMode ? "bg-[#050b14]/80 border-blue-900/30" : "bg-white/90 border-blue-200"} px-4 md:px-8 py-3 flex justify-between items-center`}>
-        <div className="flex items-center gap-3">
-          <div className="bg-gradient-to-tr from-blue-600 to-cyan-400 p-2 rounded-xl shadow-lg shadow-blue-500/30">
-            <Layers className="text-white w-5 h-5 md:w-6 md:h-6" />
-          </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-cyan-300 to-white bg-clip-text text-transparent leading-none">
-              Glow Haat
-            </h1>
-            <span className="text-[10px] font-mono text-blue-500 block tracking-widest opacity-90">ADMIN PANEL</span>
-          </div>
-        </div>
-        <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-full border transition ${darkMode ? "bg-slate-800 border-slate-700" : "bg-blue-100 border-blue-200"}`}>
-          {darkMode ? <Sun className="text-yellow-400 w-5 h-5 animate-spin-slow" /> : <Moon className="text-blue-600 w-5 h-5" />}
-        </button>
-      </nav>
+      <SuperAdminNav />
 
       {/* CONTENT */}
       <main className="pt-24 pb-32 max-w-7xl mx-auto px-4 md:px-8">

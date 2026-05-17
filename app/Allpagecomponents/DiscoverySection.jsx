@@ -10,7 +10,7 @@ import { serverurl } from "../utils/constants/serverurl";
 import { getRecommendationSessionKey, trackRecommendationEvent } from "../utils/recommendation";
 
 const FALLBACK_BANNER =
-  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?q=80&w=2070&auto=format&fit=crop";
+  "/doc-1.jpg";
 
 const iconMap = {
   bestselling: Crown,
@@ -299,7 +299,7 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
 
       <section className="mx-auto w-full max-w-[1400px] px-4 md:px-8">
         <div className="relative mt-10 overflow-hidden rounded-3xl border border-emerald-200">
-          <div className="relative mt-20 h-[220px] w-full md:h-[320px]">
+          <div className="relative  h-[220px] w-full md:h-[320px]">
             {bannerList.length > 0 ? (
               bannerList.map((banner, currentIndex) => (
                 <img
@@ -315,7 +315,7 @@ const DiscoverySection = ({ mode = "bestselling" }) => {
               <img src={bannerImage} alt={titleMap[mode]} className="h-full w-full object-cover" />
             )}
           </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/80 via-emerald-900/45 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-900 via-emerald-900/80 to-emerald-900/90" />
           <div className="absolute inset-0 p-5 md:p-10">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.16em] text-white">
               <ModeIcon className="h-4 w-4" />

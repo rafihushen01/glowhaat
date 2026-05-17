@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import axios from "axios";
@@ -26,16 +26,13 @@ import {
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-// --- IMPORTS FROM YOUR PAGE ---
-// Ensure this path matches your project structure exactly
 import { frontendurl, serverurl } from "../utils/constants/serverurl";
 import { broadcastActiveLogoUpdate } from "../utils/logoManager";
+import SuperAdminNav from "./adminutils/SuperAdminNav";
 
 function cn(...inputs) {
   return twMerge(clsx(inputs));
 }
-
-// --- UTILITIES ---
 
 // 1. Slugify: The engine that cleans inputs
 const slugify = (text) => {
@@ -49,26 +46,24 @@ const slugify = (text) => {
     .replace(/\-\-+/g, '-');     // Replace multiple - with single -
 };
 
-// 2. Neon Randomizer: Generates consistent but cool gradients based on index
+// 2. Cohesive Brand Palette Generator
 const getNeonStyle = (index) => {
-  const gradients = [
-    "from-pink-500 to-rose-500",
-    "from-cyan-400 to-blue-600",
-    "from-emerald-400 to-green-600",
-    "from-purple-500 to-indigo-600",
-    "from-amber-400 to-orange-600",
-    "from-fuchsia-500 to-purple-600",
-    "from-lime-400 to-green-500",
-    "from-sky-400 to-blue-500",
+  const palettes = [
+    { border: "bg-emerald-600", text: "text-emerald-700", bg: "bg-emerald-50/50", badge: "bg-emerald-50 text-emerald-800 border-emerald-200" },
+    { border: "bg-teal-600", text: "text-teal-700", bg: "bg-teal-50/50", badge: "bg-teal-50 text-teal-800 border-teal-200" },
+    { border: "bg-lime-600", text: "text-lime-700", bg: "bg-lime-50/50", badge: "bg-lime-50 text-lime-800 border-lime-200" },
+    { border: "bg-emerald-800", text: "text-emerald-900", bg: "bg-emerald-100/30", badge: "bg-emerald-100 text-emerald-900 border-emerald-250" },
+    { border: "bg-amber-600", text: "text-amber-700", bg: "bg-amber-50/50", badge: "bg-amber-50 text-amber-800 border-amber-200" },
+    { border: "bg-zinc-600", text: "text-zinc-700", bg: "bg-zinc-50/50", badge: "bg-zinc-100 text-zinc-800 border-zinc-200" },
   ];
-  // Cycle through gradients so it never runs out, even with 1000 images
-  const gradient = gradients[index % gradients.length];
+  const item = palettes[index % palettes.length];
   
   return {
-    border: `bg-gradient-to-r ${gradient}`,
-    text: `bg-clip-text text-transparent bg-gradient-to-r ${gradient}`,
-    glow: `shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]`,
-    ring: `group-focus-within:ring-2 ring-offset-2 ring-offset-[#0f172a] ring-${gradient.split(' ')[0].split('-')[1]}-500`
+    border: item.border,
+    text: item.text,
+    bg: item.bg,
+    badge: item.badge,
+    ring: `group-focus-within:ring-2 ring-emerald-500/10`
   };
 };
 
@@ -82,26 +77,26 @@ const formatTimestamp = (value) => {
 
 const GlassButton = ({ children, onClick, variant = "primary", className, isLoading, type = "button", disabled = false }) => {
   const variants = {
-    primary: "bg-cyan-600/20 hover:bg-cyan-500 text-cyan-100 border border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]",
-    secondary: "bg-slate-800/40 hover:bg-slate-700 text-cyan-400 border border-slate-700",
-    danger: "bg-red-500/10 hover:bg-red-500/80 hover:text-white text-red-400 border border-red-500/30",
-    ghost: "bg-transparent hover:bg-cyan-500/10 text-cyan-400",
+    primary: "bg-emerald-800 hover:bg-emerald-750 text-white shadow-sm ring-1 ring-emerald-900/15",
+    secondary: "bg-white hover:bg-zinc-50 text-zinc-700 border border-zinc-200 shadow-2xs",
+    danger: "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200",
+    ghost: "bg-transparent hover:bg-zinc-100 text-zinc-650",
   };
 
   return (
     <motion.button
-      whileHover={{ scale: 1.02 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       type={type}
       onClick={onClick}
       disabled={isLoading || disabled}
       className={cn(
-        "px-5 py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 backdrop-blur-xl disabled:opacity-50",
+        "px-5 py-2.5 rounded-xl font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-xs uppercase tracking-wider",
         variants[variant],
         className
       )}
     >
-      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : children}
+      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : children}
     </motion.button>
   );
 };
@@ -111,7 +106,6 @@ const NavNode = ({ node, onAddChild, onEdit, onDelete, depth = 0 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasChildren = node.children && node.children.length > 0;
 
-  // Extract just the slug for display if the link is full url
   const displaySlug = node.link?.replace(`${frontendurl}/s/`, "") || node.slug || node.name;
 
   return (
@@ -122,16 +116,16 @@ const NavNode = ({ node, onAddChild, onEdit, onDelete, depth = 0 }) => {
       className="relative ml-4 md:ml-8 mt-4"
     >
       {/* Connector Lines */}
-      <div className="absolute -left-4 top-0 bottom-0 w-px bg-gradient-to-b from-cyan-500/50 to-transparent" />
-      <div className="absolute -left-4 top-1/2 w-4 h-px bg-cyan-500/50" />
+      <div className="absolute -left-4 top-0 bottom-0 w-px bg-gradient-to-b from-emerald-500/25 to-transparent" />
+      <div className="absolute -left-4 top-1/2 w-4 h-px bg-emerald-500/25" />
 
       <div className="group relative">
         <div className={cn(
-          "relative z-10 p-4 rounded-2xl border transition-all duration-500",
-          "bg-slate-900/60 hover:bg-slate-800/80 backdrop-blur-2xl",
-          "border-white/5 hover:border-cyan-500/50",
-          "shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_0_30px_rgba(6,182,212,0.15)]",
-          isOpen && "border-cyan-500/30 bg-slate-800/40"
+          "relative z-10 p-4 rounded-2xl border transition-all duration-300",
+          "bg-white hover:bg-zinc-50/50",
+          "border-zinc-200 hover:border-emerald-600",
+          "shadow-2xs hover:shadow-xs",
+          isOpen && "border-emerald-500/35 bg-emerald-50/10"
         )}>
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div 
@@ -139,41 +133,59 @@ const NavNode = ({ node, onAddChild, onEdit, onDelete, depth = 0 }) => {
               onClick={() => setIsOpen(!isOpen)}
             >
               <div className={cn(
-                "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
-                hasChildren ? "bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.4)] text-white" : "bg-slate-800 text-slate-500"
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-350 shadow-2xs",
+                hasChildren ? "bg-emerald-850 text-white" : "bg-zinc-100 text-zinc-400 border border-zinc-150"
               )}>
                 {hasChildren ? (
-                  isOpen ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />
+                  isOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />
                 ) : <Zap className="w-4 h-4" />}
               </div>
               
               <div>
-                <h3 className="text-lg font-bold text-white tracking-tight">{node.name}</h3>
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-500/70 truncate max-w-[200px] md:max-w-md">
-                   <Globe className="w-3 h-3 flex-shrink-0" />
-                   <span className="opacity-50">.../s/</span>
-                   <span className="text-cyan-400 font-bold">{displaySlug}</span>
+                <h3 className="text-base font-extrabold text-zinc-850 tracking-tight">{node.name}</h3>
+                <div className="flex items-center gap-2 text-xs font-mono text-emerald-800/80 truncate max-w-[200px] md:max-w-md">
+                   <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+                   <span className="opacity-55">.../s/</span>
+                   <span className="text-emerald-700 font-bold">{displaySlug}</span>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button onClick={() => onAddChild(node)} className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500 hover:text-white transition-all"><Plus className="w-5 h-5" /></button>
-              <button onClick={() => onEdit(node)} className="p-2 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-white transition-all"><Edit3 className="w-5 h-5" /></button>
-              <button onClick={() => onDelete(node._id)} className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"><Trash2 className="w-5 h-5" /></button>
+              <button 
+                onClick={() => onAddChild(node)} 
+                title="Add Child Sub-category"
+                className="p-2 rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-800 hover:text-white transition-all border border-emerald-100/50"
+              >
+                <Plus className="w-4.5 h-4.5" />
+              </button>
+              <button 
+                onClick={() => onEdit(node)} 
+                title="Edit Category Details"
+                className="p-2 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-600 hover:text-white transition-all border border-amber-100/50"
+              >
+                <Edit3 className="w-4.5 h-4.5" />
+              </button>
+              <button 
+                onClick={() => onDelete(node._id)} 
+                title="Delete Category node"
+                className="p-2 rounded-lg bg-red-50 text-red-700 hover:bg-red-650 hover:text-white transition-all border border-red-100/50"
+              >
+                <Trash2 className="w-4.5 h-4.5" />
+              </button>
             </div>
           </div>
 
           {/* Asset Preview Dots */}
           {node.images && node.images.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-white/5 flex gap-2 flex-wrap">
+            <div className="mt-4 pt-3 border-t border-zinc-150 flex gap-2 flex-wrap items-center">
               {node.images.map((img, idx) => {
                  const neon = getNeonStyle(idx);
                  return (
                   <div key={idx} className={cn("w-2 h-2 rounded-full", neon.border)} title={img.title} />
                  )
               })}
-              <span className="text-[10px] text-slate-500 ml-2">{node.images.length} items</span>
+              <span className="text-[10px] font-bold text-zinc-400 ml-2 uppercase tracking-wide">{node.images.length} items loaded</span>
             </div>
           )}
         </div>
@@ -210,7 +222,7 @@ const AdminNavCustomization = () => {
 
   // Form States
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState(""); // We store ONLY the slug here, but send full link to DB
+  const [slug, setSlug] = useState("");
   
   const [assetsCount, setAssetsCount] = useState(0);
   const [assets, setAssets] = useState([]); 
@@ -247,7 +259,6 @@ const AdminNavCustomization = () => {
     }
   }, []);
 
-  // --- FETCHING ---
   const fetchNav = useCallback(async () => {
     setLoading(true);
     try {
@@ -263,39 +274,31 @@ const AdminNavCustomization = () => {
   useEffect(() => { fetchNav(); }, [fetchNav]);
   useEffect(() => { fetchLogos(); }, [fetchLogos]);
 
-  // --- AUTO SLUG ENGINE ---
-  // When Name changes -> Auto-generate Slug
   const handleNameChange = (e) => {
     const newName = e.target.value;
     setName(newName);
-    // If it's a new entry, strictly auto-generate. 
-    // Even if editing, we usually want to suggest the slug match the name.
     setSlug(slugify(newName));
   };
 
-  // Allow manual slug override, but keep it clean
   const handleSlugChange = (e) => {
     setSlug(slugify(e.target.value));
   };
 
-  // --- ASSET MANAGEMENT ---
   const handleAssetCountChange = (count) => {
     let newCount = parseInt(count);
     if (isNaN(newCount)) newCount = 0;
-    if (newCount > 1000) newCount = 1000; // Max Limit
-    if (newCount < 0) newCount = 0;       // Min Limit
+    if (newCount > 1000) newCount = 1000; 
+    if (newCount < 0) newCount = 0;       
     
     setAssetsCount(newCount);
     
     setAssets(prev => {
       const newAssets = [...prev];
       if (newCount > prev.length) {
-        // Add slots
         for (let i = prev.length; i < newCount; i++) {
           newAssets.push({ file: null, preview: null, title: "", linkSlug: "", existingUrl: null });
         }
       } else {
-        // Remove slots
         newAssets.splice(newCount);
       }
       return newAssets;
@@ -309,11 +312,9 @@ const AdminNavCustomization = () => {
 
       currentAsset[field] = value;
 
-      // Smart Logic: If Title changes, auto-gen the Asset Link Slug
       if (field === "title") {
         currentAsset.linkSlug = slugify(value);
       }
-      // If Link Slug changes manually, clean it
       if (field === "linkSlug") {
         currentAsset.linkSlug = slugify(value);
       }
@@ -337,7 +338,6 @@ const AdminNavCustomization = () => {
     });
   };
 
-  // --- OPEN/CLOSE MODAL ---
   const handleOpenCreate = (parent = null) => {
     setModalMode("create");
     setActiveParent(parent);
@@ -353,7 +353,6 @@ const AdminNavCustomization = () => {
     setEditingNode(node);
     setName(node.name);
     
-    // Extract slug from the full link if possible, or use stored slug
     let existingSlug = node.slug;
     if (!existingSlug && node.link) {
         existingSlug = node.link.split('/').pop();
@@ -363,13 +362,12 @@ const AdminNavCustomization = () => {
     if (node.images && node.images.length > 0) {
       setAssetsCount(node.images.length);
       setAssets(node.images.map(img => {
-         // Extract slug from image link
          const imgSlug = img.link ? img.link.split('/').pop() : "";
          return {
             file: null,
             preview: img.image, 
             title: img.title || "",
-            linkSlug: imgSlug, // We only edit the slug part
+            linkSlug: imgSlug, 
             existingUrl: img.image
          }
       }));
@@ -380,40 +378,35 @@ const AdminNavCustomization = () => {
     setIsModalOpen(true);
   };
 
-  // --- SUBMISSION HANDLER ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
 
     const formData = new FormData();
-    
-    // 1. Construct the Main Category Data
     const fullLink = `${frontendurl}/s/${slug}`;
     const path = `/s/${slug}`;
 
     formData.append("name", name);
-    formData.append("slug", slug); // Save pure slug for future edits
-    formData.append("link", fullLink); // THE GOLDEN RULE: frontendurl/s/slug
+    formData.append("slug", slug); 
+    formData.append("link", fullLink); 
     formData.append("path", path);
 
-    // 2. Process Assets
     const assetsMetadata = [];
     
     assets.forEach((asset, index) => {
-      // Auto-construct Asset Link
       const assetFullLink = `${frontendurl}/s/${asset.linkSlug}`;
 
       if (asset.file) {
         formData.append("images", asset.file);
         assetsMetadata.push({
           title: asset.title,
-          link: assetFullLink, // STRICT FORMAT
+          link: assetFullLink, 
           type: "new",
         });
       } else if (asset.existingUrl) {
         assetsMetadata.push({
           title: asset.title,
-          link: assetFullLink, // STRICT FORMAT
+          link: assetFullLink, 
           image: asset.existingUrl,
           type: "existing"
         });
@@ -438,7 +431,7 @@ const AdminNavCustomization = () => {
       fetchNav();
       
     } catch (err) {
-      console.error("âŒ SUBMISSION ERROR:", err);
+      console.error("Submission Error:", err);
       alert(`Failed: ${err.response?.data?.message || "Server Error"}`);
     } finally {
       setSubmitting(false);
@@ -539,62 +532,56 @@ const AdminNavCustomization = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#020617] to-black text-slate-200 p-4 md:p-10 font-sans">
+    <div className="min-h-screen bg-zinc-50/70 font-sans text-zinc-900 antialiased selection:bg-emerald-100 pb-16">
+      <SuperAdminNav />
       
       {/* Background Ambience */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed top-0 right-0 w-[400px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 relative z-10">
         
-        {/* Header */}
-        <header className="flex flex-col md:flex-row justify-between items-center gap-6 mb-16 p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md">
-          <div className="flex items-center gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.4)]">
-              <Layers className="w-8 h-8 text-white" />
+        {/* Header Jumbotron */}
+        <div className="relative mb-8 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm sm:p-8">
+          <div className="absolute -right-16 -top-16 h-36 w-36 rounded-full bg-emerald-50/50 blur-3xl"></div>
+          <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800 ring-4 ring-emerald-500/10">
+                <Layers className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-xl font-extrabold tracking-tight text-zinc-900 sm:text-2xl">Navigation & CMS Hub</h1>
+                <p className="mt-1 text-sm text-zinc-500">Configure GlowHaat category hierarchies, mega menus, and manage logo assets.</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-black text-white tracking-tighter uppercase italic">
-                Glow Haat  <span className="text-cyan-500">CMS</span>
-              </h1>
-              <p className="text-slate-400 font-medium flex items-center gap-2">
-                <Globe className="w-4 h-4" /> 
-                Target: <span className="text-cyan-400 font-mono">{frontendurl}</span>
-              </p>
-              <p className="text-slate-400 font-medium flex items-center gap-2">
-                <Globe className="w-4 h-4" /> 
-              <span>Build For Glow Haat Admins</span>
-              </p>
-            </div>
+            <GlassButton onClick={() => handleOpenCreate()}>
+              <Plus className="w-4 h-4" /> Add Root Category
+            </GlassButton>
           </div>
-          <GlassButton onClick={() => handleOpenCreate()}>
-            <Plus className="w-5 h-5" /> Add Root Category
-          </GlassButton>
-        </header>
+        </div>
 
-        <section className="mb-12 rounded-3xl border border-cyan-500/20 bg-white/[0.03] p-6 md:p-8 backdrop-blur-md">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        {/* Logo Control Panel */}
+        <section className="mb-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-2xs">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between pb-6 border-b border-zinc-100">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-cyan-400">SuperAdmin Logo Vault</p>
-              <h2 className="mt-2 text-2xl font-bold text-white">GlowHaat Global Logo Control</h2>
-              <p className="mt-2 max-w-3xl text-sm text-slate-300">
-                Upload logos as <span className="text-cyan-300">draft</span>, keep serial numbers, and activate exactly one logo at a time.
-                If one logo is active, you must deactivate it first before activating another.
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-250">SuperAdmin Logo Vault</span>
+              <h2 className="mt-3 text-lg font-extrabold text-zinc-850">GlowHaat Global Logo Control</h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                Upload logos as drafts, maintain serial numbers, and activate exactly one logo at a time.
               </p>
             </div>
             <GlassButton
               variant="secondary"
               onClick={fetchLogos}
               isLoading={logoLoading}
-              className="h-11 min-w-[170px]"
+              className="h-10 min-w-[170px]"
             >
               <RefreshCw className="h-4 w-4" /> Refresh Logos
             </GlassButton>
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Bulk Draft Upload</p>
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-5 shadow-2xs">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Bulk Draft Upload</p>
               <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center">
                 <input
                   ref={logoInputRef}
@@ -602,58 +589,58 @@ const AdminNavCustomization = () => {
                   accept="image/*"
                   multiple
                   onChange={handleLogoSelection}
-                  className="block w-full text-sm text-slate-300 file:mr-4 file:rounded-xl file:border file:border-cyan-400/30 file:bg-cyan-500/10 file:px-4 file:py-2 file:text-xs file:font-semibold file:uppercase file:tracking-[0.12em] file:text-cyan-200 hover:file:bg-cyan-500/20"
+                  className="block w-full text-sm text-zinc-650 file:mr-4 file:rounded-xl file:border file:border-emerald-250 file:bg-emerald-50 file:px-4 file:py-2 file:text-xs file:font-bold file:uppercase file:tracking-wider file:text-emerald-850 hover:file:bg-emerald-100 transition-all cursor-pointer"
                 />
                 <GlassButton
                   onClick={handleUploadDraftLogos}
                   isLoading={logoUploading}
-                  className="h-11 min-w-[220px]"
+                  className="h-10 min-w-[220px]"
                 >
                   <UploadCloud className="h-4 w-4" />
                   {logoUploading ? "Uploading Drafts..." : "Upload Draft Logos"}
                 </GlassButton>
               </div>
-              <p className="mt-3 text-xs text-slate-400">
-                Selected files: <span className="font-semibold text-cyan-300">{selectedLogoFiles.length}</span>
+              <p className="mt-3 text-xs text-zinc-500">
+                Selected files: <span className="font-bold text-emerald-800">{selectedLogoFiles.length}</span>
               </p>
               {logoStatusMessage ? (
-                <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 px-4 py-3 text-sm text-cyan-100">
+                <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-semibold text-emerald-900">
                   {logoStatusMessage}
                 </div>
               ) : null}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-slate-950/40 p-5">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Currently Active Logo</p>
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-5 shadow-2xs">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">Currently Active Logo</p>
               {activeLogoItem ? (
                 <div className="mt-4 space-y-3">
                   <img
                     src={activeLogoItem.logo}
                     alt={`Active Logo ${activeLogoItem.serialnumber}`}
-                    className="h-20 w-full rounded-xl border border-cyan-500/30 bg-white/90 object-contain p-2"
+                    className="h-20 w-full rounded-xl border border-emerald-100 bg-white object-contain p-2 shadow-2xs"
                   />
-                  <div className="flex items-center justify-between text-xs text-slate-300">
+                  <div className="flex items-center justify-between text-xs text-zinc-650 font-bold uppercase tracking-wider">
                     <span>Serial #{activeLogoItem.serialnumber}</span>
-                    <span className="rounded-full bg-emerald-500/20 px-2 py-1 font-semibold uppercase tracking-[0.1em] text-emerald-300">
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-bold uppercase tracking-wider text-emerald-800 border border-emerald-200">
                       Active
                     </span>
                   </div>
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-amber-300">No active logo selected yet.</p>
+                <p className="mt-4 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl p-3">No active logo selected yet.</p>
               )}
             </div>
           </div>
 
-          <div className="mt-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Logo Library</p>
+          <div className="mt-8">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-450">Logo Library</p>
             {logoLoading ? (
-              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-slate-900/40 px-4 py-4 text-sm text-slate-300">
-                <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+              <div className="mt-4 flex items-center gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-4 text-xs font-semibold text-zinc-500">
+                <Loader2 className="h-4 w-4 animate-spin text-emerald-800" />
                 Loading logo drafts...
               </div>
             ) : logoItems.length === 0 ? (
-              <div className="mt-4 rounded-2xl border border-dashed border-white/20 bg-slate-900/30 px-4 py-8 text-center text-sm text-slate-400">
+              <div className="mt-4 rounded-2xl border border-dashed border-zinc-350 bg-zinc-50/55 px-4 py-8 text-center text-xs font-semibold text-zinc-400">
                 No logo drafts found. Upload your first GlowHaat logo pack.
               </div>
             ) : (
@@ -667,18 +654,18 @@ const AdminNavCustomization = () => {
                     <div
                       key={entry._id}
                       className={cn(
-                        "rounded-2xl border p-4 transition-all",
+                        "rounded-2xl border p-4 transition-all shadow-2xs",
                         entry.isactive
-                          ? "border-emerald-400/40 bg-emerald-500/10"
-                          : "border-white/10 bg-slate-900/45"
+                          ? "border-emerald-300 bg-emerald-50/30"
+                          : "border-zinc-200 bg-white"
                       )}
                     >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-mono text-slate-300">Serial #{entry.serialnumber}</span>
+                      <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider">
+                        <span className="font-mono text-zinc-400">Serial #{entry.serialnumber}</span>
                         <span
                           className={cn(
-                            "rounded-full px-2 py-1 font-semibold uppercase tracking-[0.1em]",
-                            entry.isactive ? "bg-emerald-500/20 text-emerald-300" : "bg-slate-700 text-slate-300"
+                            "rounded-full px-2 py-0.5 text-[9px] tracking-wide",
+                            entry.isactive ? "bg-emerald-100 text-emerald-800 border border-emerald-200" : "bg-zinc-100 text-zinc-500 border border-zinc-200"
                           )}
                         >
                           {entry.isactive ? "active" : "draft"}
@@ -687,16 +674,16 @@ const AdminNavCustomization = () => {
                       <img
                         src={entry.logo}
                         alt={`Logo ${entry.serialnumber}`}
-                        className="mt-3 h-20 w-full rounded-xl border border-white/10 bg-white object-contain p-2"
+                        className="mt-3 h-20 w-full rounded-xl border border-zinc-100 bg-white object-contain p-2 shadow-3xs"
                       />
-                      <p className="mt-3 text-[11px] text-slate-400">Uploaded: {formatTimestamp(entry.createdAt)}</p>
+                      <p className="mt-3 text-[10px] font-semibold text-zinc-400">Uploaded: {formatTimestamp(entry.createdAt)}</p>
                       <div className="mt-4 flex gap-2">
                         {entry.isactive ? (
                           <GlassButton
                             variant="danger"
                             onClick={() => handleDeactivateLogo(entry._id)}
                             isLoading={isDeactivateBusy}
-                            className="flex-1 h-10 text-xs"
+                            className="flex-1 h-9 text-xs"
                           >
                             Deactivate
                           </GlassButton>
@@ -704,7 +691,7 @@ const AdminNavCustomization = () => {
                           <GlassButton
                             onClick={() => handleActivateLogo(entry._id)}
                             isLoading={isActivateBusy}
-                            className="flex-1 h-10 text-xs"
+                            className="flex-1 h-9 text-xs"
                           >
                             Activate
                           </GlassButton>
@@ -713,7 +700,7 @@ const AdminNavCustomization = () => {
                           variant="ghost"
                           onClick={() => handleDeleteDraftLogo(entry._id)}
                           isLoading={isDeleteBusy}
-                          className="h-10 min-w-[90px] text-xs border border-white/10"
+                          className="h-9 min-w-[90px] text-xs border border-zinc-200 hover:bg-zinc-50"
                           disabled={entry.isactive || isBusy}
                         >
                           Delete
@@ -731,14 +718,14 @@ const AdminNavCustomization = () => {
         <div className="space-y-6 pb-20">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-40 gap-4">
-              <Loader2 className="w-12 h-12 animate-spin text-cyan-500" />
-              <p className="text-cyan-500/50 font-mono tracking-widest animate-pulse">SYNCHRONIZING TREE...</p>
+              <Loader2 className="w-12 h-12 animate-spin text-emerald-800" />
+              <p className="text-emerald-800 font-mono tracking-widest animate-pulse uppercase text-xs font-bold">Synchronizing Hierarchy Tree...</p>
             </div>
           ) : navTree.length === 0 ? (
-            <div className="text-center py-40 rounded-3xl border border-dashed border-white/10 bg-white/5">
-                <p className="text-slate-500 text-lg mb-6">No hierarchy detected. Let&apos;s build something big.</p>
+            <div className="text-center py-40 rounded-3xl border border-dashed border-zinc-300 bg-white shadow-2xs">
+                <p className="text-zinc-550 text-base mb-6 font-semibold">No category hierarchies configured in database.</p>
                 <GlassButton variant="secondary" onClick={() => handleOpenCreate()} className="mx-auto">
-                    Initialize Root
+                    Initialize Root Node
                 </GlassButton>
             </div>
           ) : (
@@ -749,7 +736,7 @@ const AdminNavCustomization = () => {
                 onAddChild={handleOpenCreate} 
                 onEdit={handleOpenEdit} 
                 onDelete={async (id) => {
-                  if(confirm("Delete this node and all children?")) {
+                  if(confirm("Delete this category node and all sub-children?")) {
                     await axios.delete(`${serverurl}/nav/deletenav/${id}`);
                     fetchNav();
                   }
@@ -766,100 +753,100 @@ const AdminNavCustomization = () => {
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+              className="absolute inset-0 bg-zinc-950/65 backdrop-blur-md"
               onClick={() => setIsModalOpen(false)}
             />
             <motion.div
-              initial={{ scale: 0.95, y: 30, opacity: 0 }}
+              initial={{ scale: 0.97, y: 15, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.95, y: 30, opacity: 0 }}
-              className="relative w-full max-w-4xl bg-[#0f172a] border border-cyan-500/30 rounded-[2.5rem] shadow-[0_0_100px_rgba(6,182,212,0.15)] overflow-hidden flex flex-col max-h-[90vh]"
+              exit={{ scale: 0.97, y: 15, opacity: 0 }}
+              className="relative w-full max-w-4xl bg-white border border-zinc-200 rounded-[1.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-8 border-b border-white/5 flex justify-between items-center shrink-0 bg-slate-900/50">
+              <div className="p-6 border-b border-zinc-150 flex justify-between items-center shrink-0 bg-zinc-50/50">
                 <div>
-                  <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                    <Zap className="text-cyan-400" />
+                  <h2 className="text-lg font-extrabold text-zinc-900 flex items-center gap-2">
+                    <Zap className="text-emerald-800 h-5 w-5" />
                     {modalMode === "create" ? "New Navigation Entry" : "Edit Navigation"}
                   </h2>
-                  <p className="text-slate-400 text-sm mt-1">
+                  <p className="text-zinc-500 text-xs mt-1">
                     {activeParent ? `Adding sub-category to: ${activeParent.name}` : "Creating top-level category"}
                   </p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-full">
-                  <X className="w-6 h-6" />
+                <button onClick={() => setIsModalOpen(false)} className="text-zinc-400 hover:text-zinc-650 transition-colors p-2 hover:bg-zinc-100 rounded-full">
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-8 space-y-8">
+              <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-8 space-y-8">
                 
                 {/* 1. NAME & AUTO-LINK GENERATOR */}
-                <div className="bg-slate-950/50 rounded-2xl p-6 border border-white/5 space-y-6">
+                <div className="bg-zinc-50/55 rounded-2xl p-6 border border-zinc-200 space-y-6">
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-cyan-500 uppercase tracking-widest">Category Name</label>
+                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Category Name</label>
                             <input 
-                            required 
-                            autoFocus
-                            value={name}
-                            onChange={handleNameChange}
-                            className="w-full bg-slate-900 border border-white/10 rounded-xl px-5 py-4 text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all text-lg font-bold placeholder:text-slate-700"
-                            placeholder="e.g. Platinum Abaya"
+                              required 
+                              autoFocus
+                              value={name}
+                              onChange={handleNameChange}
+                              className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-3 text-zinc-800 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-500 outline-none transition-all text-base font-bold placeholder:text-zinc-350"
+                              placeholder="e.g. Platinum Abaya"
                             />
                         </div>
                         
                         <div className="space-y-2">
-                            <label className="text-xs font-bold text-green-500 uppercase tracking-widest flex items-center gap-2">
-                                <Sparkles className="w-3 h-3" /> Auto-Generated Slug
+                            <label className="text-xs font-bold text-emerald-700 uppercase tracking-wider flex items-center gap-2">
+                                <Sparkles className="w-3.5 h-3.5" /> Auto-Generated Slug
                             </label>
                             <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono text-sm">/s/</span>
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 font-mono text-sm">/s/</span>
                                 <input 
-                                value={slug}
-                                onChange={handleSlugChange}
-                                className="w-full pl-10 bg-slate-900 border border-green-500/20 rounded-xl px-5 py-4 text-green-400 font-mono focus:border-green-500 outline-none transition-all"
-                                placeholder="platinum-abaya"
+                                  value={slug}
+                                  onChange={handleSlugChange}
+                                  className="w-full pl-10 bg-zinc-50 border border-emerald-500/20 rounded-xl px-4 py-3 text-emerald-850 font-mono focus:border-emerald-500 outline-none transition-all text-sm font-semibold"
+                                  placeholder="platinum-abaya"
                                 />
                             </div>
                         </div>
                     </div>
 
                     {/* LIVE URL PREVIEW */}
-                    <div className="bg-cyan-950/20 border border-cyan-500/20 rounded-xl p-4 flex items-center gap-3">
-                        <div className="p-2 bg-cyan-500/10 rounded-lg text-cyan-400">
+                    <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
+                        <div className="p-2 bg-emerald-100 rounded-lg text-emerald-800">
                             <LinkIcon className="w-4 h-4" />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <p className="text-[10px] text-cyan-500/70 uppercase font-bold tracking-wider">Final Link Structure</p>
-                            <p className="text-sm font-mono text-cyan-100 truncate">
-                                <span className="opacity-40">{frontendurl}</span>
-                                <span className="opacity-60">/s/</span>
-                                <span className="font-bold text-white bg-cyan-500/20 px-1 rounded">{slug || "..."}</span>
+                            <p className="text-[10px] text-emerald-850 uppercase font-bold tracking-wider">Final Link Structure</p>
+                            <p className="text-xs font-mono text-emerald-950 truncate">
+                                <span className="opacity-55">{frontendurl}</span>
+                                <span className="opacity-70">/s/</span>
+                                <span className="font-bold text-emerald-900 bg-emerald-100/50 px-1.5 py-0.5 rounded border border-emerald-250">{slug || "..."}</span>
                             </p>
                         </div>
-                        <CheckCircle2 className="text-cyan-500 w-5 h-5" />
+                        <CheckCircle2 className="text-emerald-600 w-5 h-5 shrink-0" />
                     </div>
                 </div>
 
-                <div className="w-full h-px bg-white/5" />
+                <div className="w-full h-px bg-zinc-150" />
 
                 {/* 2. ASSETS SECTION */}
                 <div className="space-y-6">
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                        <label className="text-lg font-bold text-white flex items-center gap-2">
-                        <LayoutGrid className="text-purple-500" /> Mega Menu Assets
+                        <label className="text-base font-bold text-zinc-850 flex items-center gap-2">
+                        <LayoutGrid className="text-emerald-850 h-5 w-5" /> Mega Menu Assets
                         </label>
-                        <p className="text-slate-400 text-xs mt-1">Min: 0 | Max: 1000 items. Random neon styles applied automatically.</p>
+                        <p className="text-zinc-550 text-xs mt-1">Min: 0 | Max: 1000 items. Elegant palettes applied automatically.</p>
                     </div>
                     
-                    <div className="flex items-center gap-3 bg-slate-900 rounded-xl p-1.5 border border-white/10 self-start">
-                      <span className="text-xs font-medium text-slate-400 pl-3">Total Images:</span>
+                    <div className="flex items-center gap-3 bg-zinc-50 rounded-xl p-1.5 border border-zinc-200 self-start">
+                      <span className="text-xs font-semibold text-zinc-500 pl-3">Total Images:</span>
                       <input 
                         type="number" 
                         min="0" max="1000"
                         value={assetsCount}
                         onChange={(e) => handleAssetCountChange(e.target.value)}
-                        className="w-20 bg-slate-800 rounded-lg px-2 py-1 text-white text-center font-bold outline-none focus:bg-slate-700"
+                        className="w-16 bg-white border border-zinc-200 rounded-lg px-2 py-1 text-zinc-800 text-center font-bold outline-none focus:border-emerald-650"
                       />
                     </div>
                   </div>
@@ -874,31 +861,31 @@ const AdminNavCustomization = () => {
                         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
                         key={idx} 
                         className={cn(
-                            "relative bg-slate-950/40 border rounded-2xl p-4 flex flex-col md:flex-row gap-5 items-start transition-all duration-300 group",
-                            "border-white/5 hover:border-white/10",
+                            "relative bg-zinc-50/50 border rounded-2xl p-4 flex flex-col md:flex-row gap-5 items-start transition-all duration-300 group",
+                            "border-zinc-200 hover:border-zinc-350",
                             neon.ring
                         )}
                       >
-                        {/* Decorative Neon Side Bar */}
+                        {/* Decorative Palette Side Bar */}
                         <div className={cn("absolute left-0 top-4 bottom-4 w-1 rounded-r-full", neon.border)} />
 
                         {/* Image Upload */}
                         <div className="shrink-0 w-full md:w-32 aspect-[3/4] relative group/image">
                           <label className={cn(
-                              "absolute inset-0 flex flex-col items-center justify-center bg-slate-900/50 border-2 border-dashed rounded-xl cursor-pointer transition-all overflow-hidden",
-                              "border-white/10 hover:border-white/30"
+                              "absolute inset-0 flex flex-col items-center justify-center bg-white border-2 border-dashed rounded-xl cursor-pointer transition-all overflow-hidden",
+                              "border-zinc-200 hover:border-emerald-600"
                           )}>
                             {asset.preview ? (
                               <>
                                 <img src={asset.preview} alt="Preview" className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/image:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
-                                  <Edit3 className="text-white w-6 h-6" />
+                                <div className="absolute inset-0 bg-zinc-900/60 opacity-0 group-hover/image:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-3xs">
+                                  <Edit3 className="text-white w-5 h-5" />
                                 </div>
                               </>
                             ) : (
-                              <div className="flex flex-col items-center text-slate-500 group-hover/image:text-white transition-colors">
-                                <UploadCloud className="w-8 h-8 mb-2" />
-                                <span className="text-[10px] uppercase font-bold">Upload</span>
+                              <div className="flex flex-col items-center text-zinc-400 group-hover/image:text-emerald-800 transition-colors">
+                                <UploadCloud className="w-6 h-6 mb-2" />
+                                <span className="text-[10px] uppercase font-bold tracking-wider">Upload</span>
                               </div>
                             )}
                             <input 
@@ -908,35 +895,35 @@ const AdminNavCustomization = () => {
                               onChange={(e) => handleAssetFileChange(idx, e.target.files?.[0])} 
                             />
                           </label>
-                          <div className="absolute top-2 left-2 bg-black/80 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full font-mono border border-white/10">
+                          <div className="absolute top-2 left-2 bg-zinc-900/80 backdrop-blur text-white text-[9px] px-2 py-0.5 rounded-full font-mono font-bold">
                             #{idx + 1}
                           </div>
                         </div>
 
                         {/* Asset Details */}
-                        <div className="flex-1 w-full space-y-4 pt-1 pl-2">
+                        <div className="flex-1 w-full space-y-3 pt-1">
                             {/* Title Input */}
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase">Image Title</label>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-zinc-450 uppercase">Image Title</label>
                               <input 
                                 placeholder="e.g. Eid Panjabi Collection"
                                 value={asset.title}
                                 onChange={(e) => handleAssetUpdate(idx, 'title', e.target.value)}
-                                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-white/30 outline-none transition-colors"
+                                className="w-full bg-white border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-zinc-800 focus:border-emerald-650 focus:ring-1 focus:ring-emerald-500/20 outline-none transition-colors"
                               />
                             </div>
 
                             {/* Auto Link Display */}
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-slate-500 uppercase flex items-center gap-2">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-zinc-455 uppercase flex items-center gap-2">
                                 Auto-Generated Link
-                                <span className={cn("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase", neon.border.replace('bg-', 'bg-opacity-20 text-white'))}>
+                                <span className={cn("text-[9px] px-1.5 py-0.5 rounded font-bold uppercase", neon.badge)}>
                                     Locked Format
                                 </span>
                               </label>
                               <div className="relative group/link">
-                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600 w-3 h-3 group-focus-within/link:text-cyan-400" />
-                                <div className="w-full bg-slate-900/50 border border-white/5 rounded-xl pl-9 pr-3 py-3 text-xs font-mono text-slate-400 flex items-center overflow-hidden">
+                                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 w-3.5 h-3.5 group-focus-within/link:text-emerald-800" />
+                                <div className="w-full bg-white border border-zinc-200 rounded-xl pl-9 pr-3 py-2.5 text-xs font-mono text-zinc-500 flex items-center overflow-hidden">
                                     <span className="shrink-0">{frontendurl}/s/</span>
                                     <input 
                                         value={asset.linkSlug}
@@ -954,13 +941,13 @@ const AdminNavCustomization = () => {
                 </div>
 
                 {/* FOOTER ACTIONS */}
-                <div className="sticky bottom-0 bg-[#0f172a] pt-4 pb-2 border-t border-white/5 flex gap-4 z-20">
-                  <GlassButton variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 h-12">
+                <div className="sticky bottom-0 bg-white pt-4 pb-2 border-t border-zinc-150 flex gap-4 z-20">
+                  <GlassButton variant="secondary" onClick={() => setIsModalOpen(false)} className="flex-1 h-11">
                     Discard Changes
                   </GlassButton>
-                  <GlassButton type="submit" isLoading={submitting} className="flex-[2] h-12 text-lg">
-                    <Save className="w-5 h-5" /> 
-                    {submitting ? "Processing..." : "Confirm & Save System"}
+                  <GlassButton type="submit" isLoading={submitting} className="flex-[2] h-11 text-sm font-bold uppercase tracking-wider">
+                    <Save className="w-4 h-4" /> 
+                    {submitting ? "Saving..." : "Confirm & Save System"}
                   </GlassButton>
                 </div>
               </form>
@@ -972,8 +959,8 @@ const AdminNavCustomization = () => {
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0891b2; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #047857; }
       `}</style>
     </div>
   );

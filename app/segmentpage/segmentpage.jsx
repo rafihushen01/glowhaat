@@ -3,11 +3,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useParams, useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
 import { Bolt, Filter, Flame, Search, ShoppingBag, SlidersHorizontal, Star, X } from "lucide-react";
 import { serverurl } from "../utils/constants/serverurl";
 import { trackRecommendationEvent } from "../utils/recommendation";
 import BehaviorRecommendations from "../Allpagecomponents/BehaviorRecommendations";
 import { getRequestConfig } from "../utils/requestConfig";
+import { addToCart } from "../reduxcomponents/CartSlice";
 
 const ITEM_URL = `${serverurl}/item`;
 const CATEGORY_URL = `${serverurl}/category/public/full`;
@@ -206,6 +208,7 @@ const SegmentPage = () => {
   const params = useParams();
   const slug = slugifyLoose(params?.slug || "all");
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const [catalogMeta, setCatalogMeta] = useState({
     title: "",
@@ -400,6 +403,9 @@ const SegmentPage = () => {
         getRequestConfig({ timeout: 20000 })
       );
       if (!data?.success) throw new Error(data?.message || "Could not add product to cart.");
+      if (data.item) {
+        dispatch(addToCart(data.item));
+      }
       if (toCheckout) router.push("/checkout");
     } catch (_error) {
       // keep silent to avoid intrusive UX

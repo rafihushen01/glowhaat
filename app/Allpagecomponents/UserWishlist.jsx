@@ -1,17 +1,20 @@
-﻿"use client";
+"use client";
 
 import React, { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
+import { useDispatch } from "react-redux";
 import { Heart, ShoppingBag, Trash2 } from "lucide-react";
 import UserNav from "./UserNav";
 import { serverurl } from "../utils/constants/serverurl";
 import { getRequestConfig } from "../utils/requestConfig";
 import { trackRecommendationEvent } from "../utils/recommendation";
+import { addToCart } from "../reduxcomponents/CartSlice";
 
-const formatMoney = (value) => `à§³${Number(value || 0).toLocaleString()}`;
+const formatMoney = (value) => `৳${Number(value || 0).toLocaleString()}`;
 
 const UserWishlist = () => {
+  const dispatch = useDispatch();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
@@ -72,6 +75,9 @@ const UserWishlist = () => {
       if (!data?.success) {
         setStatusMessage(data?.message || "Could not add product to cart.");
         return;
+      }
+      if (data.item) {
+        dispatch(addToCart(data.item));
       }
       setStatusMessage("Product added to cart.");
       trackRecommendationEvent({
