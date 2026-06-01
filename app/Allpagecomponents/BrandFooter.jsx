@@ -55,7 +55,7 @@ const helpLinks = [
 const socials = [
   {
     label: "Facebook",
-    href: "https://www.facebook.com/",
+    href: "https://www.facebook.com/share/1BU79YzKtv/?mibextid=wwXIfr",
     icon: <Facebook className="h-5 w-5" />,
   },
   {
