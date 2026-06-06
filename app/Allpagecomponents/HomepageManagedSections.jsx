@@ -53,8 +53,8 @@ const titles = {
   deals: "Deals In Glow Haat",
   topbrands: "Top Brands & Offers",
   extradiscount: "Extra Discount Offer",
-  shopbeautyproductbycategory: "ShopBeautyProductByCategory",
-  shopbeautyproductbyconcern: "ShopBeautyProductByConcern",
+  shopbeautyproductbycategory: "Shop Product By Category",
+  shopbeautyproductbyconcern: "Top Rated Category",
 };
 
 const sectionStyles = {
